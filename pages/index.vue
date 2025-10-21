@@ -15,13 +15,40 @@
         </p>
       </div>
 
-      <!-- Available Forms -->
+      <!-- Available Tools -->
       <div class="bg-white rounded-2xl shadow-xl p-8">
         <h2 class="text-3xl font-semibold text-gray-900 mb-6">
-          Available Forms
+          Available Tools
         </h2>
 
         <div class="grid gap-6 md:grid-cols-2">
+          <!-- Decision Analysis Card -->
+          <NuxtLink
+            to="/analyze-decision"
+            class="group block p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600">
+                  📄 Decision Letter Analysis
+                </h3>
+                <p class="text-gray-600 mb-4">
+                  Upload your VA decision letter and get instant analysis
+                </p>
+                <div class="flex items-center text-sm text-gray-500">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  ~1 minute
+                </div>
+              </div>
+              <div class="text-purple-600 group-hover:translate-x-1 transition-transform">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </NuxtLink>
           <!-- VA Form Card -->
           <NuxtLink
             to="/forms/va-21-526ez-minimal"
