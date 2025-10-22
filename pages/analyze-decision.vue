@@ -102,18 +102,18 @@
               v-for="(rating, index) in results.ratings"
               :key="index"
               class="p-4 rounded-lg border-2"
-              :class="rating.decision === 'denied' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'"
+              :class="decisionClass(rating.decision)"
             >
               <div class="flex justify-between items-start mb-2">
                 <h3 class="font-semibold text-gray-900">{{ rating.condition }}</h3>
                 <span
                   class="px-3 py-1 rounded-full text-sm font-semibold"
-                  :class="rating.decision === 'denied' ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'"
+                  :class="decisionClass(rating.decision)"
                 >
                   {{ rating.decision.toUpperCase() }}
                 </span>
               </div>
-              <p class="text-2xl font-bold" :class="rating.decision === 'denied' ? 'text-red-600' : 'text-green-600'">
+              <p class="text-2xl font-bold" :class="decisionClass(rating.decision)">
                 {{ rating.ratingPercentage }}%
               </p>
             </div>
@@ -198,6 +198,19 @@ function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function decisionClass(decision) {
+  switch (decision) {
+    case 'granted':
+      return 'border-green-200 bg-green-50';
+    case 'deferred':
+      return 'border-orange-200 bg-orange-50';
+    case 'denied':
+      return 'border-red-200 bg-red-50';
+    default:
+      return 'border-gray-200 bg-white';
+  }
 }
 
 async function analyzeDecision() {
