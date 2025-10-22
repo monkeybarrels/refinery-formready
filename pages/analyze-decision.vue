@@ -204,52 +204,17 @@ async function analyzeDecision() {
   if (!selectedFile.value) return;
 
   uploading.value = true;
+  analyzing.value = true;
   error.value = '';
 
   try {
-    // 1. Get presigned upload URL
-    const presignedResponse = await fetch(`${apiUrl}/v1/storage/upload/presigned`, {
+    // Upload file directly to extraction endpoint
+    const formData = new FormData();
+    formData.append('file', selectedFile.value);
+
+    const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/extract-decision-info`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName: selectedFile.value.name,
-        contentType: selectedFile.value.type,
-        path: 'decisions'
-      })
-    });
-
-    if (!presignedResponse.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-
-    const { uploadUrl, s3Key, fileId } = await presignedResponse.json();
-
-    // 2. Upload directly to S3 using presigned URL
-    const s3Response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: selectedFile.value,
-      headers: {
-        'Content-Type': selectedFile.value.type
-      }
-    });
-
-    if (!s3Response.ok) {
-      throw new Error('Upload to S3 failed');
-    }
-
-    uploading.value = false;
-    analyzing.value = true;
-
-    // 2. Trigger extraction
-    const documentId = `decision-${Date.now()}`;
-    const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/analyze-decision`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        documentId: documentId,
-        storageUrl: s3Key,
-        skipCache: true  // Force fresh extraction for testing
-      })
+      body: formData
     });
 
     if (!extractResponse.ok) {
@@ -258,7 +223,10 @@ async function analyzeDecision() {
 
     const extractData = await extractResponse.json();
 
-    // 3. Display results
+    uploading.value = false;
+    analyzing.value = false;
+
+    // Display results
     results.value = extractData;
     analyzing.value = false;
 
