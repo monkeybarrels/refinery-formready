@@ -242,7 +242,7 @@ async function analyzeDecision() {
 
     // 2. Trigger extraction
     const documentId = `decision-${Date.now()}`;
-    const extractResponse = await fetch('http://localhost:8000/extraction/extract', {
+    const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/analyze-decision`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
