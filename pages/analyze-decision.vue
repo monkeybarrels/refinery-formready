@@ -242,7 +242,7 @@ async function analyzeDecision() {
 
     // 3. Trigger Python extraction service via API proxy
     const documentId = `decision-${Date.now()}`;
-    const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/extract-decision-info`, {
+    const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/extract-from-s3`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
