@@ -204,17 +204,51 @@ async function analyzeDecision() {
   if (!selectedFile.value) return;
 
   uploading.value = true;
-  analyzing.value = true;
   error.value = '';
 
   try {
-    // Upload file directly to extraction endpoint
-    const formData = new FormData();
-    formData.append('file', selectedFile.value);
+    // 1. Get presigned upload URL
+    const presignedResponse = await fetch(`${apiUrl}/v1/storage/upload/presigned`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: selectedFile.value.name,
+        contentType: selectedFile.value.type,
+        path: 'decisions'
+      })
+    });
 
+    if (!presignedResponse.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+
+    const { uploadUrl, s3Key, fileId } = await presignedResponse.json();
+
+    // 2. Upload directly to S3 using presigned URL
+    const s3Response = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: selectedFile.value,
+      headers: {
+        'Content-Type': selectedFile.value.type
+      }
+    });
+
+    if (!s3Response.ok) {
+      throw new Error('Upload to S3 failed');
+    }
+
+    uploading.value = false;
+    analyzing.value = true;
+
+    // 3. Trigger Python extraction service via API proxy
+    const documentId = `decision-${Date.now()}`;
     const extractResponse = await fetch(`${apiUrl}/v1/va-knowledge/extract-decision-info`, {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        documentId: documentId,
+        storageUrl: s3Key
+      })
     });
 
     if (!extractResponse.ok) {
@@ -222,13 +256,10 @@ async function analyzeDecision() {
     }
 
     const extractData = await extractResponse.json();
-
-    uploading.value = false;
     analyzing.value = false;
 
     // Display results
     results.value = extractData;
-    analyzing.value = false;
 
   } catch (err) {
     console.error('Analysis error:', err);
