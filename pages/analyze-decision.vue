@@ -208,7 +208,7 @@ async function analyzeDecision() {
 
   try {
     // 1. Get presigned upload URL
-    const presignedResponse = await fetch(`${apiUrl}/v1/storage/upload/presigned`, {
+    const presignedResponse = await fetch(`${apiUrl}/api/v1/storage/upload/presigned`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
