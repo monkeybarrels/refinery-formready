@@ -247,7 +247,8 @@ async function analyzeDecision() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         documentId: documentId,
-        storageUrl: s3Key
+        storageUrl: s3Key,
+        skipCache: true  // Force fresh extraction for testing
       })
     });
 
