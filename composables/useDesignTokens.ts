@@ -1,6 +1,6 @@
 /**
  * Design Tokens for VA Decision Analysis UI
- * Professional blue-based color palette with accessibility focus
+ * Classic Patriotic theme - Navy Blue, Gold, Red with veteran-friendly styling
  */
 
 export interface DesignTokens {
@@ -10,6 +10,7 @@ export interface DesignTokens {
     deferred: ColorSet
     primary: ColorSet
     secondary: ColorSet
+    accent: ColorSet
     background: {
       main: string
       card: string
@@ -41,8 +42,8 @@ interface ColorSet {
   bg: string
   border: string
   text: string
-  badge: string
-  icon: string
+  badge?: string
+  icon?: string
   hover?: string
 }
 
@@ -73,25 +74,31 @@ export const useDesignTokens = (): DesignTokens => {
         icon: 'text-amber-600'
       },
       
-      // UI Colors
+      // UI Colors - Classic Patriotic
       primary: {
-        bg: 'bg-indigo-600',
-        hover: 'hover:bg-indigo-700',
-        text: 'text-indigo-600',
-        border: 'border-indigo-600'
+        bg: 'bg-blue-800', // Navy Blue - military heritage, trust
+        hover: 'hover:bg-blue-900',
+        text: 'text-blue-800',
+        border: 'border-blue-800'
       },
       secondary: {
-        bg: 'bg-slate-600',
-        hover: 'hover:bg-slate-700',
-        text: 'text-slate-600',
-        border: 'border-slate-600'
+        bg: 'bg-amber-500', // Gold - honor, achievement, medals
+        hover: 'hover:bg-amber-600',
+        text: 'text-amber-500',
+        border: 'border-amber-500'
+      },
+      accent: {
+        bg: 'bg-red-600', // Red - courage, sacrifice, American flag
+        hover: 'hover:bg-red-700',
+        text: 'text-red-600',
+        border: 'border-red-600'
       },
       
-      // Backgrounds
+      // Backgrounds - Clean, medical document feel
       background: {
-        main: 'bg-slate-50',
+        main: 'bg-gray-50', // Off-white - clean, medical document feel
         card: 'bg-white',
-        subtle: 'bg-slate-100'
+        subtle: 'bg-gray-100'
       },
       
       // Text Colors
