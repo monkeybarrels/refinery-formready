@@ -24,13 +24,13 @@
       />
 
       <div v-if="!selectedFile">
-        <Icon name="document" size="xl" color="slate-400" class="mx-auto mb-4" />
+        <Icon name="document" class="w-8 h-8 mx-auto mb-4" color="slate-400" />
         <p class="text-lg text-slate-700 mb-2">Drop your decision letter here or click to browse</p>
         <p class="text-sm text-slate-500">PDF files only</p>
       </div>
 
       <div v-else class="flex items-center justify-center">
-        <Icon name="checkmark" size="lg" color="green-500" class="mr-3" />
+        <Icon name="checkmark" class="w-6 h-6 mr-3" color="green-500" />
         <div class="text-left">
           <p class="text-lg font-semibold text-slate-900">{{ selectedFile.name }}</p>
           <p class="text-sm text-slate-500">{{ formatFileSize(selectedFile.size) }}</p>
@@ -44,17 +44,16 @@
       @click="handleAnalyze"
       :disabled="uploading"
       variant="primary"
-      size="lg"
       class="w-full mt-6"
     >
-      <Icon v-if="uploading" name="clock" size="sm" class="mr-2" />
+      <Icon v-if="uploading" name="clock" class="w-4 h-4 mr-2" />
       {{ uploading ? 'Uploading...' : 'Analyze Decision Letter' }}
     </Button>
 
     <!-- Error Message -->
     <div v-if="error" class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
       <div class="flex items-center">
-        <Icon name="exclamation" size="sm" color="red-600" class="mr-2" />
+        <Icon name="exclamation" class="w-4 h-4 mr-2" color="red-600" />
         <p class="text-red-800">{{ error }}</p>
       </div>
     </div>
@@ -63,7 +62,6 @@
 
 <script setup lang="ts">
 import Button from '../atoms/Button.vue'
-import Icon from '../atoms/Icon.vue'
 
 interface Props {
   uploading?: boolean

@@ -2,7 +2,7 @@
   <div class="bg-white rounded-2xl shadow-xl p-8">
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center">
-        <Icon name="shield-check" size="lg" color="indigo-600" class="mr-3" />
+        <Icon name="heroicons:shield-check" class="w-6 h-6 mr-3" color="indigo-600" />
         <h2 class="text-2xl font-bold text-slate-900">Rating Decisions</h2>
       </div>
       <div class="flex items-center space-x-4">
@@ -21,7 +21,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
         <div class="flex items-center">
-          <Icon name="checkmark" size="md" color="green-600" class="mr-2" />
+          <Icon name="checkmark" class="w-5 h-5 mr-2" color="green-600" />
           <div>
             <p class="text-sm text-green-600">Approved</p>
             <p class="text-2xl font-bold text-green-700">{{ approvedCount }}</p>
@@ -31,7 +31,7 @@
       
       <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
         <div class="flex items-center">
-          <Icon name="x-mark" size="md" color="red-600" class="mr-2" />
+          <Icon name="x-mark" class="w-5 h-5 mr-2" color="red-600" />
           <div>
             <p class="text-sm text-red-600">Denied</p>
             <p class="text-2xl font-bold text-red-700">{{ deniedCount }}</p>
@@ -41,7 +41,7 @@
       
       <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
         <div class="flex items-center">
-          <Icon name="clock" size="md" color="amber-600" class="mr-2" />
+          <Icon name="clock" class="w-5 h-5 mr-2" color="amber-600" />
           <div>
             <p class="text-sm text-amber-600">Deferred</p>
             <p class="text-2xl font-bold text-amber-700">{{ deferredCount }}</p>
@@ -92,7 +92,7 @@
     
     <!-- Empty State -->
     <div v-if="filteredConditions.length === 0" class="text-center py-8">
-      <Icon name="info" size="lg" color="slate-400" class="mx-auto mb-2" />
+      <Icon name="info" class="w-6 h-6 mx-auto mb-2" color="slate-400" />
       <p class="text-slate-500">No conditions match the selected filter</p>
     </div>
   </div>
@@ -100,7 +100,6 @@
 
 <script setup lang="ts">
 import DecisionCard from '../molecules/DecisionCard.vue'
-import Icon from '../atoms/Icon.vue'
 
 interface Condition {
   condition: string

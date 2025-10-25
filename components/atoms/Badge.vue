@@ -14,7 +14,6 @@
 </template>
 
 <script setup lang="ts">
-import Icon from './Icon.vue'
 
 interface Props {
   variant?: 'approved' | 'denied' | 'deferred' | 'default' | 'primary' | 'secondary'

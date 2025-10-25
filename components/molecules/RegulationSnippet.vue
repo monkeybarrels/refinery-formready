@@ -5,7 +5,7 @@
       class="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors duration-200 flex items-center justify-between text-left"
     >
       <div class="flex items-center">
-        <Icon name="document" size="sm" color="slate-600" class="mr-2" />
+        <Icon name="document" class="w-4 h-4 mr-2" color="red-600" />
         <div>
           <h4 class="font-medium text-slate-900">{{ citation }}</h4>
           <p class="text-sm text-slate-600">{{ title }}</p>
@@ -13,9 +13,8 @@
       </div>
       <Icon 
         :name="expanded ? 'chevron-down' : 'chevron-right'" 
-        size="sm" 
+        class="w-4 h-4" 
         color="slate-500"
-        class="transition-transform duration-200"
         :class="{ 'rotate-180': expanded }"
       />
     </button>
@@ -29,7 +28,7 @@
         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
           <Button 
             variant="ghost" 
-            size="sm"
+            class="w-4 h-4"
             icon="copy"
             @click="copyCitation"
           >
@@ -38,7 +37,7 @@
           
           <Button 
             variant="ghost" 
-            size="sm"
+            class="w-4 h-4"
             icon="external-link"
             @click="openFullRegulation"
           >
@@ -53,7 +52,6 @@
 <script setup lang="ts">
 import Badge from '../atoms/Badge.vue'
 import Button from '../atoms/Button.vue'
-import Icon from '../atoms/Icon.vue'
 
 interface Props {
   citation: string

@@ -3,7 +3,7 @@
     <Badge 
       :variant="categoryVariant"
       :text="categoryText"
-      size="sm"
+      class="w-4 h-4"
       class="cursor-help"
     />
     

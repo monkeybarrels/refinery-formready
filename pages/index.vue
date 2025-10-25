@@ -1,5 +1,45 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <!-- Header Navigation -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center">
+            <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center mr-3">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <h1 class="text-xl font-bold text-blue-800">ClaimReady</h1>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <Button 
+              @click="navigateTo('/pricing')"
+              variant="secondary"
+            >
+              <Icon name="heroicons:star" class="w-4 h-4 mr-2" />
+              Pricing
+            </Button>
+            <Button 
+              @click="navigateTo('/auth/login')"
+              variant="secondary"
+            >
+              <Icon name="heroicons:arrow-right-on-rectangle" class="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+            <Button 
+              @click="navigateTo('/auth/signup')"
+              variant="primary"
+            >
+              <Icon name="heroicons:user-plus" class="w-4 h-4 mr-2" />
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
+
     <div class="max-w-6xl mx-auto px-4 py-16">
       <!-- Hero Section -->
       <div class="text-center mb-16">
@@ -10,7 +50,7 @@
             </svg>
           </div>
           <h1 class="text-6xl font-bold text-blue-800 mb-0">
-            FormReady
+            ClaimReady
           </h1>
         </div>
         <p class="text-2xl text-gray-700 mb-4 font-semibold">
@@ -183,9 +223,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import Button from '~/components/atoms/Button.vue'
+
 useHead({
-  title: 'FormReady - Made for Veterans by Veterans',
+  title: 'ClaimReady - Made for Veterans by Veterans',
   meta: [
     { name: 'description', content: 'Built by veterans for veterans. Upload your VA decision letter for instant analysis and get personalized next steps to strengthen your case.' }
   ]

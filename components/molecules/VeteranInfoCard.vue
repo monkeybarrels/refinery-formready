@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white rounded-2xl shadow-xl p-8">
     <div class="flex items-center mb-6">
-      <Icon name="user" size="lg" color="indigo-600" class="mr-3" />
+      <Icon name="user" class="w-6 h-6 mr-3" color="indigo-600" />
       <h2 class="text-2xl font-bold text-slate-900">Veteran Information</h2>
     </div>
     
@@ -22,14 +22,13 @@
     </div>
     
     <div v-if="!hasVeteranInfo" class="text-center py-8">
-      <Icon name="info" size="lg" color="slate-400" class="mx-auto mb-2" />
+      <Icon name="info" class="w-6 h-6 mx-auto mb-2" color="slate-400" />
       <p class="text-slate-500">Veteran information not found in decision letter</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Icon from '../atoms/Icon.vue'
 
 interface VeteranInfo {
   firstName?: string

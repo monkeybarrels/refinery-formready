@@ -110,6 +110,7 @@
           <Button
             @click="reset"
             variant="secondary"
+            class="w-6 h-6"
           >
             <Icon name="heroicons:document" class="w-4 h-4 mr-2" />
             Analyze Another Letter
@@ -117,6 +118,7 @@
           
           <Button
             variant="primary"
+            class="w-6 h-6"
             @click="printReport"
           >
             <Icon name="heroicons:printer" class="w-4 h-4 mr-2" />

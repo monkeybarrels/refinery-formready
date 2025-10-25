@@ -20,7 +20,7 @@
         
         <div class="flex items-center mt-2 text-xs text-slate-500">
           <span>{{ typeLabel }}</span>
-          <Icon name="external-link" size="xs" color="slate-400" class="ml-1" />
+          <Icon name="external-link" class="w-3 h-3 ml-1" color="slate-400" />
         </div>
       </div>
     </div>
@@ -28,7 +28,6 @@
 </template>
 
 <script setup lang="ts">
-import Icon from '../atoms/Icon.vue'
 
 interface Props {
   title: string

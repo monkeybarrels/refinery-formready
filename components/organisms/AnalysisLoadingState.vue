@@ -44,13 +44,13 @@
               v-if="index < currentStep"
               class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg border-2 border-green-400"
             >
-              <Icon name="checkmark" size="sm" color="white" />
+              <Icon name="checkmark" class="w-4 h-4" color="white" />
             </div>
             <div 
               v-else-if="index === currentStep"
               class="w-8 h-8 bg-gradient-to-br from-blue-800 to-blue-900 rounded-full flex items-center justify-center shadow-lg border-2 border-blue-600 relative"
             >
-              <Spinner size="sm" color="white" variant="pulse" />
+              <Spinner class="w-4 h-4" color="white" variant="pulse" />
               <!-- Patriotic ring effect -->
               <div class="absolute inset-0 rounded-full border-2 border-amber-400 animate-ping opacity-30"></div>
             </div>
@@ -97,7 +97,6 @@
 </template>
 
 <script setup lang="ts">
-import Icon from '../atoms/Icon.vue'
 import Spinner from '../atoms/Spinner.vue'
 import ProgressBar from '../atoms/ProgressBar.vue'
 

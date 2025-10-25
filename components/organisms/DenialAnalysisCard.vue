@@ -2,7 +2,7 @@
   <div class="bg-white rounded-2xl shadow-xl p-8">
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center">
-        <Icon name="exclamation" size="lg" color="slate-600" class="mr-3" />
+        <Icon name="exclamation" class="w-6 h-6 mr-3" color="slate-600" />
         <h2 class="text-2xl font-bold text-slate-900">Denial Analysis</h2>
       </div>
       <Badge variant="denied" :text="`${denialReasons.length} Denied`" />
@@ -16,9 +16,38 @@
       >
         <!-- Always Visible: Condition and Layman Explanation -->
         <div class="mb-4">
-          <h3 class="text-lg font-semibold text-slate-900 mb-3">
-            {{ denial.condition }}
-          </h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-slate-900">
+              {{ denial.condition }}
+            </h3>
+            <div class="flex items-center space-x-3">
+              <!-- Difficulty Rating -->
+              <div class="flex items-center">
+                <span class="text-sm text-slate-500 mr-2">Difficulty:</span>
+                <div class="flex space-x-1">
+                  <Icon 
+                    v-for="i in 5" 
+                    :key="i"
+                    :name="i <= (denial.difficulty || 3) ? 'star-solid' : 'star'"
+                    class="w-4 h-4"
+                    :color="i <= (denial.difficulty || 3) ? getDifficultyColor(denial.difficulty || 3) : 'slate-300'"
+                  />
+                </div>
+                <span class="ml-2 text-sm font-medium" :class="getDifficultyTextColor(denial.difficulty || 3)">
+                  {{ getDifficultyText(denial.difficulty || 3) }}
+                </span>
+              </div>
+              
+              <!-- Quick Win Indicator -->
+              <Badge 
+                v-if="denial.isQuickWin"
+                variant="success"
+                class="w-4 h-4"
+              >
+                Quick Win
+              </Badge>
+            </div>
+          </div>
           
           <LaymanExplanation 
             :layman-reason="denial.laymanReason"
@@ -35,14 +64,13 @@
               class="flex items-center justify-between w-full p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors duration-200"
             >
               <div class="flex items-center">
-                <Icon name="document" size="sm" color="slate-600" class="mr-2" />
+                <Icon name="document" class="w-4 h-4 mr-2" color="red-600" />
                 <span class="font-medium text-slate-700">Technical Denial Reason</span>
               </div>
               <Icon 
                 :name="expandedTechnical[index] ? 'chevron-down' : 'chevron-right'" 
-                size="sm" 
+                class="w-4 h-4" 
                 color="slate-500"
-                class="transition-transform duration-200"
                 :class="{ 'rotate-180': expandedTechnical[index] }"
               />
             </button>
@@ -61,21 +89,19 @@
               class="flex items-center justify-between w-full p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-200"
             >
               <div class="flex items-center">
-                <Icon name="shield-check" size="sm" color="indigo-600" class="mr-2" />
+                <Icon name="heroicons:shield-check" class="w-4 h-4 mr-2" color="red-600" />
                 <span class="font-medium text-indigo-700">VA Knowledge Analysis</span>
                 <Badge 
                   v-if="denial.mcpAnalysis.denialCategory"
                   variant="primary"
                   :text="denial.mcpAnalysis.denialCategory"
-                  size="sm"
-                  class="ml-2"
+                  class="w-4 h-4"
                 />
               </div>
               <Icon 
                 :name="expandedMcp[index] ? 'chevron-down' : 'chevron-right'" 
-                size="sm" 
+                class="w-4 h-4" 
                 color="indigo-500"
-                class="transition-transform duration-200"
                 :class="{ 'rotate-180': expandedMcp[index] }"
               />
             </button>
@@ -98,7 +124,7 @@
                     :key="evidenceIndex"
                     class="flex items-start"
                   >
-                    <Icon name="star" size="sm" color="amber-600" class="mr-2 mt-0.5 flex-shrink-0" />
+                    <Icon name="heroicons:star" class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" color="amber-600" />
                     <span class="text-sm text-amber-800">{{ evidence }}</span>
                   </div>
                 </div>
@@ -125,7 +151,6 @@
 
 <script setup lang="ts">
 import Badge from '../atoms/Badge.vue'
-import Icon from '../atoms/Icon.vue'
 import LaymanExplanation from '../molecules/LaymanExplanation.vue'
 import RegulationSnippet from '../molecules/RegulationSnippet.vue'
 
@@ -134,6 +159,8 @@ interface DenialReason {
   reason?: string
   laymanReason?: string
   nextSteps?: string
+  difficulty?: number // 1-5 stars
+  isQuickWin?: boolean
   mcpAnalysis?: {
     denialCategory?: string
     categoryExplanation?: string
@@ -167,5 +194,25 @@ const toggleTechnicalReason = (index: number) => {
 
 const toggleMcpAnalysis = (index: number) => {
   expandedMcp.value[index] = !expandedMcp.value[index]
+}
+
+// Difficulty rating functions
+function getDifficultyColor(difficulty: number): string {
+  if (difficulty <= 2) return 'green-500'
+  if (difficulty <= 3) return 'amber-500'
+  return 'red-500'
+}
+
+function getDifficultyTextColor(difficulty: number): string {
+  if (difficulty <= 2) return 'text-green-600'
+  if (difficulty <= 3) return 'text-amber-600'
+  return 'text-red-600'
+}
+
+function getDifficultyText(difficulty: number): string {
+  if (difficulty <= 2) return 'Easy'
+  if (difficulty <= 3) return 'Medium'
+  if (difficulty <= 4) return 'Hard'
+  return 'Very Hard'
 }
 </script>

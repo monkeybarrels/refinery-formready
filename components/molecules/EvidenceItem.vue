@@ -15,13 +15,13 @@
           <Badge 
             :variant="importanceVariant"
             :text="importanceText"
-            size="sm"
+            class="w-4 h-4"
           />
           <Badge 
             v-if="timeframe"
             variant="default"
             :text="timeframe"
-            size="sm"
+            class="w-4 h-4"
             class="ml-2"
           />
         </div>
@@ -39,7 +39,6 @@
 
 <script setup lang="ts">
 import Badge from '../atoms/Badge.vue'
-import Icon from '../atoms/Icon.vue'
 
 interface Props {
   type: string

@@ -5,24 +5,16 @@
     :class="buttonClasses"
     @click="$emit('click', $event)"
   >
-    <Icon 
-      v-if="icon" 
-      :name="icon" 
-      :size="iconSize"
-      class="mr-2"
-    />
     <slot />
   </button>
 </template>
 
 <script setup lang="ts">
-import Icon from './Icon.vue'
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   disabled?: boolean
-  icon?: string | null
   type?: 'button' | 'submit' | 'reset'
 }
 
@@ -30,7 +22,6 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   disabled: false,
-  icon: null,
   type: 'button'
 })
 
@@ -74,7 +65,4 @@ const buttonClasses = computed(() => {
   return `${baseClasses} ${sizeClasses} ${variantClasses} ${focusClasses} ${transitionClasses}`
 })
 
-const iconSize = computed(() => {
-  return props.size === 'sm' ? 'sm' : 'md'
-})
 </script>
