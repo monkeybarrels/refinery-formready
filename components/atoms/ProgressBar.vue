@@ -9,12 +9,15 @@
       </span>
     </div>
     
-    <div class="w-full bg-slate-200 rounded-full h-2">
+    <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
       <div 
         :class="progressClasses"
         :style="{ width: `${Math.min(Math.max(percentage, 0), 100)}%` }"
-        class="h-2 rounded-full transition-all duration-300 ease-out"
-      ></div>
+        class="h-3 rounded-full transition-all duration-500 ease-out shadow-sm relative overflow-hidden"
+      >
+        <!-- Subtle shine effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 animate-pulse"></div>
+      </div>
     </div>
     
     <div v-if="description" class="mt-1 text-xs text-slate-500">

@@ -23,7 +23,16 @@
       </div>
       
       <!-- Progress Steps -->
-      <div class="space-y-3">
+      <div class="bg-gradient-to-r from-blue-50 to-amber-50 rounded-xl p-6 border border-blue-200">
+        <div class="flex items-center mb-4">
+          <div class="w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center mr-3">
+            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <h4 class="text-lg font-bold text-blue-900">Analysis Progress</h4>
+        </div>
+        <div class="space-y-4">
         <div
           v-for="(step, index) in steps"
           :key="index"
@@ -33,45 +42,52 @@
           <div class="flex-shrink-0 mr-3">
             <div 
               v-if="index < currentStep"
-              class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
+              class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg border-2 border-green-400"
             >
               <Icon name="checkmark" size="sm" color="white" />
             </div>
             <div 
               v-else-if="index === currentStep"
-              class="w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center"
+              class="w-8 h-8 bg-gradient-to-br from-blue-800 to-blue-900 rounded-full flex items-center justify-center shadow-lg border-2 border-blue-600 relative"
             >
               <Spinner size="sm" color="white" variant="pulse" />
+              <!-- Patriotic ring effect -->
+              <div class="absolute inset-0 rounded-full border-2 border-amber-400 animate-ping opacity-30"></div>
             </div>
             <div 
               v-else
-              class="w-6 h-6 bg-slate-300 rounded-full"
+              class="w-8 h-8 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full border-2 border-gray-200 shadow-sm"
             ></div>
           </div>
           
           <div class="flex-1">
             <p 
-              class="text-sm font-medium"
-              :class="index <= currentStep ? 'text-slate-900' : 'text-slate-500'"
+              class="text-sm font-semibold"
+              :class="index <= currentStep ? 'text-blue-900' : 'text-gray-500'"
             >
               {{ step.title }}
             </p>
             <p 
               v-if="step.description"
               class="text-xs"
-              :class="index <= currentStep ? 'text-slate-600' : 'text-slate-400'"
+              :class="index <= currentStep ? 'text-blue-700' : 'text-gray-400'"
             >
               {{ step.description }}
             </p>
           </div>
         </div>
+        </div>
       </div>
       
       <!-- Estimated Time -->
-      <div class="mt-6 p-3 bg-slate-50 rounded-lg">
+      <div class="mt-6 p-4 bg-gradient-to-r from-amber-50 to-red-50 rounded-lg border border-amber-200">
         <div class="flex items-center justify-center">
-          <Icon name="clock" size="sm" color="slate-500" class="mr-2" />
-          <span class="text-sm text-slate-600">
+          <div class="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center mr-3">
+            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold text-amber-800">
             Estimated time remaining: {{ estimatedTime }}
           </span>
         </div>
