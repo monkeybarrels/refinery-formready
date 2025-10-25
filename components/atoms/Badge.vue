@@ -47,13 +47,13 @@ const badgeClasses = computed(() => {
       variantClasses = colors.deferred.badge
       break
     case 'primary':
-      variantClasses = 'bg-indigo-100 text-indigo-800'
+      variantClasses = 'bg-blue-100 text-blue-800' // Navy Blue - patriotic primary
       break
     case 'secondary':
-      variantClasses = 'bg-slate-100 text-slate-800'
+      variantClasses = 'bg-amber-100 text-amber-800' // Gold - patriotic secondary
       break
     default:
-      variantClasses = 'bg-slate-100 text-slate-800'
+      variantClasses = 'bg-gray-100 text-gray-800'
   }
   
   return `${baseClasses} ${sizeClasses} ${variantClasses}`

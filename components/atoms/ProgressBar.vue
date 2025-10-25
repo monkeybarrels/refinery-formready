@@ -26,14 +26,14 @@
  <script setup lang="ts">
 interface Props {
   percentage: number
-  color?: 'indigo' | 'blue' | 'green' | 'amber' | 'red'
+  color?: 'blue' | 'amber' | 'red' | 'green' | 'gray'
   showLabel?: boolean
   label?: string
   description?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  color: 'indigo',
+  color: 'blue',
   showLabel: true,
   label: 'Progress',
   description: null
@@ -41,11 +41,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const progressClasses = computed(() => {
   const colorMap = {
-    indigo: 'bg-indigo-600',
-    blue: 'bg-blue-600',
-    green: 'bg-green-600',
-    amber: 'bg-amber-600',
-    red: 'bg-red-600'
+    blue: 'bg-blue-800', // Navy Blue - primary patriotic color
+    amber: 'bg-amber-500', // Gold - secondary patriotic color
+    red: 'bg-red-600', // Red - accent patriotic color
+    green: 'bg-green-600', // For approved/success states
+    gray: 'bg-gray-400' // For neutral states
   }
   
   return colorMap[props.color]

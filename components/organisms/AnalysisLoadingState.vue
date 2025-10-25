@@ -15,7 +15,7 @@
       <div class="mb-6">
         <ProgressBar 
           :percentage="progressPercentage"
-          color="indigo"
+          color="blue"
           :showLabel="true"
           :label="`Step ${currentStep + 1} of ${steps.length}`"
           :description="steps[currentStep]?.title"
@@ -39,7 +39,7 @@
             </div>
             <div 
               v-else-if="index === currentStep"
-              class="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center"
+              class="w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center"
             >
               <Spinner size="sm" color="white" variant="pulse" />
             </div>
