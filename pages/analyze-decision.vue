@@ -54,7 +54,7 @@
             <!-- Deferred Reasons -->
             <div v-if="results.deferredReasons?.length > 0" class="bg-white rounded-2xl shadow-xl p-8">
               <div class="flex items-center mb-6">
-                <Icon name="clock" size="lg" color="amber-600" class="mr-3" />
+                <Icon name="heroicons:clock" class="w-6 h-6 mr-3" color="amber-600" />
                 <h2 class="text-2xl font-bold text-slate-900">Deferred Conditions</h2>
                 <Badge 
                   :text="`${results.deferredReasons.length} Deferred`"
@@ -74,6 +74,26 @@
                 </div>
               </div>
             </div>
+
+            <!-- Decision Timeline -->
+            <DecisionTimeline
+              :decision-date="results.decisionDate"
+              :effective-date="results.effectiveDate"
+              :appeal-deadline="results.appealDeadline"
+              :current-step="'decision_received'"
+            />
+
+            <!-- Evidence Checklist -->
+            <EvidenceChecklist
+              :conditions="getDeniedConditions(results)"
+              :claim-type="'appeal'"
+            />
+
+            <!-- Condition Comparison -->
+            <ConditionComparison
+              v-if="results.denialReasons?.length > 1"
+              :conditions="getConditionComparisonData(results)"
+            />
           </div>
 
           <!-- Right Column - Sticky Sidebar -->
@@ -90,20 +110,16 @@
           <Button
             @click="reset"
             variant="secondary"
-            size="lg"
-            class="flex-1"
           >
-            <Icon name="document" size="sm" class="mr-2" />
+            <Icon name="heroicons:document" class="w-4 h-4 mr-2" />
             Analyze Another Letter
           </Button>
           
           <Button
             variant="primary"
-            size="lg"
-            class="flex-1"
             @click="printReport"
           >
-            <Icon name="printer" size="sm" class="mr-2" />
+            <Icon name="heroicons:printer" class="w-4 h-4 mr-2" />
             Print Report
           </Button>
         </div>
@@ -115,13 +131,15 @@
 <script setup lang="ts">
 import Badge from '~/components/atoms/Badge.vue'
 import Button from '~/components/atoms/Button.vue'
-import Icon from '~/components/atoms/Icon.vue'
 import FileUploadZone from '~/components/organisms/FileUploadZone.vue'
 import AnalysisLoadingState from '~/components/organisms/AnalysisLoadingState.vue'
 import VeteranInfoCard from '~/components/molecules/VeteranInfoCard.vue'
 import DecisionSummarySection from '~/components/organisms/DecisionSummarySection.vue'
 import DenialAnalysisCard from '~/components/organisms/DenialAnalysisCard.vue'
 import ComprehensiveNextStepsPanel from '~/components/organisms/ComprehensiveNextStepsPanel.vue'
+import DecisionTimeline from '~/components/molecules/DecisionTimeline.vue'
+import EvidenceChecklist from '~/components/organisms/EvidenceChecklist.vue'
+import ConditionComparison from '~/components/organisms/ConditionComparison.vue'
 
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
@@ -254,5 +272,93 @@ const reset = () => {
 
 const printReport = () => {
   window.print()
+}
+
+// Helper functions for new components
+const getDeniedConditions = (results: any): string[] => {
+  if (!results.denialReasons) return []
+  return results.denialReasons.map((denial: any) => denial.condition)
+}
+
+const getConditionComparisonData = (results: any) => {
+  if (!results.denialReasons) return []
+  
+  return results.denialReasons.map((denial: any, index: number) => ({
+    id: denial.condition.toLowerCase().replace(/\s+/g, '-'),
+    name: denial.condition,
+    category: getConditionCategory(denial.condition),
+    icon: getConditionIcon(denial.condition),
+    color: getConditionColor(denial.condition),
+    difficulty: getConditionDifficulty(denial.condition),
+    successRate: getConditionSuccessRate(denial.condition),
+    evidenceStrength: getEvidenceStrength(denial.condition),
+    timeline: getConditionTimeline(denial.condition),
+    priority: getConditionPriority(denial.condition),
+    denialReason: denial.reason
+  }))
+}
+
+// Helper functions for condition data
+function getConditionCategory(condition: string): string {
+  const mentalHealth = ['PTSD', 'Depression', 'Anxiety', 'Bipolar']
+  const auditory = ['Tinnitus', 'Hearing Loss']
+  const musculoskeletal = ['Back Pain', 'Knee Pain', 'Shoulder Pain']
+  
+  if (mentalHealth.some(c => condition.toLowerCase().includes(c.toLowerCase()))) return 'Mental Health'
+  if (auditory.some(c => condition.toLowerCase().includes(c.toLowerCase()))) return 'Auditory'
+  if (musculoskeletal.some(c => condition.toLowerCase().includes(c.toLowerCase()))) return 'Musculoskeletal'
+  return 'Other'
+}
+
+function getConditionIcon(condition: string): string {
+  if (condition.toLowerCase().includes('ptsd') || condition.toLowerCase().includes('depression')) return 'heart'
+  if (condition.toLowerCase().includes('tinnitus') || condition.toLowerCase().includes('hearing')) return 'speaker-wave'
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 'user'
+  return 'medical-symbol'
+}
+
+function getConditionColor(condition: string): string {
+  if (condition.toLowerCase().includes('ptsd') || condition.toLowerCase().includes('depression')) return 'red-600'
+  if (condition.toLowerCase().includes('tinnitus') || condition.toLowerCase().includes('hearing')) return 'blue-600'
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 'green-600'
+  return 'slate-600'
+}
+
+function getConditionDifficulty(condition: string): number {
+  // Simple heuristic based on condition type
+  if (condition.toLowerCase().includes('tinnitus')) return 2 // Easy
+  if (condition.toLowerCase().includes('ptsd')) return 3 // Medium
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 4 // Hard
+  return 3 // Default medium
+}
+
+function getConditionSuccessRate(condition: string): number {
+  // Simple heuristic based on condition type
+  if (condition.toLowerCase().includes('tinnitus')) return 85
+  if (condition.toLowerCase().includes('ptsd')) return 75
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 60
+  return 70
+}
+
+function getEvidenceStrength(condition: string): number {
+  // Simple heuristic - in real implementation, this would come from MCP analysis
+  if (condition.toLowerCase().includes('tinnitus')) return 3
+  if (condition.toLowerCase().includes('ptsd')) return 2
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 1
+  return 2
+}
+
+function getConditionTimeline(condition: string): string {
+  if (condition.toLowerCase().includes('tinnitus')) return '3-6 months'
+  if (condition.toLowerCase().includes('ptsd')) return '6-12 months'
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return '12-18 months'
+  return '6-12 months'
+}
+
+function getConditionPriority(condition: string): 'high' | 'medium' | 'low' {
+  if (condition.toLowerCase().includes('tinnitus')) return 'high'
+  if (condition.toLowerCase().includes('ptsd')) return 'high'
+  if (condition.toLowerCase().includes('back') || condition.toLowerCase().includes('knee')) return 'medium'
+  return 'medium'
 }
 </script>

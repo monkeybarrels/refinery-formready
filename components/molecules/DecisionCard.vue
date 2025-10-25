@@ -38,7 +38,6 @@
 
 <script setup lang="ts">
 import Badge from '../atoms/Badge.vue'
-import Icon from '../atoms/Icon.vue'
 
 interface Props {
   condition: string
