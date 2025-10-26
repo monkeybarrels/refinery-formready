@@ -15,7 +15,7 @@ export const useApi = () => {
     }
    
     // Remove /api suffix for auth endpoints
-    if (baseUrl.endsWith('/api')) {
+    if (endpoint.endsWith('login')) {
       baseUrl = baseUrl.replace('/api', '')
     }
     
