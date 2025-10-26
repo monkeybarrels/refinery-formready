@@ -4,21 +4,20 @@
     <header class="bg-white shadow-sm border-b border-slate-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-4">
-          <div class="flex items-center">
-            <Button 
-              @click="navigateTo('/')"
-              variant="secondary"
-              class="w-4 h-4 mr-4"
-            >
-              <Icon name="heroicons:arrow-left" class="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-            <Icon name="heroicons:star" class="w-6 h-6 mr-3" color="blue-600" />
-            <div>
-              <h1 class="text-xl font-bold text-slate-900">Choose Your Plan</h1>
-              <p class="text-sm text-slate-500">Made for veterans by veterans</p>
-            </div>
+          <Button 
+            @click="navigateTo('/')"
+            variant="secondary"
+          >
+            <Icon name="heroicons:arrow-left" class="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+          
+          <div class="text-center">
+            <h1 class="text-xl font-bold text-slate-900">Choose Your Plan</h1>
+            <p class="text-sm text-slate-500">Made for veterans by veterans</p>
           </div>
+          
+          <div class="w-32"></div> <!-- Spacer to center the title -->
         </div>
       </div>
     </header>
@@ -77,14 +76,18 @@
               </div>
             </div>
 
-            <div class="mt-auto">
+            <div class="mt-auto text-center">
               <Button 
                 @click="navigateTo('/analyze-decision')"
                 variant="secondary"
-                class="w-6 h-6"
               >
                 Start Free Analysis
               </Button>
+              <div class="text-center mt-3">
+                <p class="text-sm text-slate-500">
+                  Always free, no credit card required
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -159,11 +162,10 @@
               </div>
             </div>
 
-            <div class="mt-auto">
+            <div class="mt-auto text-center">
               <Button 
                 @click="handleUpgrade"
                 variant="primary"
-                class="w-6 h-6"
               >
                 <Icon name="heroicons:star" class="w-4 h-4 mr-2" />
                 Upgrade to Premium

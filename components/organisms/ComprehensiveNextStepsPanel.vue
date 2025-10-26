@@ -10,7 +10,6 @@
       </div>
       <Button 
         variant="ghost" 
-        class="w-4 h-4"
         icon="printer"
         @click="printActionPlan"
       >

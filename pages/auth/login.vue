@@ -183,7 +183,7 @@ const handleLogin = async () => {
 
   try {
     // Simple login authentication (in production, use proper auth)
-    const response = await fetch('/api/v1/auth/login', {
+    const response = await fetch('http://localhost:3001/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
@@ -192,15 +192,17 @@ const handleLogin = async () => {
     const result = await response.json()
 
     if (result.success) {
-      // Store user session
-      localStorage.setItem('user_session', JSON.stringify({
+      // Store JWT token for API authentication
+      localStorage.setItem('auth_token', result.accessToken)
+      
+      // Store user data for display
+      localStorage.setItem('user_data', JSON.stringify({
         userId: result.userId,
         email: form.email,
         firstName: result.firstName,
         lastName: result.lastName,
         serviceBranch: result.serviceBranch,
-        isPremium: result.isPremium || false,
-        loginTime: new Date().toISOString()
+        isPremium: result.isPremium || false
       }))
 
       // Redirect to dashboard

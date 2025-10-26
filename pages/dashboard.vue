@@ -17,7 +17,6 @@
               <Button 
                 @click="navigateTo('/pricing')"
                 variant="primary"
-                class="w-4 h-4"
               >
                 <Icon name="heroicons:star" class="w-4 h-4 mr-2" />
                 Upgrade to Premium
@@ -86,7 +85,6 @@
           <Button 
             @click="navigateTo('/analyze-decision')"
             variant="secondary"
-            class="w-4 h-4"
           >
             <Icon name="plus" class="w-4 h-4 mr-2" />
             New Analysis
@@ -150,7 +148,6 @@
           <Button 
             @click="navigateTo('/pricing')"
             variant="primary"
-            class="w-6 h-6"
           >
             <Icon name="heroicons:star" class="w-4 h-4 mr-2" />
             Upgrade Now
@@ -286,33 +283,108 @@ const analytics = reactive({
   denials: 1
 })
 
-// Check user session
-onMounted(() => {
-  const session = localStorage.getItem('user_session')
-  if (!session) {
+// Check user session and load data
+onMounted(async () => {
+  const token = localStorage.getItem('auth_token')
+  if (!token) {
     router.push('/auth/login')
     return
   }
 
-  const sessionData = JSON.parse(session)
-  const loginTime = new Date(sessionData.loginTime)
-  const now = new Date()
-  const hoursSinceLogin = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60)
-  
-  // Session expires after 24 hours
-  if (hoursSinceLogin >= 24) {
-    localStorage.removeItem('user_session')
-    router.push('/auth/login')
-    return
-  }
+  try {
+    // Fetch user profile from API
+    const response = await fetch('http://localhost:3001/auth/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
 
-  Object.assign(user, sessionData)
+    if (!response.ok) {
+      throw new Error('Authentication failed')
+    }
+
+    const profileData = await response.json()
+    Object.assign(user, profileData.user)
+
+    // Load recent analysis
+    await loadRecentAnalysis()
+    
+    // Load analytics if premium
+    if (user.isPremium) {
+      await loadAnalytics()
+    }
+  } catch (error) {
+    console.error('Failed to load dashboard:', error)
+    localStorage.removeItem('auth_token')
+    router.push('/auth/login')
+  }
 })
 
+// Load recent analysis from API
+const loadRecentAnalysis = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch('http://localhost:3001/documents/user', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      recentAnalysis.value = data.documents.map((doc: any) => ({
+        id: doc._id,
+        title: doc.filename || 'Decision Letter',
+        status: doc.status || 'analyzed',
+        analyzedAt: new Date(doc.createdAt).toLocaleDateString()
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load recent analysis:', error)
+  }
+}
+
+// Load analytics for premium users
+const loadAnalytics = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch('http://localhost:3001/documents/analytics', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      Object.assign(analytics, data)
+    }
+  } catch (error) {
+    console.error('Failed to load analytics:', error)
+  }
+}
+
 // Logout handler
-const handleLogout = () => {
-  localStorage.removeItem('user_session')
-  router.push('/')
+const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      await fetch('http://localhost:3001/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    localStorage.removeItem('auth_token')
+    router.push('/')
+  }
 }
 
 // Helper functions

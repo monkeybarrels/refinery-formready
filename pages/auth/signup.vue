@@ -241,7 +241,7 @@ const handleSignup = async () => {
 
   try {
     // Create user account
-    const response = await fetch('/api/v1/auth/signup', {
+    const response = await fetch('http://localhost:3001/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
@@ -250,15 +250,17 @@ const handleSignup = async () => {
     const result = await response.json()
 
     if (result.success) {
-      // Store user session
-      localStorage.setItem('user_session', JSON.stringify({
+      // Store JWT token for API authentication
+      localStorage.setItem('auth_token', result.accessToken)
+      
+      // Store user data for display
+      localStorage.setItem('user_data', JSON.stringify({
         userId: result.userId,
         email: form.email,
         firstName: form.firstName,
         lastName: form.lastName,
         serviceBranch: form.serviceBranch,
-        isPremium: false,
-        loginTime: new Date().toISOString()
+        isPremium: result.isPremium || false
       }))
 
       // Redirect to dashboard
