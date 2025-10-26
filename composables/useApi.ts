@@ -1,5 +1,6 @@
 /**
  * Composable for making API calls with proper URL configuration
+ * Updated: 2025-10-26 - Force Railway rebuild
  */
 export const useApi = () => {
   const config = useRuntimeConfig()
