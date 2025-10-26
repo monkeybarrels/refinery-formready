@@ -8,8 +8,27 @@ export const useApi = () => {
    * Get the base API URL (without /api suffix for auth endpoints)
    */
   const getApiUrl = (endpoint: string = '') => {
-    const baseUrl = config.public.apiUrl.replace('/api', '')
-    return `${baseUrl}${endpoint}`
+    let baseUrl = config.public.apiUrl
+    
+    // Remove /api suffix if it exists
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.replace('/api', '')
+    }
+    
+    // Ensure endpoint starts with /
+    if (endpoint && !endpoint.startsWith('/')) {
+      endpoint = `/${endpoint}`
+    }
+    
+    const finalUrl = `${baseUrl}${endpoint}`
+    console.log('🔧 API URL Debug:', {
+      originalApiUrl: config.public.apiUrl,
+      baseUrl,
+      endpoint,
+      finalUrl
+    })
+    
+    return finalUrl
   }
   
   /**
