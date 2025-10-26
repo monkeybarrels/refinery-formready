@@ -44,8 +44,9 @@ export const useApi = () => {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })
     }
-    
-    const response = await fetch(getApiUrl(endpoint), {
+    const url = getApiUrl(endpoint)
+    console.log('🔧 API URL:', url)
+    const response = await fetch(url, {
       ...options,
       headers: {
         ...defaultHeaders,
