@@ -9,12 +9,10 @@ export const useApi = () => {
    */
   const getApiUrl = (endpoint: string = '') => {
     let baseUrl = config.public.apiUrl
-    
-    // Simple fix: if URL has domain duplication, fix it
-    if (baseUrl.includes('/.claimready.io/')) {
+    if (window.location.hostname === 'claimready.io') {
       baseUrl = 'https://api.claimready.io/api'
     }
-    
+   
     // Remove /api suffix for auth endpoints
     if (baseUrl.endsWith('/api')) {
       baseUrl = baseUrl.replace('/api', '')
