@@ -11,20 +11,21 @@ export const useApi = () => {
   const getApiUrl = (endpoint: string = '') => {
     let baseUrl = config.public.apiUrl
     if (window.location.hostname === 'claimready.io') {
-      baseUrl = 'https://api.claimready.io/api'
+      baseUrl = 'https://api.claimready.io'
     }
-   
-    // Remove /api suffix for auth endpoints
-    if (endpoint.endsWith('login')) {
-      baseUrl = baseUrl.replace('/api', '')
-    }
-    
-    // Add endpoint
+
+    // Normalize endpoint to start with /
     if (endpoint && !endpoint.startsWith('/')) {
       endpoint = `/${endpoint}`
     }
-    
-    return `${baseUrl}${endpoint}`
+
+    // For auth endpoints, don't add /api prefix
+    if (endpoint.includes('/auth/')) {
+      return `${baseUrl}${endpoint}`
+    }
+
+    // For other endpoints, ensure /api prefix
+    return `${baseUrl}/api${endpoint}`
   }
   
   /**
