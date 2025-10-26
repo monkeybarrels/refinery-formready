@@ -19,13 +19,8 @@ export const useApi = () => {
       endpoint = `/${endpoint}`
     }
 
-    // For auth endpoints, don't add /api prefix
-    if (endpoint.includes('/auth/')) {
-      return `${baseUrl}${endpoint}`
-    }
-
-    // For other endpoints, ensure /api prefix
-    return `${baseUrl}/api${endpoint}`
+    // All endpoints go directly to the base URL (no /api prefix)
+    return `${baseUrl}${endpoint}`
   }
   
   /**
