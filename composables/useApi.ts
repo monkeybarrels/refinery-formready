@@ -6,7 +6,7 @@ export const useApi = () => {
   const config = useRuntimeConfig()
   
   /**
-   * Get the base API URL (without /api suffix for auth endpoints)
+   * Get the base API URL with proper /api/v1 prefix
    */
   const getApiUrl = (endpoint: string = '') => {
     let baseUrl = config.public.apiUrl
@@ -19,7 +19,7 @@ export const useApi = () => {
       endpoint = `/${endpoint}`
     }
 
-    // All endpoints go directly to the base URL (no /api prefix)
+    // All endpoints need /api/v1 prefix
     return `${baseUrl}${endpoint}`
   }
   
