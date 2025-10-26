@@ -10,7 +10,22 @@ export const useApi = () => {
   const getApiUrl = (endpoint: string = '') => {
     let baseUrl = config.public.apiUrl
     
-    // Remove /api suffix if it exists
+    // Debug the original URL
+    console.log('🔧 Original API URL from config:', baseUrl)
+    
+    // Handle the malformed URL issue by detecting and fixing it
+    if (baseUrl.includes('/.claimready.io/')) {
+      console.log('🔧 Detected malformed URL with domain duplication')
+      // The URL is malformed like "https://claimready.io/.claimready.io/api"
+      // We need to extract the correct domain
+      const urlParts = baseUrl.split('/')
+      const protocol = urlParts[0] // https:
+      const domain = urlParts[2] // claimready.io
+      baseUrl = `${protocol}//${domain}/api`
+      console.log('🔧 Fixed malformed URL to:', baseUrl)
+    }
+    
+    // Remove /api suffix if it exists for auth endpoints
     if (baseUrl.endsWith('/api')) {
       baseUrl = baseUrl.replace('/api', '')
     }
@@ -21,12 +36,7 @@ export const useApi = () => {
     }
     
     const finalUrl = `${baseUrl}${endpoint}`
-    console.log('🔧 API URL Debug:', {
-      originalApiUrl: config.public.apiUrl,
-      baseUrl,
-      endpoint,
-      finalUrl
-    })
+    console.log('🔧 Final constructed URL:', finalUrl)
     
     return finalUrl
   }
