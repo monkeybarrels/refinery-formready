@@ -10,8 +10,15 @@ export const useApi = () => {
   const getApiUrl = (endpoint: string = '') => {
     let baseUrl = config.public.apiUrl
     
-    // Debug the original URL
-    console.log('🔧 Original API URL from config:', baseUrl)
+    // Debug the original URL and environment
+    console.log('🔧 URL Debug Info:', {
+      originalApiUrl: baseUrl,
+      isClient: process.client,
+      hostname: process.client ? window.location.hostname : 'server',
+      origin: process.client ? window.location.origin : 'server',
+      userAgent: process.client ? navigator.userAgent : 'server',
+      allConfig: config.public
+    })
     
     // Handle the malformed URL issue by detecting and fixing it
     if (baseUrl.includes('/.claimready.io/')) {
@@ -23,6 +30,15 @@ export const useApi = () => {
       const domain = urlParts[2] // claimready.io
       baseUrl = `${protocol}//${domain}/api`
       console.log('🔧 Fixed malformed URL to:', baseUrl)
+    }
+    
+    // Railway-specific fallback: if we're on claimready.io but API URL is malformed
+    if (process.client && window.location.hostname === 'claimready.io' && baseUrl.includes('claimready.io')) {
+      console.log('🔧 Railway fallback: Using current domain for API')
+      // Use the current domain but point to the API service
+      // This assumes the API is on a subdomain or different port
+      baseUrl = 'https://claimready.io/api' // or whatever your actual API URL should be
+      console.log('🔧 Railway fallback URL:', baseUrl)
     }
     
     // Remove /api suffix if it exists for auth endpoints
