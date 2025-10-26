@@ -1,6 +1,6 @@
 <template>
   <!-- Updated: 2025-10-26 - Force Railway rebuild -->
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-amber-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-red-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <!-- Patriotic Background Pattern -->
     <div class="absolute inset-0 overflow-hidden">
       <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
@@ -25,7 +25,7 @@
       </div>
 
       <!-- Login Form -->
-      <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+      <div class="bg-gradient-to-br from-green-100 to-blue-100 rounded-2xl shadow-xl p-8 border-4 border-purple-300">
         <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Email Field -->
           <div>
