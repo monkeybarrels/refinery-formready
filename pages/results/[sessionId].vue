@@ -140,10 +140,13 @@ const results = ref<any>(null)
 
 onMounted(async () => {
   try {
+    const config = useRuntimeConfig()
+    const apiUrl = config.public.apiUrl || 'http://localhost:3001'
+
     const response = await fetch(
-      `http://localhost:3001/api/analyze/results/${sessionId}`
+      `${apiUrl}/api/analyze/results/${sessionId}`
     )
-    
+
     if (response.ok) {
       results.value = await response.json()
     }
@@ -155,8 +158,11 @@ onMounted(async () => {
 })
 
 const downloadSummary = async () => {
+  const config = useRuntimeConfig()
+  const apiUrl = config.public.apiUrl || 'http://localhost:3001'
+
   window.open(
-    `http://localhost:3001/api/analyze/results/${sessionId}/summary-pdf`,
+    `${apiUrl}/api/analyze/results/${sessionId}/summary-pdf`,
     '_blank'
   )
 }
