@@ -357,7 +357,7 @@ const loadUserProfile = async () => {
 const loadRecentAnalysis = async () => {
   try {
     const { apiCall } = useApi()
-    const response = await apiCall('/documents/analyses?limit=5')
+    const response = await apiCall('/api/documents/analyses?limit=5')
 
     if (response.ok) {
       const data = await response.json()
@@ -377,7 +377,7 @@ const loadRecentAnalysis = async () => {
 const loadAnalytics = async () => {
   try {
     const { apiCall } = useApi()
-    const response = await apiCall('/documents/analytics')
+    const response = await apiCall('/api/documents/analytics')
 
     if (response.ok) {
       const data = await response.json()
