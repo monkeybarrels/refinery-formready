@@ -50,16 +50,19 @@ const handleFileSelect = (file: File) => {
 
 const analyzeDocument = async () => {
   if (!selectedFile.value) return
-  
+
   analyzing.value = true
-  
+
   try {
+    const config = useRuntimeConfig()
+    const apiUrl = config.public.apiUrl || 'http://localhost:3001'
+
     console.log('Starting analysis for file:', selectedFile.value.name)
-    
+
     // 1. Upload to S3 (NEW anonymous presigned URL endpoint)
     console.log('Step 1: Getting presigned URL...')
     const presignedResponse = await fetch(
-      'http://localhost:3001/api/storage/upload/presigned/anonymous',
+      `${apiUrl}/api/storage/upload/presigned/anonymous`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +97,7 @@ const analyzeDocument = async () => {
     // 3. Analyze (NEW anonymous endpoint)
     console.log('Step 3: Starting analysis...')
     const analyzeResponse = await fetch(
-      'http://localhost:3001/api/analyze/anonymous',
+      `${apiUrl}/api/analyze/anonymous`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
