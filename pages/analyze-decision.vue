@@ -316,8 +316,9 @@ const printReport = () => {
 
 // New methods for enhanced components
 const getGrantedCount = (results: any): number => {
+console.log("Results in getGrantedCount:", results);
   if (!results.ratings) return 0;
-  return results.ratings.filter((rating: any) => rating.status === "granted").length;
+  return results.ratings.filter((rating: any) => rating.decision === "granted").length;
 };
 
 const getDeniedCount = (results: any): number => {
