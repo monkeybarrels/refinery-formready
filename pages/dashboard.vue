@@ -339,7 +339,7 @@ onMounted(async () => {
 const loadUserProfile = async () => {
   try {
     const { apiCall } = useApi()
-    const response = await apiCall('/auth/profile')
+    const response = await apiCall('/api/auth/profile')
 
     if (!response.ok) {
       throw new Error('Authentication failed')
