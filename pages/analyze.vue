@@ -4,10 +4,8 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4">
         <div class="flex justify-between items-center">
-          <NuxtLink to="/" class="text-xl font-bold text-blue-800">
-            ClaimReady
-          </NuxtLink>
-          <NuxtLink to="/auth/login" class="text-sm text-slate-600">
+          <Logo size="md" to="/" />
+          <NuxtLink to="/auth/login" class="text-sm text-slate-600 hover:text-blue-800 transition-colors">
             Sign In
           </NuxtLink>
         </div>
@@ -39,6 +37,7 @@
 <script setup lang="ts">
 import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
 import AnalysisLoadingState from "~/components/organisms/AnalysisLoadingState.vue";
+import Logo from "~/components/atoms/Logo.vue";
 
 const analyzing = ref(false)
 const sessionId = ref<string | null>(null)
