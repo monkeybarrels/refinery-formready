@@ -107,19 +107,8 @@
                 </div>
               </div>
 
-              <!-- Decision Timeline -->
-              <DecisionTimeline
-                :decision-date="results.decisionDate"
-                :effective-date="results.effectiveDate"
-                :appeal-deadline="results.appealDeadline"
-                :current-step="'decision_received'"
-              />
-
-              <!-- Evidence Checklist -->
-              <EvidenceChecklist
-                :conditions="getDeniedConditions(results)"
-                :claim-type="'appeal'"
-              />
+              <!-- Premium Features Removed (Coming Soon) -->
+              <!-- DecisionTimeline and EvidenceChecklist are premium features -->
 
               <!-- Condition Comparison -->
               <ConditionComparison
@@ -167,8 +156,9 @@ import VeteranInfoCard from "~/components/molecules/VeteranInfoCard.vue";
 import DecisionSummarySection from "~/components/organisms/DecisionSummarySection.vue";
 import DenialAnalysisCard from "~/components/organisms/DenialAnalysisCard.vue";
 import ComprehensiveNextStepsPanel from "~/components/organisms/ComprehensiveNextStepsPanel.vue";
-import DecisionTimeline from "~/components/molecules/DecisionTimeline.vue";
-import EvidenceChecklist from "~/components/organisms/EvidenceChecklist.vue";
+// Premium components removed (Coming Soon)
+// import DecisionTimeline from "~/components/molecules/DecisionTimeline.vue";
+// import EvidenceChecklist from "~/components/organisms/EvidenceChecklist.vue";
 import ConditionComparison from "~/components/organisms/ConditionComparison.vue";
 
 const config = useRuntimeConfig();
