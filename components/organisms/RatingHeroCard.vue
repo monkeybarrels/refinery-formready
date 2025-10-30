@@ -18,11 +18,16 @@
 
       <!-- Monthly Payment -->
       <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 text-center border border-white border-opacity-20 hover:bg-opacity-20 transition-all">
-        <div class="text-6xl font-bold mb-2">
+        <div v-if="monthlyPayment !== null && monthlyPayment > 0" class="text-6xl font-bold mb-2">
           ${{ monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
         </div>
+        <div v-else class="text-3xl font-semibold mb-2 text-blue-200">
+          Not Available
+        </div>
         <div class="text-blue-100 text-sm uppercase tracking-wide">Monthly Payment</div>
-        <div class="mt-2 text-xs text-blue-200">Compensation Amount</div>
+        <div class="mt-2 text-xs text-blue-200">
+          {{ monthlyPayment !== null && monthlyPayment > 0 ? 'Compensation Amount' : 'Check your decision letter' }}
+        </div>
       </div>
 
       <!-- Claims Stats -->

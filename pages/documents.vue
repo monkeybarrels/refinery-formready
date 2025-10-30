@@ -105,7 +105,7 @@
                 </div>
                 <div v-if="doc.deferredCount > 0" class="flex items-center text-amber-600">
                   <Icon name="heroicons:clock" class="w-4 h-4 mr-1" />
-                  <span>{{ doc.deferredCount }} Deferred</span>
+                  <span>{{ doc.deferredCount || 0 }} Deferred</span>
                 </div>
               </div>
 
@@ -169,10 +169,10 @@ const loadDocuments = async () => {
         analyzedAt: doc.analyzedAt,
         combinedRating: doc.combinedRating,
         monthlyPayment: doc.monthlyPayment,
-        conditionsCount: doc.conditionsCount || 0,
-        grantedCount: doc.grantedCount || 0,
-        deniedCount: doc.deniedCount || 0,
-        deferredCount: doc.deferredCount || 0
+        conditionsCount: doc.conditions.length || 0,
+        grantedCount: doc.conditions.filter((condition) => condition.status === 'approved').length || 0,
+        deniedCount: doc.conditions.filter((condition) => condition.status === 'denied').length || 0,
+        deferredCount: doc.conditions.filter((condition) => condition.status === 'deferred').lengthå || 0
       }))
     }
   } catch (error) {

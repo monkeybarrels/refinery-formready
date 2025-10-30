@@ -72,8 +72,8 @@
               </div>
             </div>
           </div>
-          <!-- Teaser for next steps -->
-          <div class="mt-4 border-t border-red-200 pt-4">
+          <!-- Teaser for next steps (only for anonymous users) -->
+          <div v-if="!isAuthenticated" class="mt-4 border-t border-red-200 pt-4">
             <button
               @click="$emit('show-signup')"
               class="flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -82,6 +82,13 @@
               Unlock detailed next steps to appeal this denial
               <Icon name="heroicons:arrow-right" class="w-4 h-4 ml-2" />
             </button>
+          </div>
+          <!-- Coming soon message for authenticated users -->
+          <div v-else class="mt-4 border-t border-red-200 pt-4">
+            <div class="flex items-center text-sm text-slate-600">
+              <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-500" />
+              <span>Personalized next steps coming soon</span>
+            </div>
           </div>
         </div>
       </div>
@@ -144,11 +151,14 @@ const props = defineProps<{
     reason: string
     laymanReason?: string
   }>
+  isAuthenticated?: boolean
 }>()
 
 defineEmits<{
   (e: 'show-signup'): void
 }>()
+
+const isAuthenticated = computed(() => props.isAuthenticated || false)
 
 // Separate conditions by status
 const grantedConditions = computed(() =>
