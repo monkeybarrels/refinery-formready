@@ -8,7 +8,7 @@
             <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center mr-3">
               <Icon name="heroicons:document-text" class="w-4 h-4 text-white" />
             </div>
-            <h1 class="text-xl font-bold text-blue-800">Refinery</h1>
+            <h1 class="text-xl font-bold text-blue-800">ClaimReady</h1>
           </NuxtLink>
         </div>
         
