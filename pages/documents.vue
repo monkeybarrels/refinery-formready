@@ -125,6 +125,7 @@
 <script setup lang="ts">
 import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
+import Navigation from '~/components/organisms/Navigation.vue'
 
 useHead({
   title: 'Your Documents - ClaimReady',

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
     <!-- Navigation -->
     <Navigation
       :show-new-analysis="false"
@@ -7,33 +7,34 @@
       :show-user-menu="false"
     />
 
-    <div class="py-12">
-      <div class="max-w-7xl mx-auto px-4">
-        <!-- Header -->
-        <div class="text-center mb-12">
-          <h1 class="text-5xl font-bold text-slate-900 mb-4">
-            VA Decision Letter Analysis
-          </h1>
-          <p class="text-xl text-slate-600">
-            Upload your VA decision letter to get instant analysis and understand your
-            claim decision
+    <!-- Hero Section -->
+    <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="text-center">
+          <h1 class="text-4xl font-bold mb-4">VA Decision Letter Analysis</h1>
+          <p class="text-xl text-blue-100">
+            Upload your VA decision letter to get instant analysis and understand your claim decision
           </p>
         </div>
+      </div>
+    </div>
 
-        <!-- Upload Section -->
-        <FileUploadZone
-          v-if="!analyzing && !processing && !results"
-          :uploading="uploading"
-          :error="error"
-          @file-select="handleFileSelect"
-          @analyze="analyzeDecision"
-        />
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Upload Section -->
+      <FileUploadZone
+        v-if="!analyzing && !processing && !results"
+        :uploading="uploading"
+        :error="error"
+        @file-select="handleFileSelect"
+        @analyze="analyzeDecision"
+      />
 
-        <!-- Analyzing State -->
-        <AnalysisLoadingState v-if="analyzing || processing" :stage="currentStage" />
+      <!-- Analyzing State -->
+      <AnalysisLoadingState v-if="analyzing || processing" :stage="currentStage" />
 
-        <!-- Results Section -->
-        <div v-if="results" class="space-y-8">
+      <!-- Results Section -->
+      <div v-if="results" class="space-y-8">
           <!-- Executive Summary -->
           <ExecutiveSummary
             :combined-rating="results.combinedRating"
@@ -126,18 +127,17 @@
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4">
-            <Button @click="reset" variant="secondary">
-              <Icon name="heroicons:document" class="w-4 h-4 mr-2" />
-              Analyze Another Letter
-            </Button>
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <Button @click="reset" variant="secondary">
+            <Icon name="heroicons:document" class="w-4 h-4 mr-2" />
+            Analyze Another Letter
+          </Button>
 
-            <Button variant="primary" @click="printReport">
-              <Icon name="heroicons:printer" class="w-4 h-4 mr-2" />
-              Print Report
-            </Button>
-          </div>
+          <Button variant="primary" @click="printReport">
+            <Icon name="heroicons:printer" class="w-4 h-4 mr-2" />
+            Print Report
+          </Button>
         </div>
       </div>
     </div>

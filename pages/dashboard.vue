@@ -256,6 +256,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
+import Navigation from '~/components/organisms/Navigation.vue'
 
 // Head
 useHead({
