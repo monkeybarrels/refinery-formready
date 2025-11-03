@@ -18,7 +18,16 @@
         </div>
         <h2 class="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h2>
         <p class="text-slate-600">Sign in to your ClaimReady account</p>
-        <div class="mt-4 inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+
+        <!-- Session Expiration Warning -->
+        <div v-if="sessionExpired" class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div class="flex items-center justify-center">
+            <Icon name="heroicons:clock" class="w-5 h-5 text-amber-600 mr-2" />
+            <span class="text-sm font-medium text-amber-800">Your session has expired. Please sign in again.</span>
+          </div>
+        </div>
+
+        <div v-else class="mt-4 inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
           <Icon name="heroicons:star" class="w-4 h-4" color="blue-600" />
           <span class="text-sm font-medium text-blue-800">Made for Veterans by Veterans</span>
         </div>
@@ -151,8 +160,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
 import Spinner from '~/components/atoms/Spinner.vue'
 
@@ -165,6 +174,24 @@ useHead({
 })
 
 const router = useRouter()
+const route = useRoute()
+const { login } = useAuth()
+
+// Check for session expiration and redirect params
+const sessionExpired = ref(false)
+const redirectPath = ref('/dashboard')
+
+onMounted(() => {
+  // Check if user was redirected due to expired session
+  if (route.query.session_expired === 'true') {
+    sessionExpired.value = true
+  }
+
+  // Check if there's a redirect path
+  if (route.query.redirect && typeof route.query.redirect === 'string') {
+    redirectPath.value = route.query.redirect
+  }
+})
 
 // Form state
 const form = reactive({
@@ -194,9 +221,10 @@ const handleLogin = async () => {
     const result = await response.json()
 
     if (result.success) {
-      // Store JWT token for API authentication
-      localStorage.setItem('auth_token', result.accessToken)
-      
+      // Store token and session using useAuth composable
+      const expiresIn = result.expiresIn || 86400 // Default 24 hours
+      login(result.accessToken, expiresIn)
+
       // Store user data for display
       localStorage.setItem('user_data', JSON.stringify({
         userId: result.userId,
@@ -207,8 +235,8 @@ const handleLogin = async () => {
         isPremium: result.isPremium || false
       }))
 
-      // Redirect to dashboard
-      await router.push('/dashboard')
+      // Redirect to original page or dashboard
+      await router.push(redirectPath.value)
     } else {
       error.value = result.error || 'Invalid email or password'
     }
@@ -219,24 +247,6 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
-
-// Check if already logged in
-onMounted(() => {
-  const session = localStorage.getItem('user_session')
-  if (session) {
-    const sessionData = JSON.parse(session)
-    const loginTime = new Date(sessionData.loginTime)
-    const now = new Date()
-    const hoursSinceLogin = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60)
-    
-    // Session expires after 24 hours
-    if (hoursSinceLogin < 24) {
-      router.push('/dashboard')
-    } else {
-      localStorage.removeItem('user_session')
-    }
-  }
-})
 </script>
 
 <style scoped>

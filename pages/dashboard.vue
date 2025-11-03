@@ -293,11 +293,16 @@ const analytics = reactive({
 
 // Check user session and load data
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) {
-    router.push('/auth/login')
-    return
+  const { requireAuth, setupSessionMonitoring } = useAuth()
+
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth()
+  if (!isAuth) {
+    return // Already redirected by requireAuth
   }
+
+  // Set up session monitoring for auto-logout
+  setupSessionMonitoring()
 
   try {
     // Load all dashboard data
@@ -370,14 +375,17 @@ const loadAnalytics = async () => {
 
 // Logout handler
 const handleLogout = async () => {
+  const { logout } = useAuth()
+  const { apiCall } = useApi()
+
   try {
-    const { apiCall } = useApi()
-    await apiCall('/auth/logout', { method: 'POST' })
+    // Call backend logout endpoint
+    await apiCall('/api/auth/logout', { method: 'POST' })
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
-    localStorage.removeItem('auth_token')
-    router.push('/')
+    // Clear local session and redirect
+    await logout(true)
   }
 }
 
