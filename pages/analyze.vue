@@ -163,6 +163,12 @@ const analyzeDocument = async () => {
     }
     console.log('Step 2 complete: File uploaded to S3')
 
+    // Construct full S3 URL from the upload URL
+    // The uploadUrl is a presigned URL like: https://endpoint/bucket/key?signature
+    // We need to extract just the base URL (without query params)
+    const s3Url = new URL(uploadUrl)
+    const storageUrl = `${s3Url.protocol}//${s3Url.host}${s3Url.pathname}`
+
     // Step 3: Analyze
     console.log('Step 3: Starting analysis...')
     currentStep.value = 3
@@ -171,7 +177,7 @@ const analyzeDocument = async () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storageUrl: s3Key })
+        body: JSON.stringify({ storageUrl })
       }
     )
 
