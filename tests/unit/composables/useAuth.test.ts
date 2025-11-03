@@ -17,6 +17,15 @@ vi.mock('../../../composables/useApi', () => ({
   }),
 }))
 
+// Mock Vue's onUnmounted
+vi.mock('vue', async () => {
+  const actual = await vi.importActual('vue')
+  return {
+    ...actual,
+    onUnmounted: vi.fn(),
+  }
+})
+
 describe('useAuth', () => {
   beforeEach(() => {
     // Clear localStorage before each test
@@ -70,7 +79,7 @@ describe('useAuth', () => {
     it('should not redirect when skipRedirect is true', async () => {
       const { logout } = useAuth()
 
-      await logout(true)
+      await logout(false) // false means don't redirect
 
       expect(mockPush).not.toHaveBeenCalled()
     })

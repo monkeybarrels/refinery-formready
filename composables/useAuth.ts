@@ -1,3 +1,5 @@
+import { onUnmounted } from 'vue'
+
 /**
  * Authentication composable with session expiration detection
  * Handles token validation, expiration checking, and automatic logout
@@ -11,7 +13,7 @@ export const useAuth = () => {
    * Returns true if logged in with valid token
    */
   const isAuthenticated = (): boolean => {
-    if (process.server) return false
+    if (import.meta.server) return false
 
     const token = localStorage.getItem('auth_token')
     const tokenExpiry = localStorage.getItem('token_expiry')
@@ -61,7 +63,7 @@ export const useAuth = () => {
    * Clear session data and redirect to login
    */
   const clearSession = () => {
-    if (process.server) return
+    if (import.meta.server) return
 
     localStorage.removeItem('auth_token')
     localStorage.removeItem('token_expiry')
@@ -83,7 +85,7 @@ export const useAuth = () => {
    * Login and store session data
    */
   const login = (token: string, expiresIn: number = 86400) => {
-    if (process.server) return
+    if (import.meta.server) return
 
     localStorage.setItem('auth_token', token)
 
@@ -118,7 +120,7 @@ export const useAuth = () => {
    * Checks session validity every 5 minutes
    */
   const setupSessionMonitoring = () => {
-    if (process.server) return
+    if (import.meta.server) return
 
     // Check every 5 minutes
     const intervalId = setInterval(async () => {
