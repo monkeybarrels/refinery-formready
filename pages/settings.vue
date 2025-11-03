@@ -405,18 +405,21 @@ const passwordForm = reactive({
 
 // Load settings on mount
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) {
-    router.push('/auth/login')
-    return
+  const { requireAuth, setupSessionMonitoring } = useAuth()
+
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth()
+  if (!isAuth) {
+    return // Already redirected by requireAuth
   }
+
+  // Set up session monitoring for auto-logout
+  setupSessionMonitoring()
 
   try {
     await loadSettings()
   } catch (err) {
     console.error('Failed to load settings:', err)
-    localStorage.removeItem('auth_token')
-    router.push('/auth/login')
   } finally {
     loading.value = false
   }

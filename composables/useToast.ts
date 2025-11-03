@@ -49,6 +49,19 @@ export const useToast = () => {
       onClose: handleClose
     })
 
+    // Get Nuxt app context if available
+    if (import.meta.client) {
+      try {
+        const nuxtApp = useNuxtApp()
+        if (nuxtApp && vnode.appContext === null) {
+          vnode.appContext = nuxtApp.vueApp._context
+        }
+      } catch (e) {
+        // If useNuxtApp is not available, continue without context
+        console.warn('Nuxt app context not available for toast')
+      }
+    }
+
     render(vnode, container)
 
     toasts.value.push({ id, vnode, container })

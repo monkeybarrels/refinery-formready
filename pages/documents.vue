@@ -139,18 +139,21 @@ const loading = ref(true)
 const documents = ref<any[]>([])
 
 onMounted(async () => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) {
-    router.push('/auth/login')
-    return
+  const { requireAuth, setupSessionMonitoring } = useAuth()
+
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth()
+  if (!isAuth) {
+    return // Already redirected by requireAuth
   }
+
+  // Set up session monitoring for auto-logout
+  setupSessionMonitoring()
 
   try {
     await loadDocuments()
   } catch (error) {
     console.error('Failed to load documents:', error)
-    localStorage.removeItem('auth_token')
-    router.push('/auth/login')
   } finally {
     loading.value = false
   }

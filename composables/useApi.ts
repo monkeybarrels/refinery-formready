@@ -31,10 +31,11 @@ export const useApi = () => {
   
   /**
    * Make an authenticated API call
+   * Automatically handles session expiration (401/403)
    */
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('auth_token')
-    
+
     const defaultHeaders = {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })
@@ -48,7 +49,14 @@ export const useApi = () => {
         ...options.headers
       }
     })
-    
+
+    // Check for session expiration
+    if (response.status === 401 || response.status === 403) {
+      console.log('🔒 Session expired (401/403), logging out')
+      const { logout } = useAuth()
+      await logout(true)
+    }
+
     return response
   }
   
