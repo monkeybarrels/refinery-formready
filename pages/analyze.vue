@@ -166,31 +166,57 @@ const analyzeDocument = async () => {
     // Step 3: Analyze
     console.log('Step 3: Starting analysis...')
     currentStep.value = 3
-    const analyzeResponse = await fetch(
-      `${apiUrl}/api/analyze/anonymous`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storageUrl: s3Key })
+
+    // Add timeout to fetch request (90 seconds)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 90000)
+
+    try {
+      const analyzeResponse = await fetch(
+        `${apiUrl}/api/analyze/anonymous`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storageUrl: s3Key }),
+          signal: controller.signal
+        }
+      )
+
+      clearTimeout(timeoutId)
+
+      console.log('Got analyze response, status:', analyzeResponse.status)
+
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json().catch(() => ({}))
+        throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
       }
-    )
 
-    if (!analyzeResponse.ok) {
-      const errorData = await analyzeResponse.json().catch(() => ({}))
-      throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
+      const responseData = await analyzeResponse.json()
+      console.log('Analyze response data:', responseData)
+
+      const newSessionId = responseData.sessionId
+      if (!newSessionId) {
+        throw new Error('No sessionId in response')
+      }
+
+      console.log('Step 3 complete: Got session ID', newSessionId)
+      sessionId.value = newSessionId
+
+      // Show success toast
+      toast.success('Analysis Complete!', 'Redirecting to your results...')
+
+      // Redirect to results
+      setTimeout(() => {
+        navigateTo(`/results/${newSessionId}`)
+      }, 500)
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId)
+
+      if (fetchError.name === 'AbortError') {
+        throw { message: 'Analysis is taking longer than expected. Please try again.' }
+      }
+      throw fetchError
     }
-
-    const { sessionId: newSessionId } = await analyzeResponse.json()
-    console.log('Step 3 complete: Got session ID', newSessionId)
-    sessionId.value = newSessionId
-
-    // Show success toast
-    toast.success('Analysis Complete!', 'Redirecting to your results...')
-
-    // Redirect to results
-    setTimeout(() => {
-      navigateTo(`/results/${newSessionId}`)
-    }, 500)
 
   } catch (error: any) {
     console.error('Analysis failed:', error)
