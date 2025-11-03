@@ -23,6 +23,11 @@ export const useAuth = () => {
     // Check if token is expired
     if (tokenExpiry) {
       const expiryTime = parseInt(tokenExpiry, 10)
+      // Handle invalid/malformed expiry timestamp
+      if (isNaN(expiryTime)) {
+        clearSession()
+        return false
+      }
       if (Date.now() > expiryTime) {
         // Token expired, clean up
         clearSession()

@@ -32,6 +32,10 @@ describe('useAuth', () => {
     localStorage.clear()
     // Clear all mocks
     vi.clearAllMocks()
+    // Reset mock return values
+    mockApiCall.mockReset()
+    mockPush.mockReset()
+    mockPush.mockResolvedValue(undefined) // Make mockPush return a resolved promise
     // Reset timers
     vi.useFakeTimers()
   })
@@ -73,7 +77,7 @@ describe('useAuth', () => {
       expect(localStorage.getItem('auth_token')).toBeNull()
       expect(localStorage.getItem('token_expiry')).toBeNull()
       expect(localStorage.getItem('user_data')).toBeNull()
-      expect(mockPush).toHaveBeenCalledWith('/auth/login')
+      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
 
     it('should not redirect when skipRedirect is true', async () => {
@@ -196,7 +200,7 @@ describe('useAuth', () => {
       const result = await requireAuth()
 
       expect(result).toBe(false)
-      expect(mockPush).toHaveBeenCalledWith('/auth/login')
+      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
 
     it('should logout and return false when session validation fails', async () => {
@@ -211,7 +215,7 @@ describe('useAuth', () => {
       const result = await requireAuth()
 
       expect(result).toBe(false)
-      expect(mockPush).toHaveBeenCalledWith('/auth/login')
+      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
   })
 
