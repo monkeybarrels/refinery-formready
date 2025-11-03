@@ -1,20 +1,22 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { useAuth } from '../../../composables/useAuth'
 
-// Mock useRouter
+// Create mocks that will be shared
 const mockPush = vi.fn()
-vi.mock('vue-router', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
+const mockApiCall = vi.fn()
+
+// Override the global mocks with our test-specific ones
+// The global setup creates these, but we need to control them
+;(global as any).useRouter = vi.fn(() => ({
+  push: mockPush,
+  replace: vi.fn(),
+  back: vi.fn(),
+  forward: vi.fn(),
 }))
 
-// Mock useApi
-const mockApiCall = vi.fn()
-vi.mock('../../../composables/useApi', () => ({
-  useApi: () => ({
-    apiCall: mockApiCall,
-  }),
+;(global as any).useApi = vi.fn(() => ({
+  apiCall: mockApiCall,
+  getApiUrl: vi.fn(),
+  getFullApiUrl: vi.fn(),
 }))
 
 // Mock Vue's onUnmounted
@@ -25,6 +27,9 @@ vi.mock('vue', async () => {
     onUnmounted: vi.fn(),
   }
 })
+
+// Import after mocks are set up
+import { useAuth } from '../../../composables/useAuth'
 
 describe('useAuth', () => {
   beforeEach(() => {
@@ -277,8 +282,8 @@ describe('useAuth', () => {
       // Wait for async operations
       await vi.runAllTimersAsync()
 
-      // Should have logged out
-      expect(mockPush).toHaveBeenCalledWith('/auth/login')
+      // Should have logged out with session_expired query param
+      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
   })
 

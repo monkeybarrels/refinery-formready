@@ -5,12 +5,17 @@ const mockIsAuthenticated = vi.fn()
 const mockValidateSession = vi.fn()
 const mockNavigateTo = vi.fn()
 
-vi.mock('../../../composables/useAuth', () => ({
-  useAuth: () => ({
-    isAuthenticated: mockIsAuthenticated,
-    validateSession: mockValidateSession,
-  }),
+// Override global mocks with test-specific ones
+;(global as any).useAuth = vi.fn(() => ({
+  isAuthenticated: mockIsAuthenticated,
+  validateSession: mockValidateSession,
+  login: vi.fn(),
+  logout: vi.fn(),
+  requireAuth: vi.fn(),
+  setupSessionMonitoring: vi.fn(),
 }))
+
+;(global as any).navigateTo = mockNavigateTo
 
 // Import middleware after mocks are set up
 import authMiddleware from '../../../middleware/auth'
@@ -18,8 +23,9 @@ import authMiddleware from '../../../middleware/auth'
 describe('auth middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Reset navigateTo mock
-    global.navigateTo = mockNavigateTo
+    // Reset navigateTo mock - return a navigation result object
+    mockNavigateTo.mockReturnValue({ type: 'redirect' } as any)
+    ;(global as any).navigateTo = mockNavigateTo
   })
 
   describe('public routes', () => {
@@ -141,7 +147,8 @@ describe('auth middleware', () => {
 
     it('should handle validation errors gracefully', async () => {
       mockIsAuthenticated.mockReturnValue(true)
-      mockValidateSession.mockRejectedValue(new Error('Network error'))
+      // validateSession catches errors and returns null (it doesn't throw)
+      mockValidateSession.mockResolvedValue(null)
 
       const to = { path: '/dashboard', name: 'dashboard' }
       const from = { path: '/', name: 'index' }
@@ -150,6 +157,8 @@ describe('auth middleware', () => {
 
       expect(result).toBeDefined()
       expect(mockNavigateTo).toHaveBeenCalled()
+      // Should redirect with session_expired flag when validation returns null
+      expect(mockNavigateTo.mock.calls[0][0]).toContain('session_expired=true')
     })
 
     it('should preserve hash fragments in redirect', async () => {
