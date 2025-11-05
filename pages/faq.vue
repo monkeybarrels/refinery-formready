@@ -208,6 +208,10 @@
 </template>
 
 <script setup lang="ts">
+import Navigation from '~/components/organisms/Navigation.vue'
+import Footer from '~/components/organisms/Footer.vue'
+import FaqItem from '~/components/molecules/FaqItem.vue'
+
 useSeoMeta({
   title: 'FAQ & Help - ClaimReady',
   description: 'Find answers to frequently asked questions about using ClaimReady to analyze VA decision letters and support your appeals process.',

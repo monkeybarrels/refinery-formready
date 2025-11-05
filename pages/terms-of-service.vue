@@ -238,6 +238,9 @@
 </template>
 
 <script setup lang="ts">
+import Navigation from '~/components/organisms/Navigation.vue'
+import Footer from '~/components/organisms/Footer.vue'
+
 const lastUpdated = 'November 5, 2025'
 
 useSeoMeta({
