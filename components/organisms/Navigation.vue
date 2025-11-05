@@ -36,12 +36,19 @@
           >
             Dashboard
           </NuxtLink>
-          <NuxtLink 
-            to="/pricing" 
+          <NuxtLink
+            to="/pricing"
             class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
             :class="{ 'text-blue-600': $route.path === '/pricing' }"
           >
             Pricing
+          </NuxtLink>
+          <NuxtLink
+            to="/faq"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            :class="{ 'text-blue-600': $route.path === '/faq' }"
+          >
+            Help
           </NuxtLink>
         </div>
         
@@ -174,12 +181,19 @@
           >
             Dashboard
           </NuxtLink>
-          <NuxtLink 
-            to="/pricing" 
+          <NuxtLink
+            to="/pricing"
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >
             Pricing
+          </NuxtLink>
+          <NuxtLink
+            to="/faq"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
+          >
+            Help
           </NuxtLink>
         </div>
       </div>
