@@ -224,7 +224,7 @@ useHead({
 })
 
 const router = useRouter()
-const { showToast } = useToast()
+const toast = useToast()
 const loading = ref(true)
 const documents = ref<any[]>([])
 const downloadingId = ref<string | null>(null)
@@ -259,7 +259,7 @@ onMounted(async () => {
     await loadDocuments()
   } catch (error) {
     console.error('Failed to load documents:', error)
-    showToast('Failed to load documents', 'error')
+    toast.error('Failed to load documents')
   } finally {
     loading.value = false
   }
@@ -304,7 +304,7 @@ const goToPage = async (page: number) => {
   try {
     await loadDocuments()
   } catch (error) {
-    showToast('Failed to load page', 'error')
+    toast.error('Failed to load page')
   } finally {
     loading.value = false
   }
@@ -360,29 +360,48 @@ const handleDelete = async () => {
   if (!deleteModal.value.document) return
 
   deleteModal.value.loading = true
+  const documentIdToDelete = deleteModal.value.document.documentId
 
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(`/api/documents/${deleteModal.value.document.documentId}`, {
+    const response = await apiCall(`/api/documents/${documentIdToDelete}`, {
       method: 'DELETE'
     })
 
     if (response.ok) {
-      showToast('Document deleted successfully', 'success')
-      deleteModal.value.isOpen = false
-      deleteModal.value.document = null
+      toast.success('Document deleted successfully')
 
-      // Reload documents
-      await loadDocuments()
+      // If we're on a page that will be empty after deletion, go to previous page
+      const willBeEmpty = documents.value.length === 1 && pagination.value.page > 1
+      if (willBeEmpty) {
+        pagination.value.page -= 1
+      }
+
+      // Reload documents to refresh the list
+      loading.value = true
+      try {
+        await loadDocuments()
+      } finally {
+        loading.value = false
+      }
     } else {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to delete document')
+      let errorMessage = 'Failed to delete document'
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch (e) {
+        // Failed to parse error response, use default message
+      }
+      throw new Error(errorMessage)
     }
   } catch (error: any) {
     console.error('Failed to delete document:', error)
-    showToast(error.message || 'Failed to delete document', 'error')
+    toast.error(error.message || 'Failed to delete document')
   } finally {
+    // Always close modal and reset state, whether success or failure
     deleteModal.value.loading = false
+    deleteModal.value.isOpen = false
+    deleteModal.value.document = null
   }
 }
 
@@ -399,13 +418,13 @@ const downloadPdf = async (documentId: string, fileName: string) => {
       // Open the presigned URL in a new tab to download
       window.open(data.downloadUrl, '_blank')
 
-      showToast('Download started', 'success')
+      toast.success('Download started')
     } else {
       throw new Error('Failed to get download URL')
     }
   } catch (error: any) {
     console.error('Failed to download PDF:', error)
-    showToast(error.message || 'Failed to download PDF', 'error')
+    toast.error(error.message || 'Failed to download PDF')
   } finally {
     downloadingId.value = null
   }
