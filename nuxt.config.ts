@@ -19,6 +19,17 @@ export default defineNuxtConfig({
       authorizerUrl: process.env.NUXT_PUBLIC_AUTHORIZER_URL || 'https://auth.claimready.io',
       authorizerClientId: process.env.NUXT_PUBLIC_AUTHORIZER_CLIENT_ID || '9c81da5e-0635-43c5-bcef-c629174c7c6f',
       authorizerRedirectUrl: process.env.NUXT_PUBLIC_AUTHORIZER_REDIRECT_URL || 'http://localhost:3000',
+
+      // New Relic Browser Monitoring
+      newRelicEnabled: process.env.NEW_RELIC_ENABLED || 'false',
+      newRelicBrowserLicenseKey: process.env.NEW_RELIC_BROWSER_LICENSE_KEY || '',
+      newRelicBrowserApplicationId: process.env.NEW_RELIC_BROWSER_APPLICATION_ID || '',
+      newRelicBrowserAccountId: process.env.NEW_RELIC_BROWSER_ACCOUNT_ID || '',
+      newRelicBrowserTrustKey: process.env.NEW_RELIC_BROWSER_TRUST_KEY || '',
+      newRelicBrowserAgentId: process.env.NEW_RELIC_BROWSER_AGENT_ID || '',
+      newRelicBrowserBeacon: process.env.NEW_RELIC_BROWSER_BEACON || 'bam.nr-data.net',
+      newRelicBrowserErrorBeacon: process.env.NEW_RELIC_BROWSER_ERROR_BEACON || 'bam.nr-data.net',
+      environment: process.env.NODE_ENV || 'development',
     }
   },
 
