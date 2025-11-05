@@ -44,6 +44,8 @@ export const useApi = () => {
     console.log('🔧 API URL:', url)
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
+      mode: 'cors',
       headers: {
         ...defaultHeaders,
         ...options.headers
