@@ -372,6 +372,12 @@ const handleDelete = async () => {
       deleteModal.value.isOpen = false
       deleteModal.value.document = null
 
+      // If we're on a page that will be empty after deletion, go to previous page
+      const willBeEmpty = documents.value.length === 1 && pagination.value.page > 1
+      if (willBeEmpty) {
+        pagination.value.page -= 1
+      }
+
       // Reload documents
       await loadDocuments()
     } else {
