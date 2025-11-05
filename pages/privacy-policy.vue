@@ -11,7 +11,7 @@
         </div>
 
         <!-- Content -->
-        <div class="bg-white rounded-lg shadow-sm p-8 prose prose-slate max-w-none">
+        <div class="bg-white rounded-lg shadow-sm p-8">
           <section class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-900 mb-4">Introduction</h2>
             <p class="text-gray-700 leading-relaxed mb-4">
