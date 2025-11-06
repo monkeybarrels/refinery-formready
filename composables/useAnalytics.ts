@@ -1,6 +1,6 @@
 /**
  * Analytics composable for tracking user events
- * Wraps Plausible Analytics with typed event tracking
+ * Wraps PostHog Analytics with typed event tracking
  */
 
 export type AnalyticsEventName =
@@ -33,7 +33,7 @@ export type AnalyticsEventName =
 
 export interface AnalyticsEventProps {
   // Generic properties
-  [key: string]: string | number | boolean;
+  [key: string]: string | number | boolean | undefined;
 
   // Common properties
   documentId?: string;
@@ -52,7 +52,7 @@ export interface AnalyticsEventProps {
 }
 
 export const useAnalytics = () => {
-  const { $plausible } = useNuxtApp();
+  const { $posthog } = useNuxtApp();
 
   /**
    * Track a custom event with properties
@@ -60,8 +60,8 @@ export const useAnalytics = () => {
    * @param props - Event properties
    */
   const trackEvent = (eventName: AnalyticsEventName, props?: AnalyticsEventProps) => {
-    if (!$plausible) {
-      // Plausible not loaded (e.g., in development with localhost)
+    if (!$posthog) {
+      // PostHog not loaded
       if (import.meta.dev) {
         console.log('[Analytics - Dev]', eventName, props);
       }
@@ -69,9 +69,12 @@ export const useAnalytics = () => {
     }
 
     try {
-      $plausible.trackEvent(eventName, {
-        props: props || {}
-      });
+      // Filter out undefined values from props
+      const cleanProps = props ? Object.fromEntries(
+        Object.entries(props).filter(([_, value]) => value !== undefined)
+      ) : {};
+
+      $posthog.capture(eventName, cleanProps);
     } catch (error) {
       // Silent failure - don't break the app if analytics fails
       console.warn('Analytics tracking failed:', error);
