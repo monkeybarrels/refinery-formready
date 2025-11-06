@@ -29,15 +29,34 @@ export const useBilling = () => {
   const error: Ref<string | null> = ref(null);
 
   /**
-   * Get current user ID from session
+   * Get current user ID from auth token
    */
   const getUserId = (): string | null => {
     if (typeof window === 'undefined') return null;
-    const session = localStorage.getItem('user_session');
-    if (!session) return null;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return null;
+
     try {
-      const sessionData = JSON.parse(session);
-      return sessionData.userId || sessionData.id || null;
+      // Decode JWT token to get user ID
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.userId || payload.sub || payload.id || null;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Get user email from auth token
+   */
+  const getUserEmail = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return null;
+
+    try {
+      // Decode JWT token to get email
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.email || null;
     } catch {
       return null;
     }
@@ -130,10 +149,8 @@ export const useBilling = () => {
     error.value = null;
 
     try {
-      // Get user email from session
-      const session = localStorage.getItem('user_session');
-      const sessionData = session ? JSON.parse(session) : null;
-      const email = sessionData?.email;
+      // Get user email from token
+      const email = getUserEmail();
 
       if (!email) {
         error.value = 'User email not found';
