@@ -40,15 +40,15 @@
           <Logo size="xl" :show-text="false" />
         </div>
 
-        <!-- Main Headline - Transformation Focused -->
-        <h1 class="text-6xl font-bold text-slate-900 mb-6 leading-tight">
-          Turn Denials Into
-          <span class="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"> Approvals</span>
+        <!-- Main Headline - Clear & Benefit-Focused -->
+        <h1 class="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+          Understand Your VA Decision Letter<br/>
+          <span class="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">in Plain English</span>
         </h1>
 
         <!-- Value Prop -->
-        <p class="text-2xl text-slate-700 mb-4 font-medium max-w-3xl mx-auto">
-          AI-Powered Decision Letter Analysis Built by Veterans
+        <p class="text-xl md:text-2xl text-slate-700 mb-4 font-medium max-w-4xl mx-auto leading-relaxed">
+          Upload your decision letter. Get instant explanations of every condition, rating, and denial—plus clear next steps. Built by veterans, always free.
         </p>
 
         <!-- Social Proof Banner -->
@@ -60,9 +60,69 @@
         </div>
 
         <!-- Supporting Copy -->
-        <p class="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8">
           Get instant AI analysis of your VA decision letter. Understand exactly why claims were denied, what evidence you need, and your next steps to appeal—in minutes, not weeks.
         </p>
+
+        <!-- Primary CTA -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <Button
+            @click="navigateTo('/analyze')"
+            variant="primary"
+            class="text-lg px-8 py-4"
+          >
+            <Icon name="heroicons:document-text" class="w-5 h-5 mr-2" />
+            Analyze Decision Letter Free
+          </Button>
+          <button
+            @click="scrollToHowItWorks"
+            class="text-blue-800 font-medium hover:text-blue-900 transition-colors"
+          >
+            See How It Works →
+          </button>
+        </div>
+
+        <!-- Supporting Text -->
+        <p class="text-sm text-slate-500">
+          No signup required • Takes 90 seconds • Always free
+        </p>
+      </div>
+
+      <!-- Trust Indicators -->
+      <div class="mb-16 bg-white rounded-xl shadow-sm p-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div class="text-center">
+            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:lock-closed" class="w-6 h-6 text-blue-800" />
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Encrypted Storage</h3>
+            <p class="text-xs text-gray-600">Your data is secure</p>
+          </div>
+
+          <div class="text-center">
+            <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:trash" class="w-6 h-6 text-red-600" />
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Delete Anytime</h3>
+            <p class="text-xs text-gray-600">Full control of your data</p>
+          </div>
+
+          <div class="text-center">
+            <div class="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:eye-slash" class="w-6 h-6 text-purple-600" />
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Private Analysis</h3>
+            <p class="text-xs text-gray-600">Never shared or sold</p>
+          </div>
+
+          <div class="text-center">
+            <div class="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:currency-dollar" class="w-6 h-6 text-green-600" />
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">Always Free Tier</h3>
+            <p class="text-xs text-gray-600">No hidden costs</p>
+          </div>
+        </div>
       </div>
 
       <!-- Available Tools -->
@@ -127,6 +187,18 @@
             </div>
           </NuxtLink>
         </div>
+
+        <!-- CTA After Tools -->
+        <div class="mt-8 text-center">
+          <Button
+            @click="navigateTo('/analyze')"
+            variant="primary"
+            class="text-lg px-8 py-3"
+          >
+            <Icon name="heroicons:arrow-right" class="w-5 h-5 mr-2" />
+            Get Started Free
+          </Button>
+        </div>
       </div>
 
       <!-- Veteran Connection -->
@@ -140,8 +212,11 @@
             </div>
             <h2 class="text-3xl font-bold">Built by Veterans, For Veterans</h2>
           </div>
-          <p class="text-xl text-blue-100 mb-6">
-            We understand the challenges you face because we've been there. Our team of veterans created this tool to help fellow service members navigate the VA claims process with confidence.
+          <p class="text-xl text-blue-100 mb-4 leading-relaxed">
+            We've been in your shoes—staring at confusing VA decision letters, wondering what went wrong and what to do next.
+          </p>
+          <p class="text-lg text-blue-50 mb-6 leading-relaxed">
+            That's why we built ClaimReady. As veterans who've navigated the VA claims process ourselves, we created this tool to give you the clarity and confidence you deserve. Every veteran should understand their decision letter and know their next steps—without hiring expensive lawyers or waiting weeks for help.
           </p>
           <div class="grid md:grid-cols-3 gap-6 text-left">
             <div class="bg-white bg-opacity-10 rounded-lg p-4">
@@ -176,7 +251,9 @@
       </div>
 
       <!-- How It Works -->
-      <div class="mt-16 grid md:grid-cols-3 gap-8">
+      <div id="how-it-works" class="mt-16">
+        <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">How It Works</h2>
+        <div class="grid md:grid-cols-3 gap-8">
         <div class="text-center">
           <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,6 +283,84 @@
           <h3 class="text-lg font-semibold text-gray-900 mb-2">3. Take Action</h3>
           <p class="text-gray-600">Get personalized next steps and evidence requirements</p>
         </div>
+        </div>
+
+        <!-- CTA After How It Works -->
+        <div class="mt-12 text-center">
+          <Button
+            @click="navigateTo('/analyze')"
+            variant="primary"
+            class="text-lg px-8 py-4"
+          >
+            <Icon name="heroicons:document-arrow-up" class="w-5 h-5 mr-2" />
+            Upload Your Decision Letter
+          </Button>
+          <p class="mt-3 text-sm text-gray-600">
+            Free analysis • No account required
+          </p>
+        </div>
+      </div>
+
+      <!-- FAQ Section -->
+      <div class="mt-16 bg-white rounded-2xl shadow-xl p-8">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-3">Frequently Asked Questions</h2>
+          <p class="text-gray-600">Quick answers to common questions about ClaimReady</p>
+        </div>
+
+        <div class="max-w-3xl mx-auto space-y-4">
+          <FaqItem
+            question="What is ClaimReady?"
+            answer="ClaimReady is an AI-powered platform that helps veterans analyze VA decision letters. We extract key information, identify denials and deferrals, and provide actionable insights in plain English—all in about 90 seconds."
+          />
+          <FaqItem
+            question="Is my information secure?"
+            answer="Yes. All documents are encrypted in transit and at rest. We use secure cloud infrastructure and industry-standard security practices. Only you can access your uploaded documents, and you can delete them anytime."
+          />
+          <FaqItem
+            question="Do I need to create an account?"
+            answer="No! You can analyze your decision letter anonymously without creating an account. If you want to save your analysis and track multiple documents, you can optionally create a free account."
+          />
+          <FaqItem
+            question="Is this really free?"
+            answer="Yes. Our core analysis tool is 100% free to use, with no hidden costs or credit card required. We offer optional premium features for power users, but the essential analysis is always free for veterans."
+          />
+          <FaqItem
+            question="How long does analysis take?"
+            answer="Most decision letters are analyzed in 60-90 seconds. You'll get instant extraction of conditions, ratings, denials, and personalized next steps."
+          />
+          <FaqItem
+            question="Do you provide legal advice?"
+            answer="No. ClaimReady is an analysis tool, not a law firm. We help you understand your decision letter, but you should consult with a qualified VA attorney or accredited representative for legal guidance on your specific case."
+          />
+        </div>
+
+        <!-- Link to Full FAQ -->
+        <div class="mt-8 text-center">
+          <NuxtLink
+            to="/faq"
+            class="inline-flex items-center text-blue-800 hover:text-blue-900 font-medium"
+          >
+            View All FAQs
+            <Icon name="heroicons:arrow-right" class="w-4 h-4 ml-2" />
+          </NuxtLink>
+        </div>
+      </div>
+
+      <!-- Final CTA Before Footer -->
+      <div class="mt-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-12 text-center text-white">
+        <h2 class="text-3xl font-bold mb-4">Ready to Understand Your Decision Letter?</h2>
+        <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          Get started in 90 seconds. No account needed, completely free.
+        </p>
+        <Button
+          @click="navigateTo('/analyze')"
+          variant="secondary"
+          class="text-lg px-10 py-4 bg-white text-blue-900 hover:bg-gray-100"
+        >
+          <Icon name="heroicons:rocket-launch" class="w-5 h-5 mr-2" />
+          Analyze Your Letter Now
+        </Button>
       </div>
 
       <!-- Footer Note -->
@@ -218,12 +373,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <Footer />
   </div>
 </template>
 
 <script setup lang="ts">
 import Button from '~/components/atoms/Button.vue'
 import Logo from '~/components/atoms/Logo.vue'
+import FaqItem from '~/components/molecules/FaqItem.vue'
+import Footer from '~/components/organisms/Footer.vue'
 import { useAnalytics } from '~/composables/useAnalytics'
 
 const { trackFunnel } = useAnalytics()
@@ -237,6 +397,14 @@ onMounted(() => {
 
   trackFunnel.landingViewed(source, medium, campaign)
 })
+
+// Scroll to How It Works section
+const scrollToHowItWorks = () => {
+  const element = document.getElementById('how-it-works')
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 
 useHead({
   title: 'ClaimReady - Turn Denials Into Approvals',

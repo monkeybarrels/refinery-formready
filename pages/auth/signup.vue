@@ -7,6 +7,17 @@
       <div class="absolute top-40 left-40 w-80 h-80 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
     </div>
 
+    <!-- Back to Home Link -->
+    <div class="absolute top-4 left-4 z-10">
+      <NuxtLink
+        to="/"
+        class="inline-flex items-center text-sm font-medium text-blue-800 hover:text-blue-900 transition-colors bg-white px-4 py-2 rounded-lg shadow-sm border border-blue-200 hover:shadow-md"
+      >
+        <Icon name="heroicons:arrow-left" class="w-4 h-4 mr-2" />
+        Back to ClaimReady
+      </NuxtLink>
+    </div>
+
     <div class="relative max-w-md w-full space-y-8">
       <!-- Header -->
       <div class="text-center">

@@ -33,7 +33,7 @@
         <h2 class="text-2xl font-bold text-slate-900 mb-2">No documents yet</h2>
         <p class="text-slate-600 mb-8">Upload your first VA decision letter to get started</p>
         <Button
-          @click="navigateTo('/analyze-decision')"
+          @click="navigateTo('/analyze')"
           variant="primary"
           class="px-8 py-4 text-lg"
         >
@@ -49,7 +49,7 @@
             All Documents ({{ pagination.total }})
           </h2>
           <Button
-            @click="navigateTo('/analyze-decision')"
+            @click="navigateTo('/analyze')"
             variant="primary"
           >
             <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />

@@ -1,12 +1,17 @@
 import { onUnmounted } from 'vue'
 
 /**
- * Authentication composable with session expiration detection
- * Handles token validation, expiration checking, and automatic logout
+ * Authentication composable with session expiration detection and automatic renewal
+ * Handles token validation, expiration checking, automatic renewal, and logout
  */
 export const useAuth = () => {
   const router = useRouter()
   const { apiCall } = useApi()
+
+  // Track last user activity
+  let lastActivityTime = Date.now()
+  const ACTIVITY_TIMEOUT = 30 * 60 * 1000 // 30 minutes of inactivity = timeout
+  const REFRESH_THRESHOLD = 15 * 60 * 1000 // Refresh token if less than 15 minutes remaining
 
   /**
    * Check if user has a valid session
@@ -36,6 +41,64 @@ export const useAuth = () => {
     }
 
     return true
+  }
+
+  /**
+   * Update activity timestamp
+   */
+  const updateActivity = () => {
+    lastActivityTime = Date.now()
+  }
+
+  /**
+   * Check if user has been active recently
+   */
+  const isUserActive = (): boolean => {
+    return Date.now() - lastActivityTime < ACTIVITY_TIMEOUT
+  }
+
+  /**
+   * Check if token needs refresh
+   */
+  const needsRefresh = (): boolean => {
+    const tokenExpiry = localStorage.getItem('token_expiry')
+    if (!tokenExpiry) return false
+
+    const expiryTime = parseInt(tokenExpiry, 10)
+    if (isNaN(expiryTime)) return false
+
+    const timeUntilExpiry = expiryTime - Date.now()
+    return timeUntilExpiry > 0 && timeUntilExpiry < REFRESH_THRESHOLD
+  }
+
+  /**
+   * Refresh the authentication token
+   */
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      // Get current token
+      const currentToken = localStorage.getItem('auth_token')
+      if (!currentToken) return false
+
+      // Call profile endpoint which will validate and potentially refresh the token
+      const response = await apiCall('/api/auth/profile')
+
+      if (response.ok) {
+        const userData = await response.json()
+
+        // If response includes a new token, update it
+        if (userData.accessToken) {
+          login(userData.accessToken)
+        }
+
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      return false
+    }
   }
 
   /**
@@ -121,25 +184,65 @@ export const useAuth = () => {
   }
 
   /**
-   * Set up automatic session monitoring
-   * Checks session validity every 5 minutes
+   * Set up automatic session monitoring with token refresh
+   * Tracks user activity and refreshes token before expiration
    */
   const setupSessionMonitoring = () => {
     if (import.meta.server) return
 
-    // Check every 5 minutes
+    // Track user activity
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    const handleActivity = () => {
+      updateActivity()
+    }
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true })
+    })
+
+    // Check session and refresh token every 5 minutes
     const intervalId = setInterval(async () => {
+      // If not authenticated, clean up and logout
       if (!isAuthenticated()) {
         clearInterval(intervalId)
         await logout()
+        return
       }
-    }, 5 * 60 * 1000) // 5 minutes
 
-    // Also check on visibility change (when user comes back to tab)
+      // If user has been inactive for too long, logout
+      if (!isUserActive()) {
+        clearInterval(intervalId)
+        await logout()
+        return
+      }
+
+      // If token needs refresh and user is active, refresh it
+      if (needsRefresh() && isUserActive()) {
+        const refreshed = await refreshToken()
+        if (!refreshed) {
+          // Refresh failed, validate session
+          const isValid = await validateSession()
+          if (!isValid) {
+            clearInterval(intervalId)
+            await logout()
+          }
+        }
+      }
+    }, 5 * 60 * 1000) // Check every 5 minutes
+
+    // Check on visibility change (when user comes back to tab)
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
+        updateActivity()
+
         if (!isAuthenticated()) {
           await logout()
+          return
+        }
+
+        // Try to refresh token if needed when user returns
+        if (needsRefresh() && isUserActive()) {
+          await refreshToken()
         }
       }
     }
@@ -150,6 +253,9 @@ export const useAuth = () => {
     onUnmounted(() => {
       clearInterval(intervalId)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleActivity)
+      })
     })
   }
 

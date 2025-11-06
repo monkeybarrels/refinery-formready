@@ -1,26 +1,7 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-slate-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
-          <Button 
-            @click="navigateTo('/')"
-            variant="secondary"
-          >
-            <Icon name="heroicons:arrow-left" class="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
-          
-          <div class="text-center">
-            <h1 class="text-xl font-bold text-slate-900">Choose Your Plan</h1>
-            <p class="text-sm text-slate-500">Made for veterans by veterans</p>
-          </div>
-          
-          <div class="w-32"></div> <!-- Spacer to center the title -->
-        </div>
-      </div>
-    </header>
+  <div class="min-h-screen bg-slate-50 flex flex-col">
+    <!-- Navigation -->
+    <Navigation />
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -77,8 +58,8 @@
             </div>
 
             <div class="mt-auto text-center">
-              <Button 
-                @click="navigateTo('/analyze-decision')"
+              <Button
+                @click="navigateTo('/analyze')"
                 variant="secondary"
               >
                 Start Free Analysis
@@ -295,12 +276,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <Footer class="mt-auto" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
+import Navigation from '~/components/organisms/Navigation.vue'
+import Footer from '~/components/organisms/Footer.vue'
 
 // Head
 useHead({

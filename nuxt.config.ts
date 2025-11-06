@@ -5,26 +5,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   // Modules
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/plausible'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
 
   // Icon configuration
   icon: {
     collections: ['heroicons']
-  },
-
-  // Plausible Analytics configuration
-  plausible: {
-    // Domain will be set via NUXT_PUBLIC_PLAUSIBLE_DOMAIN env var
-    // For production, set this to 'claimready.io'
-    domain: process.env.NUXT_PUBLIC_PLAUSIBLE_DOMAIN || '',
-    // Ignore localhost/development domains
-    ignoredHostnames: ['localhost'],
-    // Enable server-side proxy to prevent ad-blocker issues
-    apiHost: process.env.NUXT_PUBLIC_PLAUSIBLE_API_HOST || 'https://plausible.io',
-    // Automatic page view tracking
-    autoPageviews: true,
-    // Track outbound links automatically
-    autoOutboundTracking: true,
   },
 
   // Runtime config for environment variables

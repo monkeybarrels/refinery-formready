@@ -5,9 +5,25 @@
         <!-- Brand & About -->
         <div class="col-span-1 md:col-span-2">
           <Logo size="sm" class="mb-4" />
-          <p class="text-gray-600 text-sm max-w-md">
+          <p class="text-gray-600 text-sm max-w-md mb-4">
             ClaimReady helps veterans and their representatives analyze VA decision letters and build stronger appeals with AI-powered insights.
           </p>
+
+          <!-- Trust Signals -->
+          <div class="space-y-2">
+            <div class="flex items-center text-sm text-gray-700">
+              <Icon name="heroicons:shield-check" class="w-4 h-4 mr-2 text-blue-600" />
+              <span>Encrypted & Secure Storage</span>
+            </div>
+            <div class="flex items-center text-sm text-gray-700">
+              <Icon name="heroicons:user-group" class="w-4 h-4 mr-2 text-blue-600" />
+              <span>Built by Veterans, For Veterans</span>
+            </div>
+            <div class="flex items-center text-sm text-gray-700">
+              <Icon name="heroicons:heart" class="w-4 h-4 mr-2 text-blue-600" />
+              <span>Always Free Tier Available</span>
+            </div>
+          </div>
         </div>
 
         <!-- Legal Links -->
@@ -56,6 +72,14 @@
             </li>
           </ul>
         </div>
+      </div>
+
+      <!-- Privacy Statement -->
+      <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-900 text-center">
+          <Icon name="heroicons:lock-closed" class="w-4 h-4 inline mr-1" />
+          Your data is encrypted, never sold, and you can delete it anytime.
+        </p>
       </div>
 
       <!-- Bottom Bar -->
