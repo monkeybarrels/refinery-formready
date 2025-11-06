@@ -5,26 +5,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   // Modules
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/plausible'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
 
   // Icon configuration
   icon: {
     collections: ['heroicons']
-  },
-
-  // Plausible Analytics configuration
-  plausible: {
-    // Domain will be set via NUXT_PUBLIC_PLAUSIBLE_DOMAIN env var
-    // For production, set this to 'claimready.io'
-    domain: process.env.NUXT_PUBLIC_PLAUSIBLE_DOMAIN || '',
-    // Ignore localhost/development domains
-    ignoredHostnames: ['localhost'],
-    // Enable server-side proxy to prevent ad-blocker issues
-    apiHost: process.env.NUXT_PUBLIC_PLAUSIBLE_API_HOST || 'https://plausible.io',
-    // Automatic page view tracking
-    autoPageviews: true,
-    // Track outbound links automatically
-    autoOutboundTracking: true,
   },
 
   // Runtime config for environment variables
@@ -34,6 +19,10 @@ export default defineNuxtConfig({
       authorizerUrl: process.env.NUXT_PUBLIC_AUTHORIZER_URL || 'https://auth.claimready.io',
       authorizerClientId: process.env.NUXT_PUBLIC_AUTHORIZER_CLIENT_ID || '9c81da5e-0635-43c5-bcef-c629174c7c6f',
       authorizerRedirectUrl: process.env.NUXT_PUBLIC_AUTHORIZER_REDIRECT_URL || 'http://localhost:3000',
+
+      // PostHog Analytics
+      posthogApiKey: process.env.NUXT_PUBLIC_POSTHOG_API_KEY || '',
+      posthogHost: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
 
       // New Relic Browser Monitoring
       newRelicEnabled: process.env.NEW_RELIC_ENABLED || 'false',
