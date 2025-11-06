@@ -224,6 +224,19 @@
 <script setup lang="ts">
 import Button from '~/components/atoms/Button.vue'
 import Logo from '~/components/atoms/Logo.vue'
+import { useAnalytics } from '~/composables/useAnalytics'
+
+const { trackFunnel } = useAnalytics()
+const route = useRoute()
+
+// Track landing page view with UTM parameters
+onMounted(() => {
+  const source = route.query.utm_source as string | undefined
+  const medium = route.query.utm_medium as string | undefined
+  const campaign = route.query.utm_campaign as string | undefined
+
+  trackFunnel.landingViewed(source, medium, campaign)
+})
 
 useHead({
   title: 'ClaimReady - Turn Denials Into Approvals',

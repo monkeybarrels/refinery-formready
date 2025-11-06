@@ -88,14 +88,24 @@ import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
 import Logo from "~/components/atoms/Logo.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
+import { useAnalytics } from "~/composables/useAnalytics";
 
 const toast = useToast()
 const { handleError } = useAnalysisErrors()
+const { trackFunnel, trackAnalysis, trackFileUpload } = useAnalytics()
+const route = useRoute()
 
 const analyzing = ref(false)
 const sessionId = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
+const analysisStartTime = ref<number | null>(null)
+
+// Track upload page view on mount (funnel step 2)
+onMounted(() => {
+  const source = route.query.utm_source as string | undefined
+  trackFunnel.uploadPageViewed(source)
+})
 
 const handleFileSelect = (file: File) => {
   selectedFile.value = file
@@ -119,12 +129,16 @@ const analyzeDocument = async () => {
 
   analyzing.value = true
   currentStep.value = 1
+  analysisStartTime.value = Date.now()
 
   try {
     const config = useRuntimeConfig()
     const apiUrl = config.public.apiUrl || 'http://localhost:3001'
 
     console.log('Starting analysis for file:', selectedFile.value.name)
+
+    // Track analysis started
+    trackAnalysis.started('anonymous', undefined)
 
     // Step 1: Upload to S3
     console.log('Step 1: Getting presigned URL...')
@@ -162,6 +176,12 @@ const analyzeDocument = async () => {
       throw { response: uploadResponse, message: 'S3 upload failed' }
     }
     console.log('Step 2 complete: File uploaded to S3')
+
+    // Track file upload completion
+    if (selectedFile.value) {
+      const uploadTime = Date.now() - analysisStartTime.value!
+      trackFileUpload.completed('anonymous', selectedFile.value.type, selectedFile.value.size, uploadTime)
+    }
 
     // Construct full S3 URL from the upload URL
     // The uploadUrl is a presigned URL like: https://endpoint/bucket/key?signature
@@ -208,6 +228,10 @@ const analyzeDocument = async () => {
       console.log('Step 3 complete: Got session ID', newSessionId)
       sessionId.value = newSessionId
 
+      // Track analysis completion
+      const totalTime = Date.now() - analysisStartTime.value!
+      trackAnalysis.completed('anonymous', totalTime, newSessionId)
+
       // Show success toast
       toast.success('Analysis Complete!', 'Redirecting to your results...')
 
@@ -231,6 +255,11 @@ const analyzeDocument = async () => {
     let stage: 'upload' | 'extraction' | 'analysis' = 'upload'
     if (currentStep.value >= 2) stage = 'extraction'
     if (currentStep.value >= 3) stage = 'analysis'
+
+    // Track analysis failure
+    const errorMessage = error?.message || error?.response?.statusText || 'Unknown error'
+    const errorCode = error?.response?.status?.toString()
+    trackAnalysis.failed('anonymous', errorMessage, errorCode)
 
     // Use our error handler with retry capability
     handleError(error, stage, () => {

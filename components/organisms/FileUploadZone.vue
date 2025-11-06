@@ -64,6 +64,7 @@
 import Button from '../atoms/Button.vue'
 import { useToast } from '~/composables/useToast'
 import { useAnalysisErrors } from '~/composables/useAnalysisErrors'
+import { useAnalytics } from '~/composables/useAnalytics'
 
 interface Props {
   uploading?: boolean
@@ -83,6 +84,7 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const { validateFile } = useAnalysisErrors()
+const { trackFileUpload } = useAnalytics()
 
 const selectedFile = ref<File | null>(null)
 const dragover = ref(false)
@@ -101,10 +103,14 @@ const validateAndSetFile = (file: File | null) => {
   if (validationError) {
     toast.error(validationError.title, validationError.message)
     emit('validationError', validationError.message)
+    // Track validation error
+    trackFileUpload.failed(validationError.message, 'VALIDATION_ERROR')
     return
   }
 
-  // File is valid
+  // File is valid - track file selection
+  trackFileUpload.started(file.type, file.size)
+
   selectedFile.value = file
   emit('fileSelect', file)
 }
