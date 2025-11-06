@@ -73,19 +73,24 @@
             </div>
           </div>
           
-          <!-- Premium Features Coming Soon -->
-          <div class="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg border-2 border-amber-200 opacity-75">
+          <!-- Premium Features -->
+          <div
+            @click="!isPremium && navigateTo('/pricing')"
+            class="relative bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg border-2 border-blue-200 transition-all duration-200"
+            :class="isPremium ? '' : 'cursor-pointer hover:shadow-xl hover:border-blue-300'"
+          >
             <div class="absolute top-4 right-4 z-10">
-              <div class="bg-amber-400 text-slate-900 font-bold text-xs px-3 py-1 rounded-full">
-                COMING SOON
+              <PremiumBadge v-if="isPremium" size="sm" />
+              <div v-else class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xs px-3 py-1 rounded-full">
+                PREMIUM
               </div>
             </div>
             <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Icon name="heroicons:clipboard-document-list" class="w-8 h-8 text-amber-600" />
+              <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Icon name="heroicons:clipboard-document-list" class="w-8 h-8 text-blue-600" />
               </div>
-              <h3 class="text-xl font-semibold text-slate-900 mb-2">Premium Features</h3>
-              <p class="text-slate-600">Advanced analysis and form generation launching soon</p>
+              <h3 class="text-xl font-semibold text-slate-900 mb-2">Advanced Form Generation</h3>
+              <p class="text-slate-600">{{ isPremium ? 'Generate VA forms with AI assistance' : 'Unlock AI-powered form generation' }}</p>
             </div>
           </div>
         </div>
@@ -146,34 +151,15 @@
         </div>
       </div>
 
-      <!-- Premium Features Coming Soon Banner -->
-      <div class="relative bg-gradient-to-r from-blue-50 to-amber-50 border-2 border-amber-200 rounded-xl p-6 mb-8">
-        <div class="absolute top-4 right-4">
-          <div class="bg-amber-400 text-slate-900 font-bold text-xs px-4 py-2 rounded-full">
-            COMING SOON
-          </div>
-        </div>
-        <div class="flex items-center justify-between">
-          <div class="pr-32">
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Premium Features On The Way</h3>
-            <p class="text-slate-600 mb-4">We're building advanced features to help you maximize your VA benefits</p>
-            <div class="flex items-center space-x-6">
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Personalized Action Plans</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Evidence Recommendations</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Appeal Timeline Tracking</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Premium Features Upgrade Prompt -->
+      <UpgradePrompt
+        v-if="!isPremium"
+        title="Unlock Premium Features"
+        message="Upgrade to Premium to access personalized action plans, evidence recommendations, appeal timeline tracking, and advanced form generation tools."
+        cta-text="Upgrade to Premium - $19/month"
+        variant="info"
+        :dismissible="true"
+      />
 
       <!-- Analytics Dashboard -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -239,11 +225,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Navigation from '~/components/organisms/Navigation.vue'
+import UpgradePrompt from '~/components/molecules/UpgradePrompt.vue'
+import PremiumBadge from '~/components/atoms/PremiumBadge.vue'
 
 // Head
 useHead({
@@ -255,6 +243,9 @@ useHead({
 
 const router = useRouter()
 
+// Billing composable
+const { isPremium: userIsPremium, fetchSubscription } = useBilling()
+
 // State
 const loading = ref(true)
 const user = reactive({
@@ -265,6 +256,9 @@ const user = reactive({
   serviceBranch: '',
   isPremium: false
 })
+
+// Computed property for premium status
+const isPremium = computed(() => userIsPremium.value || user.isPremium)
 
 const recentAnalysis = ref([])
 const analytics = reactive({
@@ -296,7 +290,8 @@ onMounted(async () => {
     await Promise.all([
       loadUserProfile(),
       loadRecentAnalysis(),
-      loadAnalytics()
+      loadAnalytics(),
+      fetchSubscription()
     ])
   } catch (error) {
     console.error('Failed to load dashboard:', error)
