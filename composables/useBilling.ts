@@ -22,7 +22,7 @@ export interface PortalSession {
  * Provides access to subscription status, checkout, and billing portal
  */
 export const useBilling = () => {
-  const { $api } = useNuxtApp();
+  const { apiCall } = useApi();
 
   const subscription: Ref<Subscription | null> = ref(null);
   const loading = ref(false);
@@ -115,12 +115,16 @@ export const useBilling = () => {
     error.value = null;
 
     try {
-      const response = await $api<{ success: boolean; subscription: Subscription }>(
-        `/api/billing/subscription/${userId}`,
-      );
+      const response = await apiCall(`/api/billing/subscription/${userId}`);
 
-      if (response.success) {
-        subscription.value = response.subscription;
+      if (!response.ok) {
+        throw new Error('Failed to fetch subscription');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        subscription.value = data.subscription;
       } else {
         error.value = 'Failed to fetch subscription';
       }
@@ -157,22 +161,25 @@ export const useBilling = () => {
         return false;
       }
 
-      const response = await $api<{ success: boolean; sessionUrl: string; sessionId: string }>(
-        '/api/billing/checkout',
-        {
-          method: 'POST',
-          body: {
-            userId,
-            email,
-            successUrl,
-            cancelUrl,
-          },
-        },
-      );
+      const response = await apiCall('/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          email,
+          successUrl,
+          cancelUrl,
+        }),
+      });
 
-      if (response.success && response.sessionUrl) {
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.sessionUrl) {
         // Redirect to Stripe Checkout
-        window.location.href = response.sessionUrl;
+        window.location.href = data.sessionUrl;
         return true;
       } else {
         error.value = 'Failed to create checkout session';
@@ -203,20 +210,23 @@ export const useBilling = () => {
     error.value = null;
 
     try {
-      const response = await $api<{ success: boolean; portalUrl: string }>(
-        '/api/billing/portal',
-        {
-          method: 'POST',
-          body: {
-            userId,
-            returnUrl,
-          },
-        },
-      );
+      const response = await apiCall('/api/billing/portal', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          returnUrl,
+        }),
+      });
 
-      if (response.success && response.portalUrl) {
+      if (!response.ok) {
+        throw new Error('Failed to open billing portal');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.portalUrl) {
         // Redirect to Stripe billing portal
-        window.location.href = response.portalUrl;
+        window.location.href = data.portalUrl;
         return true;
       } else {
         error.value = 'Failed to open billing portal';
@@ -245,19 +255,22 @@ export const useBilling = () => {
     error.value = null;
 
     try {
-      const response = await $api<{ success: boolean; subscription: Subscription }>(
-        '/api/billing/cancel',
-        {
-          method: 'POST',
-          body: {
-            userId,
-            immediately,
-          },
-        },
-      );
+      const response = await apiCall('/api/billing/cancel', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          immediately,
+        }),
+      });
 
-      if (response.success) {
-        subscription.value = response.subscription;
+      if (!response.ok) {
+        throw new Error('Failed to cancel subscription');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        subscription.value = data.subscription;
         return true;
       } else {
         error.value = 'Failed to cancel subscription';
