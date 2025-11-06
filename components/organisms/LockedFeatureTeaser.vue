@@ -1,17 +1,15 @@
 <template>
   <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-xl overflow-hidden mb-8 border-2 border-blue-200">
-    <!-- Header with Coming Soon Badge -->
+    <!-- Header with Premium Badge -->
     <div class="relative bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
       <div class="absolute top-4 right-4">
-        <div class="bg-amber-400 text-slate-900 font-bold text-xs px-4 py-2 rounded-full">
-          COMING SOON
-        </div>
+        <PremiumBadge size="sm" />
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">
         🎯 Your Personalized Action Plan
       </h2>
       <p class="text-blue-100">
-        Premium features launching soon — sign up to be notified
+        {{ headerMessage }}
       </p>
     </div>
 
@@ -119,42 +117,63 @@
       <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-slate-900/70 via-slate-900/50 to-transparent">
         <div class="text-center px-6 mt-24">
           <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-auto transform hover:scale-105 transition-transform">
-            <div class="bg-gradient-to-br from-blue-100 to-amber-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-              <Icon name="heroicons:rocket-launch" class="w-10 h-10 text-blue-600" />
+            <div class="bg-gradient-to-br from-blue-100 to-purple-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Icon :name="ctaIcon" class="w-10 h-10 text-blue-600" />
             </div>
             <h3 class="text-2xl font-bold text-slate-900 mb-3">
-              Premium Features Coming Soon
+              {{ ctaTitle }}
             </h3>
             <p class="text-slate-600 mb-6">
-              Sign up for free to be notified when these features launch:
+              {{ ctaDescription }}
             </p>
             <ul class="text-left space-y-2 mb-6">
               <li class="flex items-center text-sm text-slate-700">
-                <Icon name="heroicons:clock" class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" />
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 <span>Step-by-step appeal timelines</span>
               </li>
               <li class="flex items-center text-sm text-slate-700">
-                <Icon name="heroicons:clock" class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" />
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 <span>Specific evidence recommendations</span>
               </li>
               <li class="flex items-center text-sm text-slate-700">
-                <Icon name="heroicons:clock" class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" />
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 <span>Rating increase opportunities</span>
               </li>
               <li class="flex items-center text-sm text-slate-700">
-                <Icon name="heroicons:clock" class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" />
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 <span>Deadline tracking & reminders</span>
               </li>
             </ul>
+
+            <!-- Anonymous User CTA -->
             <button
+              v-if="!isAuthenticated"
               @click="$emit('show-signup')"
               class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg transform hover:scale-105"
             >
-              <Icon name="heroicons:bell" class="w-5 h-5 inline mr-2" />
-              Get Notified When Features Launch
+              <Icon name="heroicons:user-plus" class="w-5 h-5 inline mr-2" />
+              Create Free Account
             </button>
+
+            <!-- Free User CTA -->
+            <button
+              v-else-if="isFree"
+              @click="handleUpgrade"
+              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg transform hover:scale-105"
+            >
+              <Icon name="heroicons:star" class="w-5 h-5 inline mr-2" />
+              Upgrade to Premium - $19/month
+            </button>
+
+            <!-- Premium User Message -->
+            <div v-else class="bg-green-50 border border-green-200 rounded-xl p-4">
+              <p class="text-sm text-green-800 font-medium">
+                ✨ These features are coming soon for Premium members!
+              </p>
+            </div>
+
             <p class="text-xs text-slate-500 mt-3">
-              Free account • No credit card required • Save your results now
+              {{ ctaFooter }}
             </p>
           </div>
         </div>
@@ -164,7 +183,91 @@
 </template>
 
 <script setup lang="ts">
-defineEmits<{
+import { computed } from 'vue';
+import PremiumBadge from '~/components/atoms/PremiumBadge.vue';
+
+const emit = defineEmits<{
   'show-signup': []
-}>()
+}>();
+
+// Props to allow customization
+const props = withDefaults(defineProps<{
+  requiredTier?: 'free' | 'premium' | 'pro';
+  featureName?: string;
+}>(), {
+  requiredTier: 'premium',
+  featureName: 'Personalized Action Plans'
+});
+
+// Get auth and billing state
+const { isAuthenticated } = useAuth();
+const { isPremium, isFree, subscription, createCheckoutSession } = useBilling();
+
+// Computed properties for extensible tier checking
+const userTier = computed(() => {
+  if (!isAuthenticated.value) return 'anonymous';
+  return subscription.value?.tier || 'free';
+});
+
+const hasAccess = computed(() => {
+  const tierHierarchy = { anonymous: 0, free: 1, premium: 2, pro: 3 };
+  const userLevel = tierHierarchy[userTier.value as keyof typeof tierHierarchy] || 0;
+  const requiredLevel = tierHierarchy[props.requiredTier] || 2;
+  return userLevel >= requiredLevel;
+});
+
+// Dynamic messaging based on user state
+const headerMessage = computed(() => {
+  if (!isAuthenticated.value) {
+    return 'Sign up free to unlock premium features';
+  } else if (isFree.value) {
+    return `Upgrade to ${props.requiredTier} to unlock these features`;
+  } else if (isPremium.value) {
+    return 'Premium features coming soon';
+  }
+  return 'Advanced features for your tier';
+});
+
+const ctaIcon = computed(() => {
+  if (!isAuthenticated.value) return 'heroicons:user-plus';
+  if (isFree.value) return 'heroicons:star';
+  return 'heroicons:clock';
+});
+
+const ctaTitle = computed(() => {
+  if (!isAuthenticated.value) return 'Create Free Account';
+  if (isFree.value) return 'Upgrade to Premium';
+  return 'Coming Soon';
+});
+
+const ctaDescription = computed(() => {
+  if (!isAuthenticated.value) {
+    return 'Sign up for free to save your results and get notified when premium features launch:';
+  } else if (isFree.value) {
+    return `Unlock ${props.featureName} and advanced analytics for just $19/month:`;
+  }
+  return 'These premium features are being developed and will be available soon:';
+});
+
+const ctaFooter = computed(() => {
+  if (!isAuthenticated.value) {
+    return 'Free account • No credit card required • Save your results now';
+  } else if (isFree.value) {
+    return '30-day money-back guarantee • Cancel anytime';
+  }
+  return 'You\'ll be notified when these features are ready';
+});
+
+// Handle upgrade for authenticated free users
+const handleUpgrade = async () => {
+  const success = await createCheckoutSession(
+    `${window.location.origin}/billing/success`,
+    `${window.location.origin}${window.location.pathname}`
+  );
+
+  if (!success) {
+    // Fallback to pricing page if checkout fails
+    navigateTo('/pricing');
+  }
+};
 </script>
