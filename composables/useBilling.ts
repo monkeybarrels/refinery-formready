@@ -23,11 +23,25 @@ export interface PortalSession {
  */
 export const useBilling = () => {
   const { $api } = useNuxtApp();
-  const { user } = useAuth();
 
   const subscription: Ref<Subscription | null> = ref(null);
   const loading = ref(false);
   const error: Ref<string | null> = ref(null);
+
+  /**
+   * Get current user ID from session
+   */
+  const getUserId = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    const session = localStorage.getItem('user_session');
+    if (!session) return null;
+    try {
+      const sessionData = JSON.parse(session);
+      return sessionData.userId || sessionData.id || null;
+    } catch {
+      return null;
+    }
+  };
 
   /**
    * Check if user has premium access
@@ -72,7 +86,8 @@ export const useBilling = () => {
    * Fetch subscription status for current user
    */
   const fetchSubscription = async () => {
-    if (!user.value?.id) {
+    const userId = getUserId();
+    if (!userId) {
       error.value = 'User not authenticated';
       return;
     }
@@ -82,7 +97,7 @@ export const useBilling = () => {
 
     try {
       const response = await $api<{ success: boolean; subscription: Subscription }>(
-        `/api/billing/subscription/${user.value.id}`,
+        `/api/billing/subscription/${userId}`,
       );
 
       if (response.success) {
@@ -105,7 +120,8 @@ export const useBilling = () => {
     successUrl = `${window.location.origin}/billing/success`,
     cancelUrl = `${window.location.origin}/pricing`,
   ): Promise<boolean> => {
-    if (!user.value?.id || !user.value?.email) {
+    const userId = getUserId();
+    if (!userId) {
       error.value = 'User not authenticated';
       return false;
     }
@@ -114,13 +130,23 @@ export const useBilling = () => {
     error.value = null;
 
     try {
+      // Get user email from session
+      const session = localStorage.getItem('user_session');
+      const sessionData = session ? JSON.parse(session) : null;
+      const email = sessionData?.email;
+
+      if (!email) {
+        error.value = 'User email not found';
+        return false;
+      }
+
       const response = await $api<{ success: boolean; sessionUrl: string; sessionId: string }>(
         '/api/billing/checkout',
         {
           method: 'POST',
           body: {
-            userId: user.value.id,
-            email: user.value.email,
+            userId,
+            email,
             successUrl,
             cancelUrl,
           },
@@ -150,7 +176,8 @@ export const useBilling = () => {
   const openBillingPortal = async (
     returnUrl = `${window.location.origin}/dashboard`,
   ): Promise<boolean> => {
-    if (!user.value?.id) {
+    const userId = getUserId();
+    if (!userId) {
       error.value = 'User not authenticated';
       return false;
     }
@@ -164,7 +191,7 @@ export const useBilling = () => {
         {
           method: 'POST',
           body: {
-            userId: user.value.id,
+            userId,
             returnUrl,
           },
         },
@@ -191,7 +218,8 @@ export const useBilling = () => {
    * Cancel subscription at period end
    */
   const cancelSubscription = async (immediately = false): Promise<boolean> => {
-    if (!user.value?.id) {
+    const userId = getUserId();
+    if (!userId) {
       error.value = 'User not authenticated';
       return false;
     }
@@ -205,7 +233,7 @@ export const useBilling = () => {
         {
           method: 'POST',
           body: {
-            userId: user.value.id,
+            userId,
             immediately,
           },
         },
