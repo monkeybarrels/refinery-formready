@@ -1,23 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <!-- Minimal header - no auth -->
-    <header class="bg-white shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 py-4">
-        <div class="flex justify-between items-center">
-          <Logo size="md" to="/" />
-          <NuxtLink to="/auth/login" class="text-sm text-slate-600 hover:text-blue-800 transition-colors">
-            Sign In
-          </NuxtLink>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
+    <!-- Full Navigation -->
+    <Navigation />
+
+    <!-- Hero Section -->
+    <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="text-center">
+          <h1 class="text-4xl font-bold mb-4">VA Decision Letter Analysis</h1>
+          <p class="text-xl text-blue-100">
+            Upload your VA decision letter to get instant analysis and understand your claim decision
+          </p>
         </div>
       </div>
-    </header>
+    </div>
 
     <!-- Upload Section -->
-    <div v-if="!analyzing && !sessionId" class="max-w-3xl mx-auto px-4 py-12">
-      <h1 class="text-4xl font-bold text-center mb-8">
-        Analyze Your VA Decision Letter
-      </h1>
-      
+    <div v-if="!analyzing && !sessionId" class="max-w-3xl mx-auto px-4 py-8">
       <FileUploadZone
         @file-select="handleFileSelect"
         @analyze="analyzeDocument"
@@ -80,12 +79,16 @@
     <div v-if="sessionId">
       <!-- Auto-redirect handled in script -->
     </div>
+
+    <!-- Footer -->
+    <Footer class="mt-auto" />
   </div>
 </template>
 
 <script setup lang="ts">
 import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
-import Logo from "~/components/atoms/Logo.vue";
+import Navigation from "~/components/organisms/Navigation.vue";
+import Footer from "~/components/organisms/Footer.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";

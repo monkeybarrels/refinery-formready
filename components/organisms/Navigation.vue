@@ -21,12 +21,12 @@
           >
             Home
           </NuxtLink>
-          <NuxtLink 
-            to="/analyze-decision" 
+          <NuxtLink
+            to="/analyze"
             class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
-            :class="{ 'text-blue-600': $route.path === '/analyze-decision' }"
+            :class="{ 'text-blue-600': $route.path === '/analyze' }"
           >
-            Analyze Decision
+            Analyze
           </NuxtLink>
           <NuxtLink
             v-if="isAuthenticated"
@@ -57,7 +57,7 @@
           <!-- New Analysis Button -->
           <Button
             v-if="isAuthenticated"
-            @click="navigateTo('/analyze-decision')"
+            @click="navigateTo('/analyze')"
             variant="primary"
             class="flex items-center"
           >
@@ -167,7 +167,7 @@
             Home
           </NuxtLink>
           <NuxtLink 
-            to="/analyze-decision" 
+            to="/analyze" 
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >

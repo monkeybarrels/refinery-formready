@@ -1,18 +1,53 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <!-- Minimal header -->
+    <!-- Minimal header with menu -->
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4">
         <div class="flex justify-between items-center">
           <Logo size="md" to="/" />
           <div class="flex items-center space-x-4">
-            <NuxtLink to="/analyze" class="text-sm text-slate-600 hover:text-blue-800 transition-colors">
+            <!-- Desktop Links -->
+            <NuxtLink to="/analyze" class="hidden sm:inline text-sm text-slate-600 hover:text-blue-800 transition-colors">
               Analyze Another
+            </NuxtLink>
+            <NuxtLink to="/pricing" class="hidden sm:inline text-sm text-slate-600 hover:text-blue-800 transition-colors">
+              Pricing
+            </NuxtLink>
+            <NuxtLink to="/faq" class="hidden sm:inline text-sm text-slate-600 hover:text-blue-800 transition-colors">
+              Help
             </NuxtLink>
             <NuxtLink to="/auth/signup" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
               Sign Up Free
             </NuxtLink>
+
+            <!-- Mobile Menu Button -->
+            <button
+              @click="showMobileMenu = !showMobileMenu"
+              class="sm:hidden text-slate-600 hover:text-blue-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <Icon v-if="!showMobileMenu" name="heroicons:bars-3" class="w-6 h-6" />
+              <Icon v-else name="heroicons:x-mark" class="w-6 h-6" />
+            </button>
           </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div v-if="showMobileMenu" class="sm:hidden mt-4 pt-4 border-t border-slate-200">
+          <nav class="flex flex-col space-y-3">
+            <NuxtLink to="/" class="text-sm text-slate-700 hover:text-blue-800 transition-colors">
+              Home
+            </NuxtLink>
+            <NuxtLink to="/analyze" class="text-sm text-slate-700 hover:text-blue-800 transition-colors">
+              Analyze Another
+            </NuxtLink>
+            <NuxtLink to="/pricing" class="text-sm text-slate-700 hover:text-blue-800 transition-colors">
+              Pricing
+            </NuxtLink>
+            <NuxtLink to="/faq" class="text-sm text-slate-700 hover:text-blue-800 transition-colors">
+              Help
+            </NuxtLink>
+          </nav>
         </div>
       </div>
     </header>
@@ -144,6 +179,7 @@ const sessionId = route.params.sessionId as string
 
 const loading = ref(true)
 const results = ref<any>(null)
+const showMobileMenu = ref(false)
 
 // Computed properties for condition counts and formatting
 const formattedConditions = computed(() => {

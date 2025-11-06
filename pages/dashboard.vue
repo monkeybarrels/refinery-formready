@@ -29,19 +29,6 @@
               </div>
             </div>
           </div>
-          <div class="text-right">
-            <!-- Premium Coming Soon - Hidden for now -->
-            <div v-if="false" class="mb-4">
-              <div class="flex items-center justify-end px-4 py-2 bg-amber-400 bg-opacity-90 text-slate-900 rounded-lg mb-4">
-                <Icon name="heroicons:clock" class="w-5 h-5 mr-2" />
-                <span class="font-bold text-sm">Premium Coming Soon</span>
-              </div>
-            </div>
-            <Button @click="handleLogout" variant="secondary" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white">
-              <Icon name="heroicons:arrow-right-on-rectangle" class="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
         </div>
       </div>
     </div>
@@ -61,7 +48,7 @@
         <h2 class="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div 
-            @click="navigateTo('/analyze-decision')"
+            @click="navigateTo('/analyze')"
             class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-blue-200"
           >
             <div class="p-8 text-center">
@@ -126,7 +113,7 @@
           <h3 class="text-lg font-semibold text-slate-900 mb-2">No analysis yet</h3>
           <p class="text-slate-600 mb-6">Upload your first VA decision letter to get started</p>
           <Button 
-            @click="navigateTo('/analyze-decision')"
+            @click="navigateTo('/analyze')"
             variant="primary"
             class="px-8 py-3"
           >
