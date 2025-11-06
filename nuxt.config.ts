@@ -35,6 +35,10 @@ export default defineNuxtConfig({
       authorizerClientId: process.env.NUXT_PUBLIC_AUTHORIZER_CLIENT_ID || '9c81da5e-0635-43c5-bcef-c629174c7c6f',
       authorizerRedirectUrl: process.env.NUXT_PUBLIC_AUTHORIZER_REDIRECT_URL || 'http://localhost:3000',
 
+      // PostHog Analytics
+      posthogApiKey: process.env.NUXT_PUBLIC_POSTHOG_API_KEY || '',
+      posthogHost: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+
       // New Relic Browser Monitoring
       newRelicEnabled: process.env.NEW_RELIC_ENABLED || 'false',
       newRelicBrowserLicenseKey: process.env.NEW_RELIC_BROWSER_LICENSE_KEY || '',
