@@ -250,19 +250,21 @@ describe('useAuth', () => {
       expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
 
-    it('should logout and return false when session validation fails', async () => {
+    it('should return true when token exists even if backend validation fails', async () => {
       const { login, requireAuth } = useAuth()
 
       login('test-token', 3600)
       mockApiCall.mockResolvedValue({
-        status: 401,
+        status: 500, // Network error or backend issue
         ok: false,
       })
 
       const result = await requireAuth()
 
-      expect(result).toBe(false)
-      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
+      // CRITICAL: Return true if token exists, even if backend validation fails
+      // This ensures logged-in users always have access to navigation
+      expect(result).toBe(true)
+      expect(mockPush).not.toHaveBeenCalled()
     })
   })
 

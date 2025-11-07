@@ -168,7 +168,7 @@ describe('Navigation Component', () => {
       expect(html).not.toContain('Sign In')
     })
 
-    it('should show Dashboard link when authenticated', () => {
+    it('should show Analyze link when authenticated', () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
 
@@ -187,7 +187,9 @@ describe('Navigation Component', () => {
       })
 
       const html = wrapper.html()
-      expect(html).toContain('Dashboard')
+      // Dashboard link removed - Analyze is the main navigation link
+      expect(html).toContain('Analyze')
+      expect(html).not.toContain('Dashboard')
     })
   })
 
@@ -267,11 +269,11 @@ describe('Navigation Component', () => {
   })
 
   describe('Premium Badge', () => {
-    it('should show premium badge on Dashboard link when not premium', async () => {
+    it('should show Premium link when user is premium', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
-      mockIsPremium.value = false
-      mockSubscriptionPremium.value = false
+      mockIsPremium.value = true
+      mockSubscriptionPremium.value = true
 
       wrapper = mount(Navigation, {
         global: {
@@ -286,17 +288,17 @@ describe('Navigation Component', () => {
               template: '<button><slot /></button>',
               props: ['variant', 'size', 'disabled', 'type'],
             },
-            PremiumBadge: {
-              template: '<span class="premium-badge">Premium</span>',
-              props: ['size', 'text'],
-            },
           },
         },
       })
 
       await wrapper.vm.$nextTick()
       const html = wrapper.html()
-      expect(html).toContain('premium-badge')
+      // Premium link should be visible for premium users
+      expect(html).toContain('Premium')
+      // Dashboard link and premium badge removed
+      expect(html).not.toContain('Dashboard')
+      expect(html).not.toContain('premium-badge')
     })
 
     it('should not show premium badge when user is premium', () => {
