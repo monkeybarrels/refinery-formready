@@ -11,10 +11,10 @@ const mockAuthState = ref({
   loading: false,
   error: null,
 })
-const mockUserDisplayName = computed(() => null)
-const mockUserInitials = computed(() => 'U')
-const mockIsPremium = computed(() => false)
-const mockSubscriptionPremium = computed(() => false)
+const mockUserDisplayName = ref<string | null>(null)
+const mockUserInitials = ref<string>('U')
+const mockIsPremium = ref<boolean>(false)
+const mockSubscriptionPremium = ref<boolean>(false)
 
 const mockLogout = vi.fn().mockResolvedValue(undefined)
 const mockUseAuth = vi.fn(() => ({
@@ -30,9 +30,9 @@ const mockLoadUserData = vi.fn()
 
 const mockUseGlobalAuth = vi.fn(() => ({
   authState: mockAuthState,
-  userDisplayName: mockUserDisplayName,
-  userInitials: mockUserInitials,
-  isPremium: mockIsPremium,
+  userDisplayName: computed(() => mockUserDisplayName.value),
+  userInitials: computed(() => mockUserInitials.value),
+  isPremium: computed(() => mockIsPremium.value),
   initializeFromStorage: mockInitializeFromStorage,
   clearUser: mockClearUser,
   setUser: mockSetUser,
@@ -40,7 +40,7 @@ const mockUseGlobalAuth = vi.fn(() => ({
 }))
 
 const mockUseSubscription = vi.fn(() => ({
-  isPremium: mockSubscriptionPremium,
+  isPremium: computed(() => mockSubscriptionPremium.value),
 }))
 
 const mockUseApi = vi.fn(() => ({
@@ -119,7 +119,7 @@ describe('Navigation Component', () => {
   })
 
   describe('Authentication State', () => {
-    it('should show Sign In and Get Started buttons when not authenticated', () => {
+    it('should show Sign In and Get Started buttons when not authenticated', async () => {
       mockIsAuthenticated.mockReturnValue(false)
       mockAuthState.value.isAuthenticated = false
 
@@ -134,13 +134,14 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('Sign In')
       expect(html).toContain('Get Started')
       expect(html).not.toContain('Account')
     })
 
-    it('should show Account button when authenticated', () => {
+    it('should show Account button when authenticated', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
 
@@ -155,6 +156,7 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('Account')
       expect(html).not.toContain('Sign In')
@@ -181,7 +183,7 @@ describe('Navigation Component', () => {
   })
 
   describe('User Display', () => {
-    it('should display user avatar with initials when authenticated', () => {
+    it('should display user avatar with initials when authenticated', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockUserInitials.value = 'JD'
@@ -197,11 +199,12 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('JD')
     })
 
-    it('should display user name when available', () => {
+    it('should display user name when available', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockUserDisplayName.value = 'John Doe'
@@ -217,11 +220,12 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('John Doe')
     })
 
-    it('should display "Account" when no user name available', () => {
+    it('should display "Account" when no user name available', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockUserDisplayName.value = null
@@ -237,13 +241,15 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
+      // Account is shown in mobile view always, and in desktop when no name
       expect(html).toContain('Account')
     })
   })
 
   describe('Premium Badge', () => {
-    it('should show premium badge on Dashboard link when not premium', () => {
+    it('should show premium badge on Dashboard link when not premium', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockIsPremium.value = false
@@ -264,6 +270,7 @@ describe('Navigation Component', () => {
         },
       })
 
+      await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('premium-badge')
     })
