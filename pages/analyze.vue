@@ -179,9 +179,9 @@ const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
 const analysisStartTime = ref<number | null>(null)
 
-// Get authentication and billing state
+// Get authentication and subscription state
 const { isAuthenticated } = useAuth()
-const { isPremium, isFree, fetchSubscription } = useBilling()
+const { isPremium } = useSubscription()
 const hasUsedFreeAnalysis = ref(false)
 const showUpgradePrompt = ref(false)
 
@@ -192,7 +192,8 @@ onMounted(async () => {
 
   // Check if user is authenticated and fetch subscription status
   if (isAuthenticated.value) {
-    await fetchSubscription()
+    const { fetchSubscriptionStatus } = useSubscription()
+    await fetchSubscriptionStatus()
   }
 
   // Check if anonymous user has already used their free analysis
