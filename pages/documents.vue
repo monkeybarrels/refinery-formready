@@ -44,6 +44,16 @@
 
       <!-- Documents Grid -->
       <div v-else>
+        <!-- Premium Upgrade Prompt for Bulk Features -->
+        <UpgradePrompt
+          v-if="!isPremium && documents.length >= 3"
+          title="Unlock Bulk Document Management"
+          message="Upgrade to Premium to export all your documents at once, get advanced analytics, and access priority support."
+          cta-text="Upgrade Now - $19/month"
+          variant="warning"
+          :dismissible="true"
+        />
+
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-slate-900">
             All Documents ({{ pagination.total }})
@@ -215,6 +225,7 @@ import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Navigation from '~/components/organisms/Navigation.vue'
 import Modal from '~/components/molecules/Modal.vue'
+import UpgradePrompt from '~/components/molecules/UpgradePrompt.vue'
 
 useHead({
   title: 'Your Documents - ClaimReady',
@@ -225,6 +236,9 @@ useHead({
 
 const router = useRouter()
 const toast = useToast()
+// Billing composable for premium features
+const { isPremium, fetchSubscription } = useBilling()
+
 const loading = ref(true)
 const documents = ref<any[]>([])
 const downloadingId = ref<string | null>(null)
@@ -256,7 +270,10 @@ onMounted(async () => {
   setupSessionMonitoring()
 
   try {
-    await loadDocuments()
+    await Promise.all([
+      loadDocuments(),
+      fetchSubscription()
+    ])
   } catch (error) {
     console.error('Failed to load documents:', error)
     toast.error('Failed to load documents')
