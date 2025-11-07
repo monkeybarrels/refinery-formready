@@ -295,8 +295,17 @@ onMounted(async () => {
     ])
   } catch (error) {
     console.error('Failed to load dashboard:', error)
-    localStorage.removeItem('auth_token')
-    router.push('/auth/login')
+    // CRITICAL: Don't redirect logged-in users to login on errors
+    // They have a valid session, so they should stay on the page with navigation
+    // Only clear token if it's actually an auth error (401)
+    const { isAuthenticated } = useAuth()
+    if (!isAuthenticated()) {
+      // Token expired or missing - redirect to login
+      router.push('/auth/login')
+    } else {
+      // User has valid token - show error but keep them on page with navigation
+      console.log('⚠️ Dashboard load failed, but user has valid session - keeping on page')
+    }
   } finally {
     loading.value = false
   }

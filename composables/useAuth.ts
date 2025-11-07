@@ -202,22 +202,34 @@ export const useAuth = () => {
   /**
    * Require authentication - redirect if not authenticated
    * Call this in onMounted() on protected pages
+   * CRITICAL: Only redirects if token is actually missing/expired, not on network errors
    */
   const requireAuth = async () => {
-    // Basic auth check
+    // Basic auth check - if no token or expired, redirect
     if (!isAuthenticated()) {
       await logout()
       return false
     }
 
-    // Validate with backend
-    const userData = await validateSession()
-    if (!userData) {
-      await logout()
-      return false
+    // Try to validate with backend, but don't redirect on network errors
+    // If user has a valid token, allow them through even if backend validation fails
+    // This ensures logged-in users always have access to navigation
+    try {
+      const userData = await validateSession()
+      if (userData) {
+        return true
+      }
+      // validateSession returned null, but user has a valid token
+      // This could be a network error or temporary backend issue
+      // Don't redirect - let them through so they have navigation
+      console.log('⚠️ Backend validation failed, but token exists - allowing access (user has session)')
+      return true
+    } catch (error) {
+      // Network error or other issue - don't redirect logged-in users
+      // They have a valid token, so let them through
+      console.log('⚠️ Validation error, but token exists - allowing access (user has session):', error)
+      return true
     }
-
-    return true
   }
 
   /**

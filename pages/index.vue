@@ -355,8 +355,8 @@
         </p>
         <Button
           @click="navigateTo('/analyze')"
-          variant="secondary"
-          class="text-lg px-10 py-4 bg-white text-blue-900 hover:bg-gray-100"
+          variant="primary"
+          class="text-lg px-10 py-4 !bg-white !text-blue-900 hover:!bg-gray-100"
         >
           <Icon name="heroicons:rocket-launch" class="w-5 h-5 mr-2" />
           Analyze Your Letter Now
@@ -389,8 +389,38 @@ import { useAnalytics } from '~/composables/useAnalytics'
 const { trackFunnel } = useAnalytics()
 const route = useRoute()
 
-// Track landing page view with UTM parameters
-onMounted(() => {
+// CRITICAL: Redirect logged-in users away from landing page
+// They should go to dashboard (premium) or analyze (free), never see landing page
+onMounted(async () => {
+  const { isAuthenticated } = useAuth()
+  const { isPremium } = useSubscription()
+  
+  // Check if user is authenticated
+  if (isAuthenticated()) {
+    // Fetch subscription status to determine redirect
+    try {
+      const { fetchSubscriptionStatus } = useSubscription()
+      await fetchSubscriptionStatus()
+      
+      // Redirect premium users to dashboard, free users to analyze
+      if (isPremium.value) {
+        console.log('✅ Logged-in premium user, redirecting to dashboard')
+        await navigateTo('/dashboard')
+        return
+      } else {
+        console.log('✅ Logged-in free user, redirecting to analyze')
+        await navigateTo('/analyze')
+        return
+      }
+    } catch (error) {
+      // If subscription check fails, default to analyze page
+      console.log('⚠️ Subscription check failed, redirecting to analyze')
+      await navigateTo('/analyze')
+      return
+    }
+  }
+  
+  // Only track landing page view for non-authenticated users
   const source = route.query.utm_source as string | undefined
   const medium = route.query.utm_medium as string | undefined
   const campaign = route.query.utm_campaign as string | undefined

@@ -15,8 +15,8 @@
       </div>
     </div>
 
-    <!-- Usage Limit Reached (Anonymous Users) -->
-    <div v-if="!analyzing && !sessionId && !isAuthenticated && hasUsedFreeAnalysis" class="max-w-3xl mx-auto px-4 py-8">
+    <!-- Usage Limit Reached (Anonymous Users Only) -->
+    <div v-if="!analyzing && !sessionId && !isAuthenticated && hasUsedFreeAnalysis && !isPremium" class="max-w-3xl mx-auto px-4 py-8">
       <div class="bg-white rounded-2xl shadow-xl p-8 border-2 border-blue-200">
         <div class="text-center">
           <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -90,7 +90,7 @@
     </div>
 
     <!-- Upload Section -->
-    <div v-if="!analyzing && !sessionId && !(hasUsedFreeAnalysis && !isAuthenticated)" class="max-w-3xl mx-auto px-4 py-8">
+    <div v-if="!analyzing && !sessionId && !(hasUsedFreeAnalysis && !isAuthenticated && !isPremium)" class="max-w-3xl mx-auto px-4 py-8">
       <FileUploadZone
         @file-select="handleFileSelect"
         @analyze="analyzeDocument"
@@ -196,10 +196,22 @@ onMounted(async () => {
     await fetchSubscriptionStatus()
   }
 
+  // Dev helper: Reset free analysis count (remove in production)
+  // Add ?reset=1 to URL to reset: /analyze?reset=1
+  if (import.meta.dev && route.query.reset === '1') {
+    localStorage.removeItem('used_free_analysis')
+    hasUsedFreeAnalysis.value = false
+    console.log('✅ Free analysis count reset')
+  }
+
   // Check if anonymous user has already used their free analysis
-  if (!isAuthenticated.value) {
+  // Premium users bypass this limit
+  if (!isAuthenticated.value && !isPremium.value) {
     const usedFree = localStorage.getItem('used_free_analysis')
     hasUsedFreeAnalysis.value = usedFree === 'true'
+  } else {
+    // Premium users or authenticated users don't have limits
+    hasUsedFreeAnalysis.value = false
   }
 })
 
@@ -224,7 +236,8 @@ const analyzeDocument = async () => {
   if (!selectedFile.value) return
 
   // Check usage limits before proceeding
-  if (!isAuthenticated.value && hasUsedFreeAnalysis.value) {
+  // Premium users bypass all limits
+  if (!isAuthenticated.value && hasUsedFreeAnalysis.value && !isPremium.value) {
     toast.warning('Free Analysis Used', 'Create a free account to continue analyzing decision letters')
     showUpgradePrompt.value = true
     return
@@ -334,8 +347,9 @@ const analyzeDocument = async () => {
       console.log('Step 3 complete: Got session ID', newSessionId)
       sessionId.value = newSessionId
 
-      // Mark free analysis as used for anonymous users
-      if (!isAuthenticated.value) {
+      // Mark free analysis as used for anonymous users only
+      // Premium users bypass this limit
+      if (!isAuthenticated.value && !isPremium.value) {
         localStorage.setItem('used_free_analysis', 'true')
         hasUsedFreeAnalysis.value = true
       }

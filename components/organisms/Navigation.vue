@@ -4,7 +4,10 @@
       <div class="flex justify-between items-center">
         <!-- Logo and Brand -->
         <div class="flex items-center">
-          <NuxtLink to="/" class="flex items-center hover:opacity-80 transition-opacity">
+          <NuxtLink 
+            :to="isAuthenticated ? '/analyze' : '/'" 
+            class="flex items-center hover:opacity-80 transition-opacity"
+          >
             <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center mr-3">
               <Icon name="heroicons:document-text" class="w-4 h-4 text-white" />
             </div>
@@ -14,13 +17,6 @@
         
         <!-- Navigation Links -->
         <div class="hidden md:flex items-center space-x-6">
-          <NuxtLink 
-            to="/" 
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
-            :class="{ 'text-blue-600': $route.path === '/' }"
-          >
-            Home
-          </NuxtLink>
           <NuxtLink
             to="/analyze"
             class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
@@ -29,14 +25,13 @@
             Analyze
           </NuxtLink>
           <NuxtLink
-            v-if="isAuthenticated"
-            to="/dashboard"
+            v-if="isAuthenticated && isPremiumUser"
+            to="/premium-features"
             class="text-slate-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-2"
-            :class="{ 'text-blue-600': $route.path === '/dashboard' }"
-            @click.prevent="handleDashboardClick"
+            :class="{ 'text-blue-600': $route.path === '/premium-features' }"
           >
-            Dashboard
-            <PremiumBadge v-if="!isPremiumUser" size="sm" text="Premium" />
+            <Icon name="heroicons:star" class="w-4 h-4" />
+            Premium
           </NuxtLink>
           <NuxtLink
             to="/pricing"
@@ -56,28 +51,6 @@
         
         <!-- Action Buttons -->
         <div class="flex items-center space-x-3">
-          <!-- New Analysis Button -->
-          <Button
-            v-if="isAuthenticated"
-            @click="navigateTo('/analyze')"
-            variant="primary"
-            class="flex items-center"
-          >
-            <Icon name="heroicons:plus" class="w-4 h-4 mr-2" />
-            New Analysis
-          </Button>
-
-          <!-- Dashboard Button -->
-          <Button
-            v-if="isAuthenticated"
-            @click="navigateTo('/dashboard')"
-            variant="secondary"
-            class="flex items-center"
-          >
-            <Icon name="heroicons:chart-bar" class="w-4 h-4 mr-2" />
-            Dashboard
-          </Button>
-          
           <!-- User Menu -->
           <div class="relative" v-if="isAuthenticated">
             <Button
@@ -125,12 +98,13 @@
               
               <!-- Menu Items -->
               <NuxtLink
-                to="/dashboard"
+                v-if="isPremiumUser"
+                to="/premium-features"
                 class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
                 @click="userMenuOpen = false"
               >
-                <Icon name="heroicons:chart-bar" class="w-4 h-4 mr-3" />
-                Dashboard
+                <Icon name="heroicons:star" class="w-4 h-4 mr-3" />
+                Premium Features
               </NuxtLink>
               <NuxtLink
                 to="/profile"
@@ -194,13 +168,6 @@
       <div v-if="mobileMenuOpen" class="md:hidden mt-4 pt-4 border-t border-gray-200">
         <div class="space-y-2">
           <NuxtLink 
-            to="/" 
-            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            @click="mobileMenuOpen = false"
-          >
-            Home
-          </NuxtLink>
-          <NuxtLink 
             to="/analyze" 
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
@@ -208,13 +175,12 @@
             Analyze Decision
           </NuxtLink>
           <NuxtLink
-            v-if="isAuthenticated"
-            to="/dashboard"
-            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-between"
-            @click.prevent="handleMobileDashboardClick"
+            v-if="isAuthenticated && isPremiumUser"
+            to="/premium-features"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
           >
-            <span>Dashboard</span>
-            <PremiumBadge v-if="!isPremiumUser" size="sm" text="Premium" />
+            Premium Features
           </NuxtLink>
           <NuxtLink
             to="/pricing"
@@ -338,20 +304,6 @@ const handleLogout = async () => {
   
   // Logout (clears localStorage and redirects)
   await logout(true)
-}
-
-const handleDashboardClick = () => {
-  if (!isPremiumUser.value) {
-    // Show upgrade prompt or redirect to pricing
-    navigateTo('/pricing')
-  } else {
-    navigateTo('/dashboard')
-  }
-}
-
-const handleMobileDashboardClick = () => {
-  mobileMenuOpen.value = false
-  handleDashboardClick()
 }
 
 // Close menus when clicking outside
