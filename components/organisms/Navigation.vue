@@ -237,6 +237,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Button from "~/components/atoms/Button.vue";
 import PremiumBadge from "~/components/atoms/PremiumBadge.vue";
 

@@ -252,9 +252,10 @@ describe('Auth Flow Integration', () => {
     })
 
     it('should clear session only on 401 errors during validation', async () => {
-      const { useAuth } = await import('../../composables/useAuth')
-
-      const { login, validateSession } = useAuth()
+      // Clear localStorage first
+      localStorage.clear()
+      
+      // Set up mock BEFORE importing useAuth (since useAuth calls useApi at module level)
       const mockApiCallFn = vi.fn().mockResolvedValue({
         status: 401,
         ok: false,
@@ -264,13 +265,19 @@ describe('Auth Flow Integration', () => {
         apiCall: mockApiCallFn,
       }))
 
+      // Now import useAuth - it will use the mocked useApi
+      const { useAuth } = await import('../../composables/useAuth')
+      const { login, validateSession } = useAuth()
+
       // Set up authenticated state
       login('test-token', 3600)
+      expect(localStorage.getItem('auth_token')).toBe('test-token')
 
       const result = await validateSession()
 
       // Should return null AND clear session
       expect(result).toBeNull()
+      // clearSession removes the token - check after await
       expect(localStorage.getItem('auth_token')).toBeNull()
       expect(mockClearUser).toHaveBeenCalled()
     })
