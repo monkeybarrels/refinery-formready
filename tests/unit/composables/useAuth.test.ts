@@ -19,6 +19,16 @@ const mockApiCall = vi.fn()
   getFullApiUrl: vi.fn(),
 }))
 
+// Mock useGlobalAuth
+const mockClearUser = vi.fn()
+const mockSetUser = vi.fn()
+const mockUpdateAuthState = vi.fn()
+;(global as any).useGlobalAuth = vi.fn(() => ({
+  clearUser: mockClearUser,
+  setUser: mockSetUser,
+  updateAuthState: mockUpdateAuthState,
+}))
+
 // Mock Vue's onUnmounted
 vi.mock('vue', async () => {
   const actual = await vi.importActual('vue')
@@ -41,6 +51,9 @@ describe('useAuth', () => {
     mockApiCall.mockReset()
     mockPush.mockReset()
     mockPush.mockResolvedValue(undefined) // Make mockPush return a resolved promise
+    mockClearUser.mockReset()
+    mockSetUser.mockReset()
+    mockUpdateAuthState.mockReset()
     // Reset timers
     vi.useFakeTimers()
   })
@@ -54,12 +67,14 @@ describe('useAuth', () => {
       const { login } = useAuth()
       const testToken = 'test-token-123'
       const expiresIn = 3600 // 1 hour
+      const userData = { userId: '123', email: 'test@example.com' }
 
-      login(testToken, expiresIn)
+      login(testToken, expiresIn, userData)
 
       expect(localStorage.getItem('auth_token')).toBe(testToken)
       const storedExpiry = localStorage.getItem('token_expiry')
       expect(storedExpiry).toBeTruthy()
+      expect(localStorage.getItem('user_data')).toBe(JSON.stringify(userData))
 
       // Check expiry is approximately 1 hour from now
       const expiryTime = parseInt(storedExpiry!, 10)
@@ -155,22 +170,47 @@ describe('useAuth', () => {
       expect(localStorage.getItem('auth_token')).toBeNull()
     })
 
-    it('should clear session and return null on 403', async () => {
+    it('should NOT clear session on 403 with premium_required error', async () => {
       const { login, validateSession } = useAuth()
 
       login('test-token', 3600)
       mockApiCall.mockResolvedValue({
         status: 403,
         ok: false,
+        clone: vi.fn().mockReturnValue({
+          json: async () => ({ error: 'premium_required', message: 'Upgrade to premium' }),
+        }),
       })
 
       const result = await validateSession()
 
       expect(result).toBeNull()
-      expect(localStorage.getItem('auth_token')).toBeNull()
+      // Session should NOT be cleared for premium errors
+      expect(localStorage.getItem('auth_token')).toBe('test-token')
     })
 
-    it('should handle network errors gracefully', async () => {
+    it('should NOT clear session on 403 with unparseable error', async () => {
+      const { login, validateSession } = useAuth()
+
+      login('test-token', 3600)
+      mockApiCall.mockResolvedValue({
+        status: 403,
+        ok: false,
+        clone: vi.fn().mockReturnValue({
+          json: async () => {
+            throw new Error('Parse error')
+          },
+        }),
+      })
+
+      const result = await validateSession()
+
+      expect(result).toBeNull()
+      // Session should NOT be cleared if we can't parse the error
+      expect(localStorage.getItem('auth_token')).toBe('test-token')
+    })
+
+    it('should handle network errors gracefully without clearing session', async () => {
       const { login, validateSession } = useAuth()
 
       login('test-token', 3600)
@@ -179,6 +219,8 @@ describe('useAuth', () => {
       const result = await validateSession()
 
       expect(result).toBeNull()
+      // Session should NOT be cleared on network errors
+      expect(localStorage.getItem('auth_token')).toBe('test-token')
     })
   })
 

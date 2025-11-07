@@ -59,3 +59,52 @@ Object.defineProperty(document, 'visibilityState', {
   requireAuth: vi.fn(),
   setupSessionMonitoring: vi.fn(),
 }))
+
+// Mock useRuntimeConfig (Nuxt composable)
+;(global as any).useRuntimeConfig = vi.fn(() => ({
+  public: {
+    apiUrl: 'http://localhost:3001',
+  },
+}))
+
+// Mock useState (Nuxt composable)
+;(global as any).useState = vi.fn((key: string, init?: () => any) => {
+  const state = init ? init() : null
+  return {
+    value: state,
+  }
+})
+
+// Mock useRoute (Nuxt composable)
+;(global as any).useRoute = vi.fn(() => ({
+  path: '/',
+  query: {},
+  params: {},
+}))
+
+// Mock useGlobalAuth (Custom composable)
+;(global as any).useGlobalAuth = vi.fn(() => ({
+  authState: { value: { isAuthenticated: false, user: null } },
+  user: { value: null },
+  isAuthenticated: { value: false },
+  loading: { value: false },
+  error: { value: null },
+  userDisplayName: { value: '' },
+  userInitials: { value: '' },
+  isPremium: { value: false },
+  setUser: vi.fn(),
+  clearUser: vi.fn(),
+  updateAuthState: vi.fn(),
+  setLoading: vi.fn(),
+  setError: vi.fn(),
+  initializeFromStorage: vi.fn(),
+}))
+
+// Mock useSubscription (Custom composable)
+;(global as any).useSubscription = vi.fn(() => ({
+  isPremium: { value: false },
+  subscriptionStatus: { value: 'free' },
+  loading: { value: false },
+  error: { value: null },
+  fetchSubscriptionStatus: vi.fn(),
+}))
