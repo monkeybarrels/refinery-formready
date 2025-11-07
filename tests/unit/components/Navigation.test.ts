@@ -129,7 +129,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -151,7 +154,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -172,7 +178,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -194,7 +203,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -215,7 +227,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -236,7 +251,10 @@ describe('Navigation Component', () => {
           stubs: {
             NuxtLink: true,
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
           },
         },
       })
@@ -259,9 +277,15 @@ describe('Navigation Component', () => {
         global: {
           plugins: [router],
           stubs: {
-            NuxtLink: true,
+            NuxtLink: {
+              template: '<a><slot /></a>',
+              props: ['to'],
+            },
             Icon: true,
-            Button: true,
+            Button: {
+              template: '<button><slot /></button>',
+              props: ['variant', 'size', 'disabled', 'type'],
+            },
             PremiumBadge: {
               template: '<span class="premium-badge">Premium</span>',
               props: ['size', 'text'],
