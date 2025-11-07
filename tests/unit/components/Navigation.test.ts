@@ -5,7 +5,12 @@ import { ref, computed } from 'vue'
 
 // Mock composables
 const mockIsAuthenticated = vi.fn()
-const mockAuthState = ref({
+const mockAuthState = ref<{
+  isAuthenticated: boolean
+  user: { email: string; firstName?: string; lastName?: string; isPremium?: boolean } | null
+  loading: boolean
+  error: string | null
+}>({
   isAuthenticated: false,
   user: null,
   loading: false,
@@ -401,8 +406,9 @@ describe('Navigation Component', () => {
   describe('Logout', () => {
     it('should call logout when Sign Out is clicked', async () => {
       const mockLogout = vi.fn().mockResolvedValue(undefined)
+      const mockIsAuthFn = vi.fn().mockReturnValue(true)
       mockUseAuth.mockReturnValue({
-        isAuthenticated: () => true,
+        isAuthenticated: mockIsAuthFn,
         logout: mockLogout,
       })
 
