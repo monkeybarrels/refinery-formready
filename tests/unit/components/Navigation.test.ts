@@ -176,7 +176,10 @@ describe('Navigation Component', () => {
         global: {
           plugins: [router],
           stubs: {
-            NuxtLink: true,
+            NuxtLink: {
+              template: '<a><slot /></a>',
+              props: ['to'],
+            },
             Icon: true,
             Button: {
               template: '<button><slot /></button>',
