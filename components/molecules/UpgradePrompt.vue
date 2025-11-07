@@ -125,7 +125,9 @@ const emit = defineEmits<{
   upgrade: [];
 }>();
 
-const { isPremium, createCheckoutSession, loading, error } = useBilling();
+const { isPremium } = useSubscription();
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 const show = ref(true);
 
@@ -138,15 +140,21 @@ const handleDismiss = () => {
 
 const handleUpgrade = async () => {
   emit('upgrade');
-
-  const success = await createCheckoutSession(
-    props.successUrl || `${window.location.origin}/billing/success`,
-    props.cancelUrl || `${window.location.origin}/pricing`,
-  );
-
-  if (!success && error.value) {
+  
+  // Phase 1: Redirect to pricing page (Stripe integration will be added in Phase 2)
+  // Phase 2: Will use createCheckoutSession from useBilling
+  loading.value = true;
+  
+  try {
+    // For now, redirect to pricing page
+    // In Phase 2, this will create a Stripe checkout session
+    navigateTo('/pricing');
+  } catch (e: any) {
+    error.value = e.message || 'Failed to start upgrade process';
     console.error('Upgrade failed:', error.value);
     alert(`Failed to start upgrade process: ${error.value}`);
+  } finally {
+    loading.value = false;
   }
 };
 </script>

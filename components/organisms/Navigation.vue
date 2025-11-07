@@ -31,10 +31,12 @@
           <NuxtLink
             v-if="isAuthenticated"
             to="/dashboard"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-medium flex items-center gap-2"
             :class="{ 'text-blue-600': $route.path === '/dashboard' }"
+            @click.prevent="handleDashboardClick"
           >
             Dashboard
+            <PremiumBadge v-if="!isPremiumUser" size="sm" text="Premium" />
           </NuxtLink>
           <NuxtLink
             to="/pricing"
@@ -83,13 +85,45 @@
               variant="outline"
               class="flex items-center"
             >
-              <Icon name="heroicons:user" class="w-4 h-4 mr-2" />
-              Account
+              <!-- User Avatar -->
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2">
+                <span class="text-white font-semibold text-xs">
+                  {{ userInitials }}
+                </span>
+              </div>
+              <!-- User Name or Account -->
+              <span class="hidden sm:inline">
+                {{ userDisplayName || 'Account' }}
+              </span>
+              <span class="sm:hidden">Account</span>
               <Icon name="heroicons:chevron-down" class="w-4 h-4 ml-2" />
             </Button>
 
             <!-- Dropdown Menu -->
-            <div v-if="userMenuOpen" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            <div v-if="userMenuOpen" class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <!-- User Info Header -->
+              <div v-if="userDisplayName || authState.user?.email" class="px-4 py-3 border-b border-gray-200">
+                <div class="flex items-center">
+                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white font-semibold text-sm">
+                      {{ userInitials }}
+                    </span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div v-if="userDisplayName" class="text-sm font-medium text-slate-900 truncate">
+                      {{ userDisplayName }}
+                    </div>
+                    <div v-if="authState.user?.email" class="text-xs text-slate-500 truncate">
+                      {{ authState.user.email }}
+                    </div>
+                  </div>
+                </div>
+                <div v-if="isPremiumUser" class="mt-2">
+                  <PremiumBadge size="sm" />
+                </div>
+              </div>
+              
+              <!-- Menu Items -->
               <NuxtLink
                 to="/dashboard"
                 class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
@@ -176,10 +210,11 @@
           <NuxtLink
             v-if="isAuthenticated"
             to="/dashboard"
-            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            @click="mobileMenuOpen = false"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-between"
+            @click.prevent="handleMobileDashboardClick"
           >
-            Dashboard
+            <span>Dashboard</span>
+            <PremiumBadge v-if="!isPremiumUser" size="sm" text="Premium" />
           </NuxtLink>
           <NuxtLink
             to="/pricing"
@@ -203,6 +238,7 @@
 
 <script setup lang="ts">
 import Button from "~/components/atoms/Button.vue";
+import PremiumBadge from "~/components/atoms/PremiumBadge.vue";
 
 interface Props {
   showNewAnalysis?: boolean
@@ -218,21 +254,66 @@ const props = withDefaults(defineProps<Props>(), {
 
 const userMenuOpen = ref(false)
 const mobileMenuOpen = ref(false)
-const isAuthenticated = ref(false)
 const route = useRoute()
 
-// Check authentication status
-const checkAuth = () => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('auth_token')
-    isAuthenticated.value = !!token
+// Use global auth state and useAuth composable
+const { isAuthenticated: isAuthFromComposable } = useAuth()
+const { authState, userDisplayName, userInitials, isPremium } = useGlobalAuth()
+const { isPremium: subscriptionPremium } = useSubscription()
+
+// Computed auth state - check both local token and global state
+const isAuthenticated = computed(() => {
+  // Check useAuth composable first (validates token expiry)
+  if (isAuthFromComposable()) {
+    return true
+  }
+  // Fallback to global state
+  return authState.value.isAuthenticated
+})
+
+// Combined premium status
+const isPremiumUser = computed(() => {
+  return isPremium.value || subscriptionPremium.value || authState.value.user?.isPremium === true
+})
+
+// Load user data from API
+const loadUserData = async () => {
+  if (import.meta.server) return
+  
+  const { apiCall } = useApi()
+  const { setUser, setLoading } = useGlobalAuth()
+  
+  try {
+    setLoading(true)
+    const response = await apiCall('/api/auth/profile')
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.user) {
+        setUser(data.user)
+        
+        // Also update localStorage
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load user data:', error)
+  } finally {
+    setLoading(false)
   }
 }
 
-// Watch for route changes and re-check auth
-watch(() => route.path, () => {
-  checkAuth()
-})
+// Watch for auth state changes and update global state
+watch(() => isAuthFromComposable(), (newValue) => {
+  if (newValue) {
+    // Load user data when authenticated
+    loadUserData()
+  } else {
+    // Clear user data when not authenticated
+    const { clearUser } = useGlobalAuth()
+    clearUser()
+  }
+}, { immediate: true })
 
 const toggleUserMenu = () => {
   userMenuOpen.value = !userMenuOpen.value
@@ -244,16 +325,44 @@ const toggleMobileMenu = () => {
   userMenuOpen.value = false
 }
 
-const handleLogout = () => {
-  localStorage.removeItem('auth_token')
-  isAuthenticated.value = false
+const handleLogout = async () => {
+  const { logout } = useAuth()
+  const { clearUser } = useGlobalAuth()
+  
+  // Clear global state
+  clearUser()
+  
+  // Close menu
   userMenuOpen.value = false
-  navigateTo('/auth/login')
+  
+  // Logout (clears localStorage and redirects)
+  await logout(true)
+}
+
+const handleDashboardClick = () => {
+  if (!isPremiumUser.value) {
+    // Show upgrade prompt or redirect to pricing
+    navigateTo('/pricing')
+  } else {
+    navigateTo('/dashboard')
+  }
+}
+
+const handleMobileDashboardClick = () => {
+  mobileMenuOpen.value = false
+  handleDashboardClick()
 }
 
 // Close menus when clicking outside
 onMounted(() => {
-  checkAuth()
+  // Initialize auth state from storage
+  const { initializeFromStorage } = useGlobalAuth()
+  initializeFromStorage()
+  
+  // Load user data if authenticated
+  if (isAuthenticated.value) {
+    loadUserData()
+  }
 
   const handleClickOutside = (event: MouseEvent) => {
     if (userMenuOpen.value || mobileMenuOpen.value) {

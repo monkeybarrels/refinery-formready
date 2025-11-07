@@ -218,27 +218,46 @@ const handleLogin = async () => {
       body: JSON.stringify(form)
     })
 
+    // Check if response is ok (200 or 201)
+    if (!response.ok && response.status !== 201) {
+      const errorData = await response.json().catch(() => ({}))
+      error.value = errorData.error || errorData.message || 'Login failed. Please try again.'
+      return
+    }
+
     const result = await response.json()
 
-    if (result.success) {
-      // Store token and session using useAuth composable
-      const expiresIn = result.expiresIn || 86400 // Default 24 hours
-      login(result.accessToken, expiresIn)
+    console.log('🔵 LOGIN RESPONSE:', result)
 
-      // Store user data for display
-      localStorage.setItem('user_data', JSON.stringify({
+    if (result.success && result.accessToken) {
+      // Prepare user data
+      const userData = {
         userId: result.userId,
-        email: form.email,
+        email: result.email || form.email,
         firstName: result.firstName,
         lastName: result.lastName,
         serviceBranch: result.serviceBranch,
         isPremium: result.isPremium || false
-      }))
+      }
+
+      // Store token and session using useAuth composable (with userData)
+      const expiresIn = result.expiresIn || 86400 // Default 24 hours
+      login(result.accessToken, expiresIn, userData)
+
+      console.log('✅ Login successful, redirecting to:', redirectPath.value)
 
       // Redirect to original page or dashboard
-      await router.push(redirectPath.value)
+      try {
+        await router.push(redirectPath.value)
+        console.log('✅ Redirect successful')
+      } catch (redirectError) {
+        console.error('❌ Redirect error:', redirectError)
+        // Fallback to dashboard if redirect fails
+        await router.push('/dashboard')
+      }
     } else {
       error.value = result.error || 'Invalid email or password'
+      console.error('❌ Login failed:', result)
     }
   } catch (err: any) {
     error.value = 'Login failed. Please try again.'
