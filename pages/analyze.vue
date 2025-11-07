@@ -15,8 +15,82 @@
       </div>
     </div>
 
+    <!-- Usage Limit Reached (Anonymous Users) -->
+    <div v-if="!analyzing && !sessionId && !isAuthenticated && hasUsedFreeAnalysis" class="max-w-3xl mx-auto px-4 py-8">
+      <div class="bg-white rounded-2xl shadow-xl p-8 border-2 border-blue-200">
+        <div class="text-center">
+          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Icon name="heroicons:lock-closed" class="w-10 h-10 text-blue-600" />
+          </div>
+
+          <h2 class="text-2xl font-bold text-slate-900 mb-4">
+            You've Used Your Free Analysis
+          </h2>
+
+          <p class="text-lg text-slate-600 mb-6">
+            Create a free account to continue analyzing decision letters
+          </p>
+
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left max-w-md mx-auto">
+            <h3 class="font-semibold text-blue-900 mb-3">With a free account you get:</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
+                <span class="text-sm text-blue-800">Unlimited decision letter analysis</span>
+              </li>
+              <li class="flex items-start">
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
+                <span class="text-sm text-blue-800">Save and access your analysis history</span>
+              </li>
+              <li class="flex items-start">
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
+                <span class="text-sm text-blue-800">Track multiple claims</span>
+              </li>
+              <li class="flex items-start">
+                <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
+                <span class="text-sm text-blue-800">Evidence checklists and recommendations</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              @click="navigateTo('/auth/register')"
+              variant="primary"
+              class="px-8 py-3"
+            >
+              <Icon name="heroicons:user-plus" class="w-5 h-5 mr-2" />
+              Create Free Account
+            </Button>
+
+            <Button
+              @click="navigateTo('/auth/login')"
+              variant="secondary"
+              class="px-8 py-3"
+            >
+              <Icon name="heroicons:arrow-right-on-rectangle" class="w-5 h-5 mr-2" />
+              Sign In
+            </Button>
+          </div>
+
+          <div class="mt-8 pt-6 border-t border-slate-200">
+            <p class="text-sm text-slate-600 mb-3">
+              Want advanced features like multi-claim tracking and AI form generation?
+            </p>
+            <Button
+              @click="navigateTo('/pricing')"
+              variant="ghost"
+              class="text-blue-600 hover:text-blue-700"
+            >
+              View Premium Plans →
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Upload Section -->
-    <div v-if="!analyzing && !sessionId" class="max-w-3xl mx-auto px-4 py-8">
+    <div v-if="!analyzing && !sessionId && !(hasUsedFreeAnalysis && !isAuthenticated)" class="max-w-3xl mx-auto px-4 py-8">
       <FileUploadZone
         @file-select="handleFileSelect"
         @analyze="analyzeDocument"
@@ -89,6 +163,7 @@
 import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
 import Navigation from "~/components/organisms/Navigation.vue";
 import Footer from "~/components/organisms/Footer.vue";
+import Button from "~/components/atoms/Button.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
@@ -104,10 +179,28 @@ const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
 const analysisStartTime = ref<number | null>(null)
 
+// Get authentication and subscription state
+const { isAuthenticated } = useAuth()
+const { isPremium } = useSubscription()
+const hasUsedFreeAnalysis = ref(false)
+const showUpgradePrompt = ref(false)
+
 // Track upload page view on mount (funnel step 2)
-onMounted(() => {
+onMounted(async () => {
   const source = route.query.utm_source as string | undefined
   trackFunnel.uploadPageViewed(source)
+
+  // Check if user is authenticated and fetch subscription status
+  if (isAuthenticated.value) {
+    const { fetchSubscriptionStatus } = useSubscription()
+    await fetchSubscriptionStatus()
+  }
+
+  // Check if anonymous user has already used their free analysis
+  if (!isAuthenticated.value) {
+    const usedFree = localStorage.getItem('used_free_analysis')
+    hasUsedFreeAnalysis.value = usedFree === 'true'
+  }
 })
 
 const handleFileSelect = (file: File) => {
@@ -129,6 +222,16 @@ const stepClasses = (step: number) => {
 
 const analyzeDocument = async () => {
   if (!selectedFile.value) return
+
+  // Check usage limits before proceeding
+  if (!isAuthenticated.value && hasUsedFreeAnalysis.value) {
+    toast.warning('Free Analysis Used', 'Create a free account to continue analyzing decision letters')
+    showUpgradePrompt.value = true
+    return
+  }
+
+  // For free tier authenticated users, could add analysis count check here in future
+  // For now, authenticated free users get unlimited basic analysis
 
   analyzing.value = true
   currentStep.value = 1
@@ -230,6 +333,12 @@ const analyzeDocument = async () => {
 
       console.log('Step 3 complete: Got session ID', newSessionId)
       sessionId.value = newSessionId
+
+      // Mark free analysis as used for anonymous users
+      if (!isAuthenticated.value) {
+        localStorage.setItem('used_free_analysis', 'true')
+        hasUsedFreeAnalysis.value = true
+      }
 
       // Track analysis completion
       const totalTime = Date.now() - analysisStartTime.value!
