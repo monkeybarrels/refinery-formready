@@ -3,20 +3,70 @@
     <!-- Full Navigation -->
     <Navigation />
 
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="text-center">
-          <h1 class="text-4xl font-bold mb-4">VA Decision Letter Analysis</h1>
-          <p class="text-xl text-blue-100">
+    <!-- Page Header -->
+    <div class="bg-white border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Breadcrumbs for authenticated users -->
+        <div v-if="isAuthenticated" class="mb-4">
+          <Breadcrumb />
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-slate-900 mb-2">Analyze Decision Letter</h1>
+          <p class="text-lg text-slate-600">
             Upload your VA decision letter to get instant analysis and understand your claim decision
           </p>
         </div>
       </div>
     </div>
 
+    <!-- Usage Limit Reached (Anonymous Users Only) -->
+    <div v-if="!analyzing && !sessionId && !isAuthenticated && hasUsedFreeAnalysis && !isPremium" class="max-w-3xl mx-auto px-4 py-8">
+      <div class="bg-white rounded-2xl shadow-xl p-8">
+        <EmptyState
+          variant="limit-reached"
+          icon-name="heroicons:lock-closed"
+          :title="`You've Used Your ${FREE_ANALYSIS_LIMIT} Free Analyses`"
+          description="Create a free account to continue analyzing decision letters"
+          :benefits="[
+            'Unlimited decision letter analysis',
+            'Save and access your analysis history',
+            'Track multiple claims',
+            'Evidence checklists and recommendations'
+          ]"
+          benefits-title="With a free account you get:"
+          :primary-action="{
+            label: 'Create Free Account',
+            icon: 'heroicons:user-plus',
+            to: '/auth/signup'
+          }"
+          :secondary-action="{
+            label: 'Sign In',
+            icon: 'heroicons:arrow-right-on-rectangle',
+            to: '/auth/login'
+          }"
+          :tertiary-action="{
+            label: 'View Premium Plans',
+            icon: 'heroicons:arrow-right',
+            to: '/pricing'
+          }"
+          footer-message="Want advanced features like multi-claim tracking and AI form generation?"
+        />
+      </div>
+    </div>
+
     <!-- Upload Section -->
-    <div v-if="!analyzing && !sessionId" class="max-w-3xl mx-auto px-4 py-8">
+    <div v-if="!analyzing && !sessionId && !(hasUsedFreeAnalysis && !isAuthenticated && !isPremium)" class="max-w-3xl mx-auto px-4 py-8">
+      <!-- User State Card -->
+      <div v-if="!isAuthenticated && !isPremium" class="mb-6">
+        <UserStateCard
+          user-state="guest"
+          :remaining-uses="FREE_ANALYSIS_LIMIT - freeAnalysisCount"
+          :total-uses="FREE_ANALYSIS_LIMIT"
+          :show-upgrade-action="true"
+        />
+      </div>
+
       <FileUploadZone
         @file-select="handleFileSelect"
         @analyze="analyzeDocument"
@@ -26,52 +76,18 @@
     <!-- Analyzing State with Progress -->
     <div v-if="analyzing" class="max-w-3xl mx-auto px-4 py-12">
       <div class="bg-white rounded-2xl shadow-xl p-8">
-        <div class="text-center">
-          <div class="mb-8">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-
-          <h2 class="text-2xl font-semibold text-slate-900 mb-4">
-            Analyzing Your Decision Letter
-          </h2>
-
-          <!-- Progress Steps -->
-          <div class="space-y-4 max-w-md mx-auto text-left mt-8">
-            <div class="flex items-center space-x-3">
-              <div :class="stepClasses(1)">
-                <Icon v-if="currentStep > 1" name="heroicons:check" class="w-4 h-4" />
-                <span v-else class="text-sm font-medium">1</span>
-              </div>
-              <span :class="currentStep >= 1 ? 'text-slate-900 font-medium' : 'text-slate-400'">
-                Uploading document
-              </span>
-            </div>
-
-            <div class="flex items-center space-x-3">
-              <div :class="stepClasses(2)">
-                <Icon v-if="currentStep > 2" name="heroicons:check" class="w-4 h-4" />
-                <span v-else class="text-sm font-medium">2</span>
-              </div>
-              <span :class="currentStep >= 2 ? 'text-slate-900 font-medium' : 'text-slate-400'">
-                Extracting text from PDF
-              </span>
-            </div>
-
-            <div class="flex items-center space-x-3">
-              <div :class="stepClasses(3)">
-                <Icon v-if="currentStep > 3" name="heroicons:check" class="w-4 h-4" />
-                <span v-else class="text-sm font-medium">3</span>
-              </div>
-              <span :class="currentStep >= 3 ? 'text-slate-900 font-medium' : 'text-slate-400'">
-                Analyzing decision details
-              </span>
-            </div>
-          </div>
-
-          <p class="text-sm text-slate-500 mt-8">
-            This usually takes 30-60 seconds
-          </p>
-        </div>
+        <LoadingState
+          variant="steps"
+          size="lg"
+          message="Analyzing Your Decision Letter"
+          sub-message="This usually takes 30-60 seconds"
+          :steps="[
+            'Uploading document',
+            'Extracting text from PDF',
+            'Analyzing decision details'
+          ]"
+          :current-step="currentStep - 1"
+        />
       </div>
     </div>
 
@@ -89,6 +105,11 @@
 import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
 import Navigation from "~/components/organisms/Navigation.vue";
 import Footer from "~/components/organisms/Footer.vue";
+import Button from "~/components/atoms/Button.vue";
+import EmptyState from "~/components/molecules/EmptyState.vue";
+import LoadingState from "~/components/molecules/LoadingState.vue";
+import UserStateCard from "~/components/molecules/UserStateCard.vue";
+import Breadcrumb from "~/components/molecules/Breadcrumb.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
@@ -104,10 +125,42 @@ const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
 const analysisStartTime = ref<number | null>(null)
 
+// Get authentication and subscription state
+const { isAuthenticated } = useAuth()
+const { isPremium } = useSubscription()
+const FREE_ANALYSIS_LIMIT = 3
+const freeAnalysisCount = ref(0)
+const hasUsedFreeAnalysis = computed(() => freeAnalysisCount.value >= FREE_ANALYSIS_LIMIT)
+const showUpgradePrompt = ref(false)
+
 // Track upload page view on mount (funnel step 2)
-onMounted(() => {
+onMounted(async () => {
   const source = route.query.utm_source as string | undefined
   trackFunnel.uploadPageViewed(source)
+
+  // Check if user is authenticated and fetch subscription status
+  if (isAuthenticated.value) {
+    const { fetchSubscriptionStatus } = useSubscription()
+    await fetchSubscriptionStatus()
+  }
+
+  // Dev helper: Reset free analysis count (remove in production)
+  // Add ?reset=1 to URL to reset: /analyze?reset=1
+  if (import.meta.dev && route.query.reset === '1') {
+    localStorage.removeItem('free_analysis_count')
+    freeAnalysisCount.value = 0
+    console.log('✅ Free analysis count reset')
+  }
+
+  // Check if anonymous user has used their free analyses
+  // Premium users bypass this limit
+  if (!isAuthenticated.value && !isPremium.value) {
+    const storedCount = localStorage.getItem('free_analysis_count')
+    freeAnalysisCount.value = storedCount ? parseInt(storedCount, 10) : 0
+  } else {
+    // Premium users or authenticated users don't have limits
+    freeAnalysisCount.value = 0
+  }
 })
 
 const handleFileSelect = (file: File) => {
@@ -129,6 +182,17 @@ const stepClasses = (step: number) => {
 
 const analyzeDocument = async () => {
   if (!selectedFile.value) return
+
+  // Check usage limits before proceeding
+  // Premium users bypass all limits
+  if (!isAuthenticated.value && hasUsedFreeAnalysis.value && !isPremium.value) {
+    toast.warning('Free Analysis Limit Reached', `You've used all ${FREE_ANALYSIS_LIMIT} free analyses. Create a free account to continue.`)
+    showUpgradePrompt.value = true
+    return
+  }
+
+  // For free tier authenticated users, could add analysis count check here in future
+  // For now, authenticated free users get unlimited basic analysis
 
   analyzing.value = true
   currentStep.value = 1
@@ -230,6 +294,13 @@ const analyzeDocument = async () => {
 
       console.log('Step 3 complete: Got session ID', newSessionId)
       sessionId.value = newSessionId
+
+      // Increment free analysis count for anonymous users only
+      // Premium users bypass this limit
+      if (!isAuthenticated.value && !isPremium.value) {
+        freeAnalysisCount.value += 1
+        localStorage.setItem('free_analysis_count', freeAnalysisCount.value.toString())
+      }
 
       // Track analysis completion
       const totalTime = Date.now() - analysisStartTime.value!

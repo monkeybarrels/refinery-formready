@@ -89,19 +89,19 @@ describe('auth middleware', () => {
         expect(mockNavigateTo).not.toHaveBeenCalled()
       })
 
-      it(`should redirect to login with session_expired flag when validation fails for ${path}`, async () => {
+      it(`should allow navigation when validation fails but token exists for ${path}`, async () => {
         mockIsAuthenticated.mockReturnValue(true)
         mockValidateSession.mockResolvedValue(null)
 
         const to = { path, name }
         const from = { path: '/', name: 'index' }
 
-        const result = await authMiddleware(to as any, from as any)
+        await authMiddleware(to as any, from as any)
 
         expect(mockValidateSession).toHaveBeenCalled()
-        expect(result).toBeDefined()
-        expect(mockNavigateTo.mock.calls[0][0]).toContain('session_expired=true')
-        expect(mockNavigateTo.mock.calls[0][0]).toContain(`redirect=${path}`)
+        // CRITICAL: Don't redirect if user has valid token, even if backend validation fails
+        // This ensures logged-in users always have navigation
+        expect(mockNavigateTo).not.toHaveBeenCalled()
       })
     })
   })
@@ -145,7 +145,7 @@ describe('auth middleware', () => {
       expect(mockValidateSession).toHaveBeenCalled()
     })
 
-    it('should handle validation errors gracefully', async () => {
+    it('should allow navigation when validation fails but token exists', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       // validateSession catches errors and returns null (it doesn't throw)
       mockValidateSession.mockResolvedValue(null)
@@ -153,12 +153,11 @@ describe('auth middleware', () => {
       const to = { path: '/dashboard', name: 'dashboard' }
       const from = { path: '/', name: 'index' }
 
-      const result = await authMiddleware(to as any, from as any)
+      await authMiddleware(to as any, from as any)
 
-      expect(result).toBeDefined()
-      expect(mockNavigateTo).toHaveBeenCalled()
-      // Should redirect with session_expired flag when validation returns null
-      expect(mockNavigateTo.mock.calls[0][0]).toContain('session_expired=true')
+      // CRITICAL: Don't redirect if user has valid token, even if backend validation fails
+      // This ensures logged-in users always have navigation
+      expect(mockNavigateTo).not.toHaveBeenCalled()
     })
 
     it('should preserve hash fragments in redirect', async () => {

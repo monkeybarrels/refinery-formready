@@ -10,6 +10,11 @@
     <!-- Hero Section -->
     <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Breadcrumbs -->
+        <div class="mb-6">
+          <Breadcrumb theme="dark" />
+        </div>
+
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-4xl font-bold mb-2">Profile</h1>
@@ -198,6 +203,7 @@ import { useRouter } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Navigation from '~/components/organisms/Navigation.vue'
+import Breadcrumb from '~/components/molecules/Breadcrumb.vue'
 
 // Head
 useHead({

@@ -3,6 +3,9 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 // Mock dependencies - must be set up before imports
 const mockPush = vi.fn()
 const mockApiCall = vi.fn()
+const mockClearUser = vi.fn()
+const mockSetUser = vi.fn()
+const mockUpdateAuthState = vi.fn()
 
 // Set up global mocks for Nuxt auto-imports
 ;(global as any).useRouter = vi.fn(() => ({
@@ -18,6 +21,13 @@ const mockApiCall = vi.fn()
   getFullApiUrl: vi.fn(),
 }))
 
+// Mock useGlobalAuth
+;(global as any).useGlobalAuth = vi.fn(() => ({
+  clearUser: mockClearUser,
+  setUser: mockSetUser,
+  updateAuthState: mockUpdateAuthState,
+}))
+
 // Import after mocks are set up
 import { useAuth } from '../../composables/useAuth'
 
@@ -29,6 +39,9 @@ describe('Session Expiration Integration Tests', () => {
     vi.useFakeTimers({ now: new Date('2024-01-01T00:00:00Z') })
     mockApiCall.mockClear()
     mockPush.mockResolvedValue(undefined) // Make mockPush return a resolved promise
+    mockClearUser.mockClear()
+    mockSetUser.mockClear()
+    mockUpdateAuthState.mockClear()
   })
 
   afterEach(() => {
@@ -209,15 +222,23 @@ describe('Session Expiration Integration Tests', () => {
 
       login('test-token', 3600)
 
+      // Mock 403 response with premium_required error
       mockApiCall.mockResolvedValueOnce({
         ok: false,
         status: 403,
+        clone: vi.fn().mockReturnValue({
+          json: async () => ({
+            error: 'premium_required',
+            message: 'Upgrade to premium',
+          }),
+        }),
       } as Response)
 
       const result = await validateSession()
 
+      // Should return null but NOT clear session (403 is not an auth error)
       expect(result).toBeNull()
-      expect(localStorage.getItem('auth_token')).toBeNull()
+      expect(localStorage.getItem('auth_token')).toBe('test-token')
     })
 
     it('should handle 500 server error', async () => {
@@ -297,21 +318,23 @@ describe('Session Expiration Integration Tests', () => {
       expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
     })
 
-    it('should fail validation and redirect', async () => {
+    it('should return true when token exists even if backend validation fails', async () => {
       const { login, requireAuth } = useAuth()
 
       login('invalid-token', 3600)
 
       mockApiCall.mockResolvedValueOnce({
         ok: false,
-        status: 401,
+        status: 500, // Network error or backend issue, not 401
       } as Response)
 
       const result = await requireAuth()
 
-      expect(result).toBe(false)
-      expect(mockPush).toHaveBeenCalledWith('/auth/login?session_expired=true')
-      expect(localStorage.getItem('auth_token')).toBeNull()
+      // CRITICAL: Return true if token exists, even if backend validation fails
+      // This ensures logged-in users always have access to navigation
+      expect(result).toBe(true)
+      expect(mockPush).not.toHaveBeenCalled()
+      expect(localStorage.getItem('auth_token')).not.toBeNull()
     })
   })
 

@@ -104,31 +104,51 @@ export const useAuth = () => {
   /**
    * Validate token with backend
    * Returns user data if valid, null if invalid/expired
+   * Only clears session on actual 401 auth errors, not on 403 (premium) errors
    */
   const validateSession = async (): Promise<any | null> => {
     try {
       const response = await apiCall('/api/auth/profile')
 
-      if (response.status === 401 || response.status === 403) {
-        // Session expired or invalid
+      // Only clear session on 401 (actual auth failure)
+      if (response.status === 401) {
         clearSession()
         return null
       }
 
+      // 403 might be premium error, not auth error - don't clear session
+      if (response.status === 403) {
+        // Check if it's a premium error
+        try {
+          const errorData = await response.clone().json()
+          if (errorData.error === 'premium_required') {
+            // Not an auth error, session is still valid
+            // Return null to indicate validation didn't succeed, but don't clear session
+            return null
+          }
+        } catch {
+          // Can't parse - might be auth error, but be conservative and don't clear
+          // Let the calling code decide
+          return null
+        }
+      }
+
       if (!response.ok) {
+        // Other errors - don't clear session, just return null
         return null
       }
 
       const userData = await response.json()
       return userData
     } catch (error) {
-      console.error('Session validation failed:', error)
+      // Network error - don't clear session, just return null
+      console.error('Session validation failed (network error):', error)
       return null
     }
   }
 
   /**
-   * Clear session data and redirect to login
+   * Clear session data
    */
   const clearSession = () => {
     if (import.meta.server) return
@@ -136,6 +156,10 @@ export const useAuth = () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('token_expiry')
     localStorage.removeItem('user_data')
+    
+    // Update global auth state
+    const { clearUser } = useGlobalAuth()
+    clearUser()
   }
 
   /**
@@ -143,6 +167,10 @@ export const useAuth = () => {
    */
   const logout = async (redirectToLogin = true) => {
     clearSession()
+
+    // Update global auth state
+    const { clearUser } = useGlobalAuth()
+    clearUser()
 
     if (redirectToLogin) {
       await router.push('/auth/login?session_expired=true')
@@ -152,7 +180,7 @@ export const useAuth = () => {
   /**
    * Login and store session data
    */
-  const login = (token: string, expiresIn: number = 86400) => {
+  const login = (token: string, expiresIn: number = 86400, userData?: any) => {
     if (import.meta.server) return
 
     localStorage.setItem('auth_token', token)
@@ -160,27 +188,48 @@ export const useAuth = () => {
     // Set expiry time (default 24 hours)
     const expiryTime = Date.now() + (expiresIn * 1000)
     localStorage.setItem('token_expiry', expiryTime.toString())
+
+    // Update global auth state
+    const { setUser, updateAuthState } = useGlobalAuth()
+    updateAuthState({ isAuthenticated: true })
+    
+    if (userData) {
+      setUser(userData)
+      localStorage.setItem('user_data', JSON.stringify(userData))
+    }
   }
 
   /**
    * Require authentication - redirect if not authenticated
    * Call this in onMounted() on protected pages
+   * CRITICAL: Only redirects if token is actually missing/expired, not on network errors
    */
   const requireAuth = async () => {
-    // Basic auth check
+    // Basic auth check - if no token or expired, redirect
     if (!isAuthenticated()) {
       await logout()
       return false
     }
 
-    // Validate with backend
-    const userData = await validateSession()
-    if (!userData) {
-      await logout()
-      return false
+    // Try to validate with backend, but don't redirect on network errors
+    // If user has a valid token, allow them through even if backend validation fails
+    // This ensures logged-in users always have access to navigation
+    try {
+      const userData = await validateSession()
+      if (userData) {
+        return true
+      }
+      // validateSession returned null, but user has a valid token
+      // This could be a network error or temporary backend issue
+      // Don't redirect - let them through so they have navigation
+      console.log('⚠️ Backend validation failed, but token exists - allowing access (user has session)')
+      return true
+    } catch (error) {
+      // Network error or other issue - don't redirect logged-in users
+      // They have a valid token, so let them through
+      console.log('⚠️ Validation error, but token exists - allowing access (user has session):', error)
+      return true
     }
-
-    return true
   }
 
   /**

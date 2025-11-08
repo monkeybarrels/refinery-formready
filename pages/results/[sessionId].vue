@@ -4,7 +4,12 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4">
         <div class="flex justify-between items-center">
-          <Logo size="md" to="/" />
+          <div class="flex items-center space-x-4">
+            <Logo size="md" to="/" />
+            <div class="hidden sm:block">
+              <Breadcrumb />
+            </div>
+          </div>
           <div class="flex items-center space-x-4">
             <!-- Desktop Links -->
             <NuxtLink to="/analyze" class="hidden sm:inline text-sm text-slate-600 hover:text-blue-800 transition-colors">
@@ -57,12 +62,17 @@
       <div class="max-w-7xl mx-auto px-4 text-center">
         <Icon name="heroicons:clock" class="w-4 h-4 inline mr-2" />
         <span class="text-sm text-amber-800">
-          Results available for 24 hours. 
+          Results available for 24 hours.
           <NuxtLink to="/auth/signup" class="underline font-medium">
             Sign up free to save permanently
           </NuxtLink>
         </span>
       </div>
+    </div>
+
+    <!-- Back Navigation -->
+    <div class="max-w-7xl mx-auto px-4 py-4 sm:hidden">
+      <BackButton to="/analyze" label="Start New Analysis" />
     </div>
 
     <!-- Loading State -->
@@ -166,7 +176,9 @@
 
 <script setup lang="ts">
 import Button from "~/components/atoms/Button.vue";
+import BackButton from "~/components/atoms/BackButton.vue";
 import Logo from "~/components/atoms/Logo.vue";
+import Breadcrumb from "~/components/molecules/Breadcrumb.vue";
 import RatingHeroCard from "~/components/organisms/RatingHeroCard.vue";
 import ConditionsGridEnhanced from "~/components/organisms/ConditionsGridEnhanced.vue";
 import CountdownTimer from "~/components/organisms/CountdownTimer.vue";

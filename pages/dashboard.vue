@@ -10,6 +10,11 @@
     <!-- Hero Section -->
     <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Breadcrumbs -->
+        <div class="mb-6">
+          <Breadcrumb theme="dark" />
+        </div>
+
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-4xl font-bold mb-2">Welcome back, {{ user.firstName }}</h1>
@@ -35,14 +40,24 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span class="ml-3 text-slate-600">Loading your dashboard...</span>
-      </div>
+      <LoadingState
+        variant="spinner"
+        size="md"
+        message="Loading your dashboard..."
+        :full-height="false"
+      />
     </div>
 
     <!-- Main Content -->
     <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- User Status Card -->
+      <div class="mb-8">
+        <UserStateCard
+          :user-state="isPremium ? 'premium' : 'free'"
+          :show-upgrade-action="!isPremium"
+        />
+      </div>
+
       <!-- Quick Actions -->
       <div class="mb-8">
         <h2 class="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
@@ -61,6 +76,7 @@
           </div>
           
           <div 
+            v-if="isPremium"
             @click="navigateTo('/documents')"
             class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-green-200"
           >
@@ -73,19 +89,24 @@
             </div>
           </div>
           
-          <!-- Premium Features Coming Soon -->
-          <div class="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg border-2 border-amber-200 opacity-75">
+          <!-- Premium Features -->
+          <div
+            @click="!isPremium && navigateTo('/pricing')"
+            class="relative bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg border-2 border-blue-200 transition-all duration-200"
+            :class="isPremium ? '' : 'cursor-pointer hover:shadow-xl hover:border-blue-300'"
+          >
             <div class="absolute top-4 right-4 z-10">
-              <div class="bg-amber-400 text-slate-900 font-bold text-xs px-3 py-1 rounded-full">
-                COMING SOON
+              <PremiumBadge v-if="isPremium" size="sm" />
+              <div v-else class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xs px-3 py-1 rounded-full">
+                PREMIUM
               </div>
             </div>
             <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Icon name="heroicons:clipboard-document-list" class="w-8 h-8 text-amber-600" />
+              <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Icon name="heroicons:clipboard-document-list" class="w-8 h-8 text-blue-600" />
               </div>
-              <h3 class="text-xl font-semibold text-slate-900 mb-2">Premium Features</h3>
-              <p class="text-slate-600">Advanced analysis and form generation launching soon</p>
+              <h3 class="text-xl font-semibold text-slate-900 mb-2">Advanced Form Generation</h3>
+              <p class="text-slate-600">{{ isPremium ? 'Generate VA forms with AI assistance' : 'Unlock AI-powered form generation' }}</p>
             </div>
           </div>
         </div>
@@ -96,7 +117,7 @@
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-slate-900">Recent Analysis</h2>
           <Button 
-            v-if="recentAnalysis.length > 0"
+            v-if="recentAnalysis.length > 0 && isPremium"
             @click="navigateTo('/documents')"
             variant="secondary"
             class="text-sm"
@@ -106,23 +127,23 @@
           </Button>
         </div>
         
-        <div v-if="recentAnalysis.length === 0" class="text-center py-12">
-          <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Icon name="heroicons:document-text" class="w-10 h-10 text-slate-400" />
-          </div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">No analysis yet</h3>
-          <p class="text-slate-600 mb-6">Upload your first VA decision letter to get started</p>
-          <Button 
-            @click="navigateTo('/analyze')"
-            variant="primary"
-            class="px-8 py-3"
-          >
-            <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />
-            Analyze Your First Decision Letter
-          </Button>
+        <div v-if="recentAnalysis.length === 0" class="py-12">
+          <EmptyState
+            variant="empty"
+            icon-name="heroicons:document-text"
+            title="No analysis yet"
+            description="Upload your first VA decision letter to get started"
+            :primary-action="{
+              label: 'Analyze Your First Decision Letter',
+              icon: 'heroicons:document-plus',
+              to: '/analyze',
+              variant: 'primary'
+            }"
+            footer-message="Get instant insights and personalized next steps"
+          />
         </div>
 
-        <div v-else class="space-y-4">
+        <div v-else-if="isPremium" class="space-y-4">
           <div 
             v-for="analysis in recentAnalysis" 
             :key="analysis.documentId"
@@ -144,33 +165,92 @@
             </div>
           </div>
         </div>
+        
+        <div v-else class="text-center py-12">
+          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Icon name="heroicons:lock-closed" class="w-10 h-10 text-blue-600" />
+          </div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Upgrade to Premium</h3>
+          <p class="text-slate-600 mb-6">View your analysis history and manage all your documents</p>
+          <Button 
+            @click="navigateTo('/pricing')"
+            variant="primary"
+            class="px-8 py-3"
+          >
+            <Icon name="heroicons:star" class="w-5 h-5 mr-2" />
+            Upgrade to Premium
+          </Button>
+        </div>
       </div>
 
-      <!-- Premium Features Coming Soon Banner -->
-      <div class="relative bg-gradient-to-r from-blue-50 to-amber-50 border-2 border-amber-200 rounded-xl p-6 mb-8">
-        <div class="absolute top-4 right-4">
-          <div class="bg-amber-400 text-slate-900 font-bold text-xs px-4 py-2 rounded-full">
-            COMING SOON
+      <!-- Premium Features Section -->
+      <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg p-8 border-2 border-blue-200 mb-8">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center">
+              <Icon name="heroicons:star" class="w-6 h-6 text-yellow-500 mr-2" />
+              Premium Features
+            </h2>
+            <p class="text-slate-600">Unlock advanced tools to maximize your VA benefits claim success</p>
           </div>
+          <PremiumBadge v-if="isPremium" size="md" />
+          <Button
+            v-else
+            @click="navigateTo('/pricing')"
+            variant="primary"
+            size="sm"
+          >
+            Upgrade Now
+          </Button>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="pr-32">
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Premium Features On The Way</h3>
-            <p class="text-slate-600 mb-4">We're building advanced features to help you maximize your VA benefits</p>
-            <div class="flex items-center space-x-6">
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Personalized Action Plans</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Evidence Recommendations</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:clock" class="w-4 h-4 mr-2 text-amber-600" />
-                <span class="text-sm text-slate-700">Appeal Timeline Tracking</span>
-              </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:folder" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Document Management</h3>
             </div>
+            <p class="text-sm text-slate-600">Organize, search, and manage all your decision letters</p>
+          </div>
+          
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Form Generation</h3>
+            </div>
+            <p class="text-sm text-slate-600">AI-powered VA form generation and auto-fill</p>
+          </div>
+          
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:chart-bar" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Advanced Analytics</h3>
+            </div>
+            <p class="text-sm text-slate-600">Track trends, success rates, and claim patterns</p>
+          </div>
+          
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Action Plans</h3>
+            </div>
+            <p class="text-sm text-slate-600">Personalized next steps and evidence recommendations</p>
+          </div>
+          
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:clock" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Timeline Tracking</h3>
+            </div>
+            <p class="text-sm text-slate-600">Track deadlines and appeal timelines</p>
+          </div>
+          
+          <div class="bg-white rounded-lg p-4 border border-blue-100">
+            <div class="flex items-center mb-2">
+              <Icon name="heroicons:shield-check" class="w-5 h-5 text-blue-600 mr-2" />
+              <h3 class="font-semibold text-slate-900">Priority Support</h3>
+            </div>
+            <p class="text-sm text-slate-600">Get help when you need it most</p>
           </div>
         </div>
       </div>
@@ -239,11 +319,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Navigation from '~/components/organisms/Navigation.vue'
+import PremiumBadge from '~/components/atoms/PremiumBadge.vue'
+import EmptyState from '~/components/molecules/EmptyState.vue'
+import LoadingState from '~/components/molecules/LoadingState.vue'
+import UserStateCard from '~/components/molecules/UserStateCard.vue'
+import Breadcrumb from '~/components/molecules/Breadcrumb.vue'
 
 // Head
 useHead({
@@ -255,6 +340,9 @@ useHead({
 
 const router = useRouter()
 
+// Use subscription composable
+const { isPremium: subscriptionPremium, fetchSubscriptionStatus } = useSubscription()
+
 // State
 const loading = ref(true)
 const user = reactive({
@@ -265,6 +353,9 @@ const user = reactive({
   serviceBranch: '',
   isPremium: false
 })
+
+// Computed property for premium status
+const isPremium = computed(() => subscriptionPremium.value || user.isPremium)
 
 const recentAnalysis = ref([])
 const analytics = reactive({
@@ -296,12 +387,22 @@ onMounted(async () => {
     await Promise.all([
       loadUserProfile(),
       loadRecentAnalysis(),
-      loadAnalytics()
+      loadAnalytics(),
+      fetchSubscriptionStatus()
     ])
   } catch (error) {
     console.error('Failed to load dashboard:', error)
-    localStorage.removeItem('auth_token')
-    router.push('/auth/login')
+    // CRITICAL: Don't redirect logged-in users to login on errors
+    // They have a valid session, so they should stay on the page with navigation
+    // Only clear token if it's actually an auth error (401)
+    const { isAuthenticated } = useAuth()
+    if (!isAuthenticated()) {
+      // Token expired or missing - redirect to login
+      router.push('/auth/login')
+    } else {
+      // User has valid token - show error but keep them on page with navigation
+      console.log('⚠️ Dashboard load failed, but user has valid session - keeping on page')
+    }
   } finally {
     loading.value = false
   }
@@ -329,6 +430,11 @@ const loadUserProfile = async () => {
 const loadRecentAnalysis = async () => {
   try {
     const { apiCall } = useApi()
+    // Only load if premium (documents endpoint is premium-only)
+    if (!isPremium.value) {
+      recentAnalysis.value = []
+      return
+    }
     const response = await apiCall('/api/documents/analyses?limit=5')
 
     if (response.ok) {
@@ -349,6 +455,10 @@ const loadRecentAnalysis = async () => {
 const loadAnalytics = async () => {
   try {
     const { apiCall } = useApi()
+    // Only load if premium (analytics endpoint is premium-only)
+    if (!isPremium.value) {
+      return
+    }
     const response = await apiCall('/api/documents/analytics')
 
     if (response.ok) {
