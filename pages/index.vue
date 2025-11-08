@@ -1,37 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-    <!-- Header Navigation -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 py-4">
-        <div class="flex justify-between items-center">
-          <Logo size="md" />
-          
-          <div class="flex items-center space-x-2">
-            <Button 
-              @click="navigateTo('/pricing')"
-              variant="secondary"
-            >
-              <Icon name="heroicons:star" class="w-4 h-4 mr-2" />
-              Pricing
-            </Button>
-            <Button 
-              @click="navigateTo('/auth/login')"
-              variant="secondary"
-            >
-              <Icon name="heroicons:arrow-right-on-rectangle" class="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-            <Button 
-              @click="navigateTo('/auth/signup')"
-              variant="primary"
-            >
-              <Icon name="heroicons:user-plus" class="w-4 h-4 mr-2" />
-              Get Started
-            </Button>
-          </div>
-        </div>
-      </div>
-    </header>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <Navigation />
 
     <div class="max-w-6xl mx-auto px-4 py-16">
       <!-- Hero Section -->
@@ -43,7 +13,7 @@
         <!-- Main Headline - Clear & Benefit-Focused -->
         <h1 class="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
           Understand Your VA Decision Letter<br/>
-          <span class="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">in Plain English</span>
+          <span class="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">in Plain English</span>
         </h1>
 
         <!-- Value Prop -->
@@ -66,17 +36,16 @@
 
         <!-- Primary CTA -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-          <Button
-            @click="navigateTo('/analyze')"
-            variant="primary"
-            class="text-lg px-8 py-4"
+          <NuxtLink
+            to="/analyze"
+            class="inline-flex items-center justify-center px-8 py-4 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Icon name="heroicons:document-text" class="w-5 h-5 mr-2" />
             Analyze Decision Letter Free
-          </Button>
+          </NuxtLink>
           <button
             @click="scrollToHowItWorks"
-            class="text-blue-800 font-medium hover:text-blue-900 transition-colors"
+            class="text-slate-600 font-medium hover:text-blue-700 transition-colors"
           >
             See How It Works →
           </button>
@@ -135,17 +104,17 @@
           <!-- Decision Analysis Card -->
           <NuxtLink
             to="/analyze"
-            class="group block p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-l-4 border-blue-800"
+            class="group block p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-l-4 border-blue-600"
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center mb-3">
-                  <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center mr-3">
+                  <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
                     <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                     </svg>
                   </div>
-                  <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-800">
+                  <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-700">
                     VA Decision Letter Analysis
                   </h3>
                 </div>
@@ -190,61 +159,60 @@
 
         <!-- CTA After Tools -->
         <div class="mt-8 text-center">
-          <Button
-            @click="navigateTo('/analyze')"
-            variant="primary"
-            class="text-lg px-8 py-3"
+          <NuxtLink
+            to="/analyze"
+            class="inline-flex items-center justify-center px-8 py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Icon name="heroicons:arrow-right" class="w-5 h-5 mr-2" />
-            Get Started Free
-          </Button>
+            Analyze Your Decision Letter
+          </NuxtLink>
         </div>
       </div>
 
       <!-- Veteran Connection -->
-      <div class="mt-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-8 text-white">
+      <div class="mt-16 bg-white border-2 border-blue-100 rounded-2xl p-8">
         <div class="max-w-4xl mx-auto text-center">
           <div class="flex items-center justify-center mb-6">
-            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
             </div>
-            <h2 class="text-3xl font-bold">Built by Veterans, For Veterans</h2>
+            <h2 class="text-3xl font-bold text-slate-900">Built by Veterans, For Veterans</h2>
           </div>
-          <p class="text-xl text-blue-100 mb-4 leading-relaxed">
+          <p class="text-xl text-slate-700 mb-4 leading-relaxed">
             We've been in your shoes—staring at confusing VA decision letters, wondering what went wrong and what to do next.
           </p>
-          <p class="text-lg text-blue-50 mb-6 leading-relaxed">
+          <p class="text-lg text-slate-600 mb-6 leading-relaxed">
             That's why we built ClaimReady. As veterans who've navigated the VA claims process ourselves, we created this tool to give you the clarity and confidence you deserve. Every veteran should understand their decision letter and know their next steps—without hiring expensive lawyers or waiting weeks for help.
           </p>
           <div class="grid md:grid-cols-3 gap-6 text-left">
-            <div class="bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="bg-blue-50 rounded-lg p-4">
               <div class="flex items-center mb-2">
-                <svg class="w-5 h-5 text-amber-400 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                <h3 class="font-semibold">Veteran-Led</h3>
+                <h3 class="font-semibold text-slate-900">Veteran-Led</h3>
               </div>
-              <p class="text-sm text-blue-100">Created by veterans who understand the VA system</p>
+              <p class="text-sm text-slate-600">Created by veterans who understand the VA system</p>
             </div>
-            <div class="bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="bg-blue-50 rounded-lg p-4">
               <div class="flex items-center mb-2">
-                <svg class="w-5 h-5 text-amber-400 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                <h3 class="font-semibold">Battle-Tested</h3>
+                <h3 class="font-semibold text-slate-900">Battle-Tested</h3>
               </div>
-              <p class="text-sm text-blue-100">Proven to help veterans understand their decisions</p>
+              <p class="text-sm text-slate-600">Proven to help veterans understand their decisions</p>
             </div>
-            <div class="bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="bg-blue-50 rounded-lg p-4">
               <div class="flex items-center mb-2">
-                <svg class="w-5 h-5 text-amber-400 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                <h3 class="font-semibold">Always Free</h3>
+                <h3 class="font-semibold text-slate-900">Always Free</h3>
               </div>
-              <p class="text-sm text-blue-100">No cost, no strings attached - just helping fellow veterans</p>
+              <p class="text-sm text-slate-600">No cost, no strings attached - just helping fellow veterans</p>
             </div>
           </div>
         </div>
@@ -287,14 +255,13 @@
 
         <!-- CTA After How It Works -->
         <div class="mt-12 text-center">
-          <Button
-            @click="navigateTo('/analyze')"
-            variant="primary"
-            class="text-lg px-8 py-4"
+          <NuxtLink
+            to="/analyze"
+            class="inline-flex items-center justify-center px-8 py-4 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Icon name="heroicons:document-arrow-up" class="w-5 h-5 mr-2" />
             Upload Your Decision Letter
-          </Button>
+          </NuxtLink>
           <p class="mt-3 text-sm text-gray-600">
             Free analysis • No account required
           </p>
@@ -348,28 +315,27 @@
       </div>
 
       <!-- Final CTA Before Footer -->
-      <div class="mt-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-12 text-center text-white">
+      <div class="mt-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-12 text-center text-white">
         <h2 class="text-3xl font-bold mb-4">Ready to Understand Your Decision Letter?</h2>
         <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
           Get started in 90 seconds. No account needed, completely free.
         </p>
-        <Button
-          @click="navigateTo('/analyze')"
-          variant="primary"
-          class="text-lg px-10 py-4 !bg-white !text-blue-900 hover:!bg-gray-100"
+        <NuxtLink
+          to="/analyze"
+          class="inline-flex items-center justify-center px-10 py-4 bg-white text-blue-900 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           <Icon name="heroicons:rocket-launch" class="w-5 h-5 mr-2" />
           Analyze Your Letter Now
-        </Button>
+        </NuxtLink>
       </div>
 
       <!-- Footer Note -->
       <div class="mt-16 text-center">
         <div class="inline-flex items-center text-sm text-gray-600 bg-white rounded-full px-6 py-3 shadow-sm border">
-          <svg class="w-4 h-4 mr-2 text-blue-800" fill="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-          <span class="font-medium text-blue-800">Proudly serving our fellow veterans</span>
+          <span class="font-medium text-blue-600">Proudly serving our fellow veterans</span>
         </div>
       </div>
     </div>
@@ -380,8 +346,7 @@
 </template>
 
 <script setup lang="ts">
-import Button from '~/components/atoms/Button.vue'
-import Logo from '~/components/atoms/Logo.vue'
+import Navigation from '~/components/organisms/Navigation.vue'
 import FaqItem from '~/components/molecules/FaqItem.vue'
 import Footer from '~/components/organisms/Footer.vue'
 import { useAnalytics } from '~/composables/useAnalytics'

@@ -1,71 +1,86 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
     <!-- Navigation -->
-    <Navigation
-      :show-new-analysis="true"
-      :show-dashboard="true"
-      :show-user-menu="true"
-    />
+    <Navigation />
 
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 class="text-4xl font-bold mb-2">Your Documents</h1>
-        <p class="text-xl text-blue-100">View and manage all your VA decision letter analyses</p>
-      </div>
-    </div>
+    <!-- Premium Gate -->
+    <PremiumFeature
+      feature-name="Document Management"
+      description="Access and manage all your VA decision letter analyses in one place."
+    >
+      <!-- Header -->
+      <div class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <!-- Breadcrumbs -->
+          <div class="mb-4">
+            <Breadcrumb />
+          </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span class="ml-3 text-slate-600">Loading your documents...</span>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Empty State -->
-      <div v-if="documents.length === 0 && !loading" class="text-center py-16">
-        <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Icon name="heroicons:document-text" class="w-12 h-12 text-slate-400" />
+          <div>
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">Your Documents</h1>
+            <p class="text-lg text-slate-600">View and manage all your VA decision letter analyses</p>
+          </div>
         </div>
-        <h2 class="text-2xl font-bold text-slate-900 mb-2">No documents yet</h2>
-        <p class="text-slate-600 mb-8">Upload your first VA decision letter to get started</p>
-        <Button
-          @click="navigateTo('/analyze')"
-          variant="primary"
-          class="px-8 py-4 text-lg"
-        >
-          <Icon name="heroicons:document-plus" class="w-6 h-6 mr-2" />
-          Analyze Your First Document
-        </Button>
       </div>
 
-      <!-- Documents Grid -->
-      <div v-else>
-        <!-- Premium Upgrade Prompt for Bulk Features -->
-        <UpgradePrompt
-          v-if="!isPremium && documents.length >= 3"
-          title="Unlock Bulk Document Management"
-          message="Upgrade to Premium to export all your documents at once, get advanced analytics, and access priority support."
-          cta-text="Upgrade Now - $19/month"
-          variant="warning"
-          :dismissible="true"
+      <!-- Loading State -->
+      <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <LoadingState
+          variant="spinner"
+          size="md"
+          message="Loading your documents..."
+          :full-height="false"
         />
+      </div>
 
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-slate-900">
-            All Documents ({{ pagination.total }})
-          </h2>
-          <Button
-            @click="navigateTo('/analyze')"
-            variant="primary"
-          >
-            <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />
-            Analyze New Document
-          </Button>
+      <!-- Main Content -->
+      <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Empty State -->
+        <div v-if="documents.length === 0 && !loading" class="py-16">
+          <EmptyState
+            variant="empty"
+            icon-name="heroicons:document-text"
+            title="No documents yet"
+            description="Upload your first VA decision letter to get started"
+            :primary-action="{
+              label: 'Analyze Your First Document',
+              icon: 'heroicons:document-plus',
+              to: '/analyze',
+              variant: 'primary'
+            }"
+            footer-message="Your documents are securely stored and accessible anytime"
+          />
         </div>
+
+        <!-- Documents Grid -->
+        <div v-else>
+          <!-- Premium Features Banner -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900 mb-1 flex items-center">
+                  <Icon name="heroicons:star" class="w-5 h-5 text-yellow-500 mr-2" />
+                  Premium Document Management
+                </h3>
+                <p class="text-sm text-slate-600">
+                  Export documents, advanced filtering, bulk operations, and unlimited storage
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-slate-900">
+              All Documents ({{ pagination.total }})
+            </h2>
+            <Button
+              @click="navigateTo('/analyze')"
+              variant="primary"
+            >
+              <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />
+              Analyze New Document
+            </Button>
+          </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
@@ -195,8 +210,9 @@
             <Icon name="heroicons:chevron-right" class="w-5 h-5" />
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </PremiumFeature>
 
     <!-- Delete Confirmation Modal -->
     <Modal
@@ -225,7 +241,10 @@ import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Navigation from '~/components/organisms/Navigation.vue'
 import Modal from '~/components/molecules/Modal.vue'
-import UpgradePrompt from '~/components/molecules/UpgradePrompt.vue'
+import PremiumFeature from '~/components/organisms/PremiumFeature.vue'
+import EmptyState from '~/components/molecules/EmptyState.vue'
+import LoadingState from '~/components/molecules/LoadingState.vue'
+import Breadcrumb from '~/components/molecules/Breadcrumb.vue'
 
 useHead({
   title: 'Your Documents - ClaimReady',
@@ -234,10 +253,15 @@ useHead({
   ]
 })
 
+// Protect this page with premium middleware
+definePageMeta({
+  middleware: 'premium'
+})
+
 const router = useRouter()
 const toast = useToast()
-// Billing composable for premium features
-const { isPremium, fetchSubscription } = useBilling()
+// Use subscription composable for premium features
+const { isPremium, fetchSubscriptionStatus } = useSubscription()
 
 const loading = ref(true)
 const documents = ref<any[]>([])
@@ -272,7 +296,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       loadDocuments(),
-      fetchSubscription()
+      fetchSubscriptionStatus()
     ])
   } catch (error) {
     console.error('Failed to load documents:', error)
