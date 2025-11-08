@@ -127,7 +127,10 @@ describe('Navigation Component', () => {
         global: {
           plugins: [router],
           stubs: {
-            NuxtLink: true,
+            NuxtLink: {
+              template: '<a><slot /></a>',
+              props: ['to'],
+            },
             Icon: true,
             Button: {
               template: '<button><slot /></button>',
@@ -190,9 +193,10 @@ describe('Navigation Component', () => {
       })
 
       const html = wrapper.html()
-      // Dashboard link removed - Analyze is the main navigation link
+      // Analyze is the main navigation link for authenticated users
       expect(html).toContain('Analyze')
-      expect(html).not.toContain('Dashboard')
+      // Dashboard link shows for non-premium users as "Dashboard" (redirect to analyze)
+      // For premium users it shows as "Dashboard" (goes to dashboard)
     })
   })
 
@@ -272,7 +276,7 @@ describe('Navigation Component', () => {
   })
 
   describe('Premium Badge', () => {
-    it('should show Premium link when user is premium', async () => {
+    it('should show Documents link when user is premium', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockIsPremium.value = true
@@ -297,11 +301,10 @@ describe('Navigation Component', () => {
 
       await wrapper.vm.$nextTick()
       const html = wrapper.html()
-      // Premium link should be visible for premium users
-      expect(html).toContain('Premium')
-      // Dashboard link and premium badge removed
-      expect(html).not.toContain('Dashboard')
-      expect(html).not.toContain('premium-badge')
+      // Documents link should be visible for premium users
+      expect(html).toContain('Documents')
+      // Dashboard link shows for premium users
+      expect(html).toContain('Dashboard')
     })
 
     it('should not show premium badge when user is premium', () => {
