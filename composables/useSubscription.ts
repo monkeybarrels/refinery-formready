@@ -124,11 +124,19 @@ export const useSubscription = () => {
     return isPremium.value
   }
   
+  /**
+   * Refresh subscription status immediately from backend
+   * Useful after role updates or when premium status might have changed
+   */
+  const refreshSubscriptionStatus = async () => {
+    return fetchSubscriptionStatus()
+  }
+  
   // Load cached status on mount
   onMounted(() => {
     loadCachedStatus()
-    // Optionally fetch fresh status on mount
-    // fetchSubscriptionStatus()
+    // Fetch fresh status on mount to ensure we have latest premium status
+    fetchSubscriptionStatus()
   })
   
   return {
@@ -140,6 +148,7 @@ export const useSubscription = () => {
     
     // Methods
     fetchSubscriptionStatus,
+    refreshSubscriptionStatus, // Alias for immediate refresh
     checkPremium,
     loadCachedStatus,
   }

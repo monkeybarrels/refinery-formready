@@ -139,6 +139,22 @@ export const useAuth = () => {
       }
 
       const userData = await response.json()
+      
+      // Update localStorage with synced premium status from Authorizer
+      if (userData.user) {
+        const currentUserData = JSON.parse(localStorage.getItem('user_data') || '{}')
+        const updatedUserData = {
+          ...currentUserData,
+          ...userData.user,
+          isPremium: userData.user.isPremium || false, // Ensure premium status is synced
+        }
+        localStorage.setItem('user_data', JSON.stringify(updatedUserData))
+        
+        // Update global auth state
+        const { setUser } = useGlobalAuth()
+        setUser(updatedUserData)
+      }
+      
       return userData
     } catch (error) {
       // Network error - don't clear session, just return null
