@@ -113,6 +113,7 @@ import Breadcrumb from "~/components/molecules/Breadcrumb.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
+import { useApi } from "~/composables/useApi";
 
 const toast = useToast()
 const { handleError } = useAnalysisErrors()
@@ -126,7 +127,8 @@ const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting,
 const analysisStartTime = ref<number | null>(null)
 
 // Get authentication and subscription state
-const { isAuthenticated } = useAuth()
+const { isAuthenticated: isAuthenticatedFn } = useAuth()
+const isAuthenticated = computed(() => isAuthenticatedFn())
 const { isPremium } = useSubscription()
 const FREE_ANALYSIS_LIMIT = 3
 const freeAnalysisCount = ref(0)
@@ -191,9 +193,6 @@ const analyzeDocument = async () => {
     return
   }
 
-  // For free tier authenticated users, could add analysis count check here in future
-  // For now, authenticated free users get unlimited basic analysis
-
   analyzing.value = true
   currentStep.value = 1
   analysisStartTime.value = Date.now()
@@ -201,34 +200,65 @@ const analyzeDocument = async () => {
   try {
     const config = useRuntimeConfig()
     const apiUrl = config.public.apiUrl || 'http://localhost:3001'
+    const { apiCall } = useApi()
+    const userId = isAuthenticated.value ? 'authenticated' : 'anonymous'
 
     console.log('Starting analysis for file:', selectedFile.value.name)
+    console.log('User authenticated:', isAuthenticated.value)
 
     // Track analysis started
-    trackAnalysis.started('anonymous', undefined)
+    trackAnalysis.started(userId, undefined)
 
-    // Step 1: Upload to S3
+    // Step 1: Get presigned URL (authenticated or anonymous)
     console.log('Step 1: Getting presigned URL...')
-    const presignedResponse = await fetch(
-      `${apiUrl}/api/storage/upload/presigned/anonymous`,
-      {
+    let presignedData: any
+    let fileId: string
+
+    if (isAuthenticated.value) {
+      // Use authenticated endpoint - returns fileId (UUID) and associates with user
+      const presignedResponse = await apiCall('/api/storage/upload/presigned', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileName: selectedFile.value.name,
           contentType: selectedFile.value.type,
-          path: 'anonymous'
+          path: 'documents'
         })
-      }
-    )
+      })
 
-    if (!presignedResponse.ok) {
-      const errorData = await presignedResponse.json().catch(() => ({}))
-      throw { response: presignedResponse, message: errorData.message || 'Presigned URL failed' }
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json().catch(() => ({}))
+        throw { response: presignedResponse, message: errorData.message || 'Presigned URL failed' }
+      }
+
+      presignedData = await presignedResponse.json()
+      fileId = presignedData.fileId // This is a UUID, not anonymous-xxx
+      console.log('Step 1 complete: Got authenticated presigned URL, fileId:', fileId)
+    } else {
+      // Use anonymous endpoint for non-authenticated users
+      const presignedResponse = await fetch(
+        `${apiUrl}/api/storage/upload/presigned/anonymous`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: selectedFile.value.name,
+            contentType: selectedFile.value.type,
+            path: 'anonymous'
+          })
+        }
+      )
+
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json().catch(() => ({}))
+        throw { response: presignedResponse, message: errorData.message || 'Presigned URL failed' }
+      }
+
+      presignedData = await presignedResponse.json()
+      fileId = presignedData.fileId // This is also a UUID from presigned endpoint
+      console.log('Step 1 complete: Got anonymous presigned URL, fileId:', fileId)
     }
 
-    const { uploadUrl, s3Key } = await presignedResponse.json()
-    console.log('Step 1 complete: Got presigned URL')
+    const { uploadUrl } = presignedData
 
     // Step 2: Upload to S3
     console.log('Step 2: Uploading to S3...')
@@ -247,12 +277,10 @@ const analyzeDocument = async () => {
     // Track file upload completion
     if (selectedFile.value) {
       const uploadTime = Date.now() - analysisStartTime.value!
-      trackFileUpload.completed('anonymous', selectedFile.value.type, selectedFile.value.size, uploadTime)
+      trackFileUpload.completed(userId, selectedFile.value.type, selectedFile.value.size, uploadTime)
     }
 
     // Construct full S3 URL from the upload URL
-    // The uploadUrl is a presigned URL like: https://endpoint/bucket/key?signature
-    // We need to extract just the base URL (without query params)
     const s3Url = new URL(uploadUrl)
     const storageUrl = `${s3Url.protocol}//${s3Url.host}${s3Url.pathname}`
 
@@ -265,54 +293,95 @@ const analyzeDocument = async () => {
     const timeoutId = setTimeout(() => controller.abort(), 90000)
 
     try {
-      const analyzeResponse = await fetch(
-        `${apiUrl}/api/analyze/anonymous`,
-        {
+      let analyzeResponse: Response
+      let documentId: string
+
+      if (isAuthenticated.value) {
+        // Use authenticated endpoint - properly associates document with user
+        console.log('Using authenticated analyze endpoint with fileId:', fileId)
+        analyzeResponse = await apiCall('/api/va-knowledge/extract-from-s3', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storageUrl }),
+          body: JSON.stringify({
+            documentId: fileId, // Use the UUID fileId from presigned upload
+            storageUrl
+          }),
           signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!analyzeResponse.ok) {
+          const errorData = await analyzeResponse.json().catch(() => ({}))
+          throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
         }
-      )
 
-      clearTimeout(timeoutId)
+        const responseData = await analyzeResponse.json()
+        console.log('Analyze response data:', responseData)
 
-      console.log('Got analyze response, status:', analyzeResponse.status)
+        // For authenticated users, use fileId as documentId and redirect to analysis page
+        documentId = fileId
 
-      if (!analyzeResponse.ok) {
-        const errorData = await analyzeResponse.json().catch(() => ({}))
-        throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
+        console.log('Step 3 complete: Document processing started, documentId:', documentId)
+
+        // Track analysis completion
+        const totalTime = Date.now() - analysisStartTime.value!
+        trackAnalysis.completed(userId, totalTime, documentId)
+
+        // Show success toast
+        toast.success('Analysis Started!', 'Your document is being processed...')
+
+        // Redirect to analysis page (will show loading state while processing)
+        setTimeout(() => {
+          navigateTo(`/analysis/${documentId}`)
+        }, 500)
+      } else {
+        // Anonymous flow - use session-based results
+        analyzeResponse = await fetch(
+          `${apiUrl}/api/analyze/anonymous`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storageUrl }),
+            signal: controller.signal
+          }
+        )
+
+        clearTimeout(timeoutId)
+
+        if (!analyzeResponse.ok) {
+          const errorData = await analyzeResponse.json().catch(() => ({}))
+          throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
+        }
+
+        const responseData = await analyzeResponse.json()
+        console.log('Analyze response data:', responseData)
+
+        const newSessionId = responseData.sessionId
+        if (!newSessionId) {
+          throw new Error('No sessionId in response')
+        }
+
+        console.log('Step 3 complete: Got session ID', newSessionId)
+        sessionId.value = newSessionId
+
+        // Increment free analysis count for anonymous users only
+        if (!isPremium.value) {
+          freeAnalysisCount.value += 1
+          localStorage.setItem('free_analysis_count', freeAnalysisCount.value.toString())
+        }
+
+        // Track analysis completion
+        const totalTime = Date.now() - analysisStartTime.value!
+        trackAnalysis.completed(userId, totalTime, newSessionId)
+
+        // Show success toast
+        toast.success('Analysis Complete!', 'Redirecting to your results...')
+
+        // Redirect to results page
+        setTimeout(() => {
+          navigateTo(`/results/${newSessionId}`)
+        }, 500)
       }
-
-      const responseData = await analyzeResponse.json()
-      console.log('Analyze response data:', responseData)
-
-      const newSessionId = responseData.sessionId
-      if (!newSessionId) {
-        throw new Error('No sessionId in response')
-      }
-
-      console.log('Step 3 complete: Got session ID', newSessionId)
-      sessionId.value = newSessionId
-
-      // Increment free analysis count for anonymous users only
-      // Premium users bypass this limit
-      if (!isAuthenticated.value && !isPremium.value) {
-        freeAnalysisCount.value += 1
-        localStorage.setItem('free_analysis_count', freeAnalysisCount.value.toString())
-      }
-
-      // Track analysis completion
-      const totalTime = Date.now() - analysisStartTime.value!
-      trackAnalysis.completed('anonymous', totalTime, newSessionId)
-
-      // Show success toast
-      toast.success('Analysis Complete!', 'Redirecting to your results...')
-
-      // Redirect to results
-      setTimeout(() => {
-        navigateTo(`/results/${newSessionId}`)
-      }, 500)
     } catch (fetchError: any) {
       clearTimeout(timeoutId)
 

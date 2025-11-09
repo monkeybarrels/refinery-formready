@@ -56,22 +56,15 @@
         :is-authenticated="true"
       />
 
-      <!-- Premium Features Coming Soon -->
-      <div class="mt-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-2xl p-12 text-center text-white">
-        <div class="inline-block bg-amber-400 text-slate-900 font-bold text-xs px-4 py-2 rounded-full mb-6">
-          COMING SOON
-        </div>
-        <h3 class="text-3xl font-bold mb-4">
-          Premium Features On The Way
-        </h3>
-        <p class="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-          We're building personalized action plans, evidence checklists, form generation, and more. Sign up for our waitlist to be notified when they launch.
-        </p>
-        <div class="flex items-center justify-center space-x-4">
-          <Icon name="heroicons:clock" class="w-6 h-6 text-blue-200" />
-          <span class="text-blue-100">Premium features launching soon</span>
-        </div>
-      </div>
+      <!-- Action Items Section (Premium + Feature Flag) -->
+      <PremiumFeature feature-name="Action Items">
+        <FeatureFlag
+          flag-name="action_items_results_integration"
+          :show-fallback="false"
+        >
+          <ActionItemsSection :document-id="documentId" />
+        </FeatureFlag>
+      </PremiumFeature>
     </div>
 
     <!-- Error State -->
@@ -93,6 +86,9 @@ import Button from "~/components/atoms/Button.vue";
 import Navigation from "~/components/organisms/Navigation.vue";
 import RatingHeroCard from "~/components/organisms/RatingHeroCard.vue";
 import ConditionsGridEnhanced from "~/components/organisms/ConditionsGridEnhanced.vue";
+import PremiumFeature from "~/components/organisms/PremiumFeature.vue";
+import FeatureFlag from "~/components/organisms/FeatureFlag.vue";
+import ActionItemsSection from "~/components/organisms/ActionItemsSection.vue";
 
 const route = useRoute()
 const router = useRouter()
@@ -162,29 +158,76 @@ const loadDocument = async () => {
 }
 
 const downloadPDF = async () => {
+  // Ensure we're on the client side
+  if (import.meta.server) {
+    console.warn('PDF download is only available on the client side')
+    return
+  }
+
   const config = useRuntimeConfig()
   const apiUrl = config.public.apiUrl || 'http://localhost:3001'
   const token = localStorage.getItem('auth_token')
+  const { isPremium } = useSubscription()
+  const { error: showError, success } = useToast()
 
   try {
-    // Fetch the presigned download URL from the API
-    const response = await fetch(`${apiUrl}/api/documents/${documentId}/pdf`, {
+    // Always try analysis PDF - never fall back to original document
+    console.log('🔄 Attempting to download analysis PDF with action items...')
+    const response = await fetch(`${apiUrl}/api/documents/${documentId}/analysis-pdf`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
 
-    if (!response.ok) {
-      console.error('Failed to get PDF download URL:', await response.text())
+    if (response.ok) {
+      // Create blob from PDF buffer
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = window.document.createElement('a')
+      a.href = url
+      a.download = `va-analysis-${documentId}.pdf`
+      window.document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      window.document.body.removeChild(a)
+      success('Analysis PDF downloaded successfully')
       return
+    } else {
+      // Get error details
+      const errorText = await response.text()
+      let errorMessage = 'Failed to download analysis PDF'
+      
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMessage = errorData.message || errorData.error?.message || errorMessage
+      } catch (e) {
+        // If parsing fails, use the raw text
+        errorMessage = errorText || errorMessage
+      }
+
+      console.error('Analysis PDF failed:', response.status, errorMessage)
+      
+      // Show specific error messages based on status code
+      if (response.status === 403) {
+        showError(
+          'Analysis PDF requires premium subscription',
+          'Upgrade to premium to download analysis PDF with action items'
+        )
+      } else if (response.status === 404) {
+        showError(
+          'Analysis not found',
+          'Please wait for the analysis to complete before downloading the PDF'
+        )
+      } else {
+        showError(
+          'Failed to generate analysis PDF',
+          errorMessage
+        )
+      }
     }
-
-    const data = await response.json()
-
-    // Open the presigned S3 URL in a new tab
-    window.open(data.downloadUrl, '_blank')
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error downloading PDF:', error)
+    showError('Failed to download PDF', error.message || 'An unexpected error occurred')
   }
 }
 
