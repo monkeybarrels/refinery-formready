@@ -357,31 +357,50 @@ const route = useRoute()
 // CRITICAL: Redirect logged-in users away from landing page
 // They should go to dashboard (premium) or analyze (free), never see landing page
 onMounted(async () => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, validateSession } = useAuth()
   const { isPremium } = useSubscription()
   
-  // Check if user is authenticated
+  // Check if user is authenticated - validate with backend to ensure token is valid
   if (isAuthenticated()) {
-    // Fetch subscription status to determine redirect
+    // Validate session with backend to ensure token is actually valid
+    // This prevents redirects based on stale/invalid tokens
     try {
-      const { fetchSubscriptionStatus } = useSubscription()
-      await fetchSubscriptionStatus()
+      const userData = await validateSession()
       
-      // Redirect premium users to dashboard, free users to analyze
-      if (isPremium.value) {
-        console.log('✅ Logged-in premium user, redirecting to dashboard')
-        await navigateTo('/dashboard')
-        return
+      // Only redirect if session is actually valid
+      if (userData) {
+        // Fetch subscription status to determine redirect
+        try {
+          const { fetchSubscriptionStatus } = useSubscription()
+          await fetchSubscriptionStatus()
+          
+          // Redirect premium users to dashboard, free users to analyze
+          if (isPremium.value) {
+            console.log('✅ Logged-in premium user, redirecting to dashboard')
+            await navigateTo('/dashboard')
+            return
+          } else {
+            console.log('✅ Logged-in free user, redirecting to analyze')
+            await navigateTo('/analyze')
+            return
+          }
+        } catch (error) {
+          // If subscription check fails, default to analyze page
+          console.log('⚠️ Subscription check failed, redirecting to analyze')
+          await navigateTo('/analyze')
+          return
+        }
       } else {
-        console.log('✅ Logged-in free user, redirecting to analyze')
-        await navigateTo('/analyze')
-        return
+        // Token exists but is invalid - clear it and stay on landing page
+        console.log('⚠️ Invalid token detected, clearing session and staying on landing page')
+        const { clearSession } = useAuth()
+        clearSession()
       }
     } catch (error) {
-      // If subscription check fails, default to analyze page
-      console.log('⚠️ Subscription check failed, redirecting to analyze')
-      await navigateTo('/analyze')
-      return
+      // Validation failed - clear session and stay on landing page
+      console.log('⚠️ Session validation failed, clearing session and staying on landing page')
+      const { clearSession } = useAuth()
+      clearSession()
     }
   }
   

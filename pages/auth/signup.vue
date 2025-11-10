@@ -230,6 +230,7 @@ useHead({
 })
 
 const router = useRouter()
+const { login } = useAuth()
 
 // Form state
 const form = reactive({
@@ -260,19 +261,21 @@ const handleSignup = async () => {
 
     const result = await response.json()
 
-    if (result.success) {
-      // Store JWT token for API authentication
-      localStorage.setItem('auth_token', result.accessToken)
-      
-      // Store user data for display
-      localStorage.setItem('user_data', JSON.stringify({
+    if (result.success && result.accessToken) {
+      // Prepare user data
+      const userData = {
         userId: result.userId,
-        email: form.email,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        serviceBranch: form.serviceBranch,
+        email: result.email || form.email,
+        firstName: result.firstName || form.firstName,
+        lastName: result.lastName || form.lastName,
+        serviceBranch: result.serviceBranch || form.serviceBranch,
         isPremium: result.isPremium || false
-      }))
+      }
+
+      // Store token and session using useAuth composable (with userData)
+      // This sets both auth_token AND token_expiry, which is required for isAuthenticated() to work
+      const expiresIn = result.expiresIn || 86400 // Default 24 hours
+      login(result.accessToken, expiresIn, userData)
 
       // Redirect to dashboard
       await router.push('/dashboard')
