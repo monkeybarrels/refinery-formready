@@ -2,12 +2,18 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 
 // Create mocks that will be shared
 const mockApiCall = vi.fn()
+const mockIsAuthenticated = vi.fn(() => true) // Default to authenticated for most tests
 
 // Override the global mocks with our test-specific ones
 ;(global as any).useApi = vi.fn(() => ({
   apiCall: mockApiCall,
   getApiUrl: vi.fn(),
   getFullApiUrl: vi.fn(),
+}))
+
+// Mock useAuth
+;(global as any).useAuth = vi.fn(() => ({
+  isAuthenticated: mockIsAuthenticated,
 }))
 
 // Mock Vue's onMounted
@@ -32,6 +38,13 @@ describe('useSubscription', () => {
     vi.clearAllMocks()
     // Reset mock return values
     mockApiCall.mockReset()
+    // Default to authenticated for most tests
+    mockIsAuthenticated.mockReturnValue(true)
+    // Default API response for onMounted calls
+    mockApiCall.mockResolvedValue({
+      ok: true,
+      json: async () => ({ user: { isPremium: false } }),
+    })
   })
 
   afterEach(() => {
@@ -137,6 +150,9 @@ describe('useSubscription', () => {
     })
 
     it('should handle API errors gracefully', async () => {
+      // Ensure user is authenticated for this test
+      mockIsAuthenticated.mockReturnValue(true)
+      
       mockApiCall.mockResolvedValue({
         ok: false,
         status: 500,
@@ -149,6 +165,9 @@ describe('useSubscription', () => {
     })
 
     it('should use cached status on error', async () => {
+      // Ensure user is authenticated for this test
+      mockIsAuthenticated.mockReturnValue(true)
+      
       localStorage.setItem('subscriptionStatus', 'premium')
 
       mockApiCall.mockResolvedValue({
@@ -169,6 +188,9 @@ describe('useSubscription', () => {
     })
 
     it('should update loading state during fetch', async () => {
+      // Ensure user is authenticated for this test
+      mockIsAuthenticated.mockReturnValue(true)
+      
       let resolvePromise: (value: any) => void
       const promise = new Promise((resolve) => {
         resolvePromise = resolve
@@ -192,6 +214,25 @@ describe('useSubscription', () => {
 
       // Loading should be false after fetch completes
       expect(loading.value).toBe(false)
+    })
+    
+    it('should return cached status when not authenticated', async () => {
+      // Mock user as not authenticated
+      mockIsAuthenticated.mockReturnValue(false)
+      
+      localStorage.setItem('subscriptionStatus', 'free')
+      localStorage.setItem('user_data', JSON.stringify({
+        isPremium: false,
+      }))
+
+      const { fetchSubscriptionStatus, subscriptionStatus } = useSubscription()
+
+      const result = await fetchSubscriptionStatus()
+
+      // Should return cached status without calling API
+      expect(result).toBe('free')
+      expect(subscriptionStatus.value).toBe('free')
+      expect(mockApiCall).not.toHaveBeenCalled()
     })
   })
 
