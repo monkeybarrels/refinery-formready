@@ -47,8 +47,17 @@ export const useSubscription = () => {
   /**
    * Fetch subscription status from backend
    * Calls /api/auth/profile which returns isPremium and roles
+   * Only works when user is authenticated
    */
   const fetchSubscriptionStatus = async () => {
+    // Check if user is authenticated before making API call
+    const { isAuthenticated } = useAuth()
+    if (!isAuthenticated()) {
+      // User not authenticated - just use cached status
+      loadCachedStatus()
+      return subscriptionStatus.value
+    }
+    
     loading.value = true
     error.value = null
     
@@ -135,8 +144,17 @@ export const useSubscription = () => {
   // Load cached status on mount
   onMounted(() => {
     loadCachedStatus()
-    // Fetch fresh status on mount to ensure we have latest premium status
-    fetchSubscriptionStatus()
+    
+    // Only fetch fresh status if user is authenticated
+    // Don't call API when not logged in to avoid errors
+    const { isAuthenticated } = useAuth()
+    if (isAuthenticated()) {
+      // Fetch fresh status on mount to ensure we have latest premium status
+      fetchSubscriptionStatus().catch(() => {
+        // Silently fail if fetch fails - we'll use cached status
+        // This prevents errors from showing up when user is not authenticated
+      })
+    }
   })
   
   return {
