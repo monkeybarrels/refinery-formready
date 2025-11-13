@@ -110,8 +110,56 @@
 
           <section class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-900 mb-4">Data Retention</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+              We believe in keeping your data only as long as it's useful to you. Here's what we keep and for how long:
+            </p>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-blue-200">
+                    <th class="text-left py-2 pr-4 text-gray-900 font-semibold">Data Type</th>
+                    <th class="text-left py-2 pr-4 text-gray-900 font-semibold">How Long</th>
+                    <th class="text-left py-2 text-gray-900 font-semibold">Why</th>
+                  </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                  <tr class="border-b border-blue-100">
+                    <td class="py-3 pr-4"><strong>Original PDFs</strong></td>
+                    <td class="py-3 pr-4">Deleted immediately after processing</td>
+                    <td class="py-3">PII protection</td>
+                  </tr>
+                  <tr class="border-b border-blue-100">
+                    <td class="py-3 pr-4"><strong>Your analysis results</strong></td>
+                    <td class="py-3 pr-4">While account is active + 90 days after deactivation</td>
+                    <td class="py-3">So you can reference them during appeals and reactivate if needed</td>
+                  </tr>
+                  <tr class="border-b border-blue-100">
+                    <td class="py-3 pr-4"><strong>Your account</strong></td>
+                    <td class="py-3 pr-4">Until you delete it</td>
+                    <td class="py-3">To provide the service</td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 pr-4"><strong>System logs</strong></td>
+                    <td class="py-3 pr-4">30 days</td>
+                    <td class="py-3">Debugging and security</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">What We DON'T Store:</h3>
+              <ul class="list-disc pl-6 space-y-1 text-gray-700">
+                <li>Your full Social Security Number (we store "REDACTED")</li>
+                <li>Your full name (we store "REDACTED")</li>
+                <li>Original PDF files (deleted after extraction)</li>
+                <li>Payment info (Stripe handles this securely)</li>
+              </ul>
+            </div>
+
             <p class="text-gray-700 leading-relaxed">
-              We retain your personal information and documents only as long as necessary to provide our services and comply with legal obligations. You can request deletion of your data at any time by contacting us at <a href="mailto:privacy@claimready.io" class="text-blue-600 hover:text-blue-800">privacy@claimready.io</a>.
+              You can request deletion of your data at any time by contacting us at <a href="mailto:privacy@claimready.io" class="text-blue-600 hover:text-blue-800">privacy@claimready.io</a>. We'll delete everything within 30 days.
             </p>
           </section>
 
@@ -182,7 +230,7 @@
 import Navigation from '~/components/organisms/Navigation.vue'
 import Footer from '~/components/organisms/Footer.vue'
 
-const lastUpdated = 'November 5, 2025'
+const lastUpdated = 'November 12, 2025'
 
 useSeoMeta({
   title: 'Privacy Policy - ClaimReady',
