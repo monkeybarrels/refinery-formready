@@ -138,6 +138,23 @@
             </select>
           </div>
 
+          <!-- Military Occupation Code (Optional) -->
+          <div>
+            <label for="militaryOccupationCode" class="block text-sm font-medium text-slate-700 mb-2">
+              Military Occupation Code (Optional)
+            </label>
+            <input
+              id="militaryOccupationCode"
+              v-model="form.militaryOccupationCode"
+              type="text"
+              class="block w-full px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="e.g., 11B, 8401, 2A3X3"
+            />
+            <p class="mt-1 text-xs text-slate-500">
+              Your MOS/AFSC/NEC helps us provide personalized claim guidance
+            </p>
+          </div>
+
           <!-- Terms and Privacy -->
           <div class="flex items-start">
             <input
@@ -239,6 +256,7 @@ const form = reactive({
   email: '',
   password: '',
   serviceBranch: '',
+  militaryOccupationCode: '',
   acceptTerms: false
 })
 
