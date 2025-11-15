@@ -143,13 +143,53 @@
             <label for="militaryOccupationCode" class="block text-sm font-medium text-slate-700 mb-2">
               Military Occupation Code (Optional)
             </label>
-            <input
-              id="militaryOccupationCode"
-              v-model="form.militaryOccupationCode"
-              type="text"
-              class="block w-full px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="e.g., 11B, 8401, 2A3X3"
-            />
+            <div class="relative">
+              <input
+                id="militaryOccupationCode"
+                v-model="mosSearchQuery"
+                @input="onMosSearch"
+                @focus="showMosDropdown = true"
+                type="text"
+                class="block w-full px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                :placeholder="getMosPlaceholder()"
+                :disabled="!form.serviceBranch"
+                autocomplete="off"
+              />
+
+              <!-- Dropdown results -->
+              <div
+                v-if="showMosDropdown && filteredOccupations.length > 0"
+                class="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+              >
+                <button
+                  v-for="occupation in filteredOccupations"
+                  :key="occupation.code"
+                  type="button"
+                  @click="selectOccupation(occupation)"
+                  class="w-full px-4 py-3 text-left hover:bg-blue-50 border-b border-slate-100 last:border-b-0 focus:outline-none focus:bg-blue-50"
+                >
+                  <div class="font-medium text-slate-900">{{ occupation.code }}</div>
+                  <div class="text-sm text-slate-600">{{ occupation.title }}</div>
+                </button>
+              </div>
+
+              <!-- Selected occupation display -->
+              <div v-if="selectedOccupation" class="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-medium text-blue-900">{{ selectedOccupation.code }}</div>
+                    <div class="text-sm text-blue-700">{{ selectedOccupation.title }}</div>
+                  </div>
+                  <button
+                    type="button"
+                    @click="clearOccupation"
+                    class="text-blue-600 hover:text-blue-800"
+                  >
+                    <Icon name="heroicons:x-mark" class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
             <p class="mt-1 text-xs text-slate-500">
               Your MOS/AFSC/NEC helps us provide personalized claim guidance
             </p>
@@ -263,6 +303,98 @@ const form = reactive({
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+// MOS Selector state
+const mosSearchQuery = ref('')
+const showMosDropdown = ref(false)
+const selectedOccupation = ref<any>(null)
+const allOccupations = ref<any[]>([])
+const filteredOccupations = ref<any[]>([])
+
+// Watch for service branch changes to load occupations
+watch(() => form.serviceBranch, async (newBranch) => {
+  // Clear MOS selection when branch changes
+  selectedOccupation.value = null
+  mosSearchQuery.value = ''
+  form.militaryOccupationCode = ''
+  filteredOccupations.value = []
+
+  // Load occupations for the selected branch
+  if (newBranch) {
+    await loadOccupations(newBranch)
+  }
+})
+
+// MOS Helper Functions
+const getMosPlaceholder = () => {
+  const placeholders: Record<string, string> = {
+    'army': 'Search Army MOS (e.g., 11B, 68W)',
+    'air-force': 'Search Air Force AFSC (e.g., 2A3X3)',
+    'navy': 'Search Navy NEC (e.g., AT, CTN)',
+    'marines': 'Search Marine Corps MOS (e.g., 0311)',
+    'coast-guard': 'Search Coast Guard Rating (e.g., BM)',
+    'space-force': 'Search Space Force AFSC'
+  }
+  return placeholders[form.serviceBranch] || 'Select service branch first'
+}
+
+const loadOccupations = async (branch: string) => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(`/api/military-occupations/branch/${branch}`)
+
+    if (!response.ok) {
+      console.error('Failed to load occupations')
+      return
+    }
+
+    const data = await response.json()
+    allOccupations.value = data
+    filteredOccupations.value = data.slice(0, 20) // Show first 20 by default
+  } catch (err) {
+    console.error('Error loading occupations:', err)
+  }
+}
+
+const onMosSearch = () => {
+  const query = mosSearchQuery.value.toLowerCase().trim()
+
+  if (!query) {
+    filteredOccupations.value = allOccupations.value.slice(0, 20)
+    showMosDropdown.value = true
+    return
+  }
+
+  filteredOccupations.value = allOccupations.value.filter(occ =>
+    occ.code.toLowerCase().includes(query) ||
+    occ.title.toLowerCase().includes(query)
+  ).slice(0, 20)
+
+  showMosDropdown.value = true
+}
+
+const selectOccupation = (occupation: any) => {
+  selectedOccupation.value = occupation
+  mosSearchQuery.value = occupation.code
+  form.militaryOccupationCode = occupation.code
+  showMosDropdown.value = false
+}
+
+const clearOccupation = () => {
+  selectedOccupation.value = null
+  mosSearchQuery.value = ''
+  form.militaryOccupationCode = ''
+}
+
+// Close dropdown when clicking outside
+if (process.client) {
+  document.addEventListener('click', (e: any) => {
+    const mosInput = document.getElementById('militaryOccupationCode')
+    if (mosInput && !mosInput.contains(e.target)) {
+      showMosDropdown.value = false
+    }
+  })
+}
 
 // Signup handler
 const handleSignup = async () => {
