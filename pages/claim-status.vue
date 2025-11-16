@@ -331,10 +331,15 @@ const claims = ref<Claim[]>([])
 const ratings = ref<any>(null)
 const syncStatus = ref<SyncStatus | null>(null)
 const selectedClaim = ref<Claim | null>(null)
+const user = reactive({
+  authorizerId: '',
+  firstName: '',
+  lastName: '',
+  email: ''
+})
 
 // Composables
 const { apiCall } = useApi()
-const { user } = useAuth()
 
 // Computed
 const claimStats = computed(() => {
@@ -359,9 +364,26 @@ const currentRating = computed(() => {
   return ratings.value.combinedRating
 })
 
+// Load user profile from API
+const loadUserProfile = async () => {
+  try {
+    const response = await apiCall('/api/auth/profile')
+
+    if (!response.ok) {
+      throw new Error('Authentication failed')
+    }
+
+    const profileData = await response.json()
+    Object.assign(user, profileData.user)
+  } catch (error) {
+    console.error('Failed to load user profile:', error)
+    throw error
+  }
+}
+
 // Methods
 const fetchData = async () => {
-  if (!user.value?.authorizerId) {
+  if (!user.authorizerId) {
     error.value = 'User not authenticated'
     loading.value = false
     return
@@ -373,9 +395,9 @@ const fetchData = async () => {
   try {
     // Fetch claims, ratings, and sync status in parallel
     const [claimsRes, ratingsRes, statusRes] = await Promise.all([
-      apiCall(`/api/va-sync/claims/${user.value.authorizerId}`, { method: 'GET' }),
-      apiCall(`/api/va-sync/ratings/${user.value.authorizerId}`, { method: 'GET' }),
-      apiCall(`/api/va-sync/stats/${user.value.authorizerId}`, { method: 'GET' })
+      apiCall(`/api/va-sync/claims/${user.authorizerId}`, { method: 'GET' }),
+      apiCall(`/api/va-sync/ratings/${user.authorizerId}`, { method: 'GET' }),
+      apiCall(`/api/va-sync/stats/${user.authorizerId}`, { method: 'GET' })
     ])
 
     if (claimsRes.ok) {
@@ -440,8 +462,32 @@ const formatRelativeTime = (date: Date) => {
 }
 
 // Lifecycle
-onMounted(() => {
-  fetchData()
+onMounted(async () => {
+  const { requireAuth, setupSessionMonitoring } = useAuth()
+
+  // Require authentication - will redirect if not authenticated
+  const isAuth = await requireAuth()
+  if (!isAuth) {
+    return // Already redirected by requireAuth
+  }
+
+  // Set up session monitoring for auto-logout
+  setupSessionMonitoring()
+
+  try {
+    // Load user profile first
+    await loadUserProfile()
+    // Then fetch claim data
+    await fetchData()
+  } catch (error) {
+    console.error('Failed to load claim status page:', error)
+    const { isAuthenticated } = useAuth()
+    if (!isAuthenticated()) {
+      navigateTo('/auth/login')
+    }
+  } finally {
+    loading.value = false
+  }
 })
 
 // SEO
