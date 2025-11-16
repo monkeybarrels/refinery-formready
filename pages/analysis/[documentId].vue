@@ -78,6 +78,9 @@
         Back to Documents
       </Button>
     </div>
+
+    <!-- Chat Widget (Feature Flag) -->
+    <ChatWidget v-if="documentId" :document-id="documentId" />
   </div>
 </template>
 
@@ -89,6 +92,7 @@ import ConditionsGridEnhanced from "~/components/organisms/ConditionsGridEnhance
 import PremiumFeature from "~/components/organisms/PremiumFeature.vue";
 import FeatureFlag from "~/components/organisms/FeatureFlag.vue";
 import ActionItemsSection from "~/components/organisms/ActionItemsSection.vue";
+import ChatWidget from "~/components/features/chat/ChatWidget.vue";
 
 const route = useRoute()
 const router = useRouter()

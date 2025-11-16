@@ -98,16 +98,73 @@
                 <select
                   id="serviceBranch"
                   v-model="profileForm.serviceBranch"
+                  @change="onBranchChange"
                   class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select your service branch</option>
-                  <option value="Army">Army</option>
-                  <option value="Navy">Navy</option>
-                  <option value="Air Force">Air Force</option>
-                  <option value="Marine Corps">Marine Corps</option>
-                  <option value="Coast Guard">Coast Guard</option>
-                  <option value="Space Force">Space Force</option>
+                  <option value="army">Army</option>
+                  <option value="navy">Navy</option>
+                  <option value="air-force">Air Force</option>
+                  <option value="marine-corps">Marine Corps</option>
+                  <option value="coast-guard">Coast Guard</option>
                 </select>
+              </div>
+
+              <!-- Military Occupation Code -->
+              <div>
+                <label for="militaryOccupationCode" class="block text-sm font-medium text-slate-700 mb-2">
+                  Military Occupation Code
+                  <span class="text-sm font-normal text-slate-500">(Optional)</span>
+                </label>
+                <div class="relative">
+                  <input
+                    id="militaryOccupationCode"
+                    v-model="mosSearchQuery"
+                    @input="onMosSearch"
+                    @focus="showMosDropdown = true"
+                    type="text"
+                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    :placeholder="getMosPlaceholder()"
+                    autocomplete="off"
+                  />
+
+                  <!-- Dropdown results -->
+                  <div
+                    v-if="showMosDropdown && filteredOccupations.length > 0"
+                    class="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                  >
+                    <button
+                      v-for="occupation in filteredOccupations"
+                      :key="occupation.code"
+                      type="button"
+                      @click="selectOccupation(occupation)"
+                      class="w-full px-4 py-3 text-left hover:bg-blue-50 border-b border-slate-100 last:border-b-0 focus:outline-none focus:bg-blue-50"
+                    >
+                      <div class="font-medium text-slate-900">{{ occupation.code }}</div>
+                      <div class="text-sm text-slate-600">{{ occupation.title }}</div>
+                    </button>
+                  </div>
+
+                  <!-- Selected occupation display -->
+                  <div v-if="selectedOccupation" class="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="font-medium text-blue-900">{{ selectedOccupation.code }}</div>
+                        <div class="text-sm text-blue-700">{{ selectedOccupation.title }}</div>
+                      </div>
+                      <button
+                        type="button"
+                        @click="clearOccupation"
+                        class="text-blue-600 hover:text-blue-800"
+                      >
+                        <Icon name="heroicons:x-mark" class="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="mt-1 text-sm text-slate-500">
+                  {{ getBranchDescription() }}
+                </p>
               </div>
 
               <!-- Error Message -->
@@ -227,6 +284,7 @@ const profile = reactive({
   firstName: '',
   lastName: '',
   serviceBranch: '',
+  militaryOccupationCode: '',
   isPremium: false,
   createdAt: new Date().toISOString(),
   totalDocuments: 0
@@ -236,8 +294,16 @@ const profileForm = reactive({
   firstName: '',
   lastName: '',
   email: '',
-  serviceBranch: ''
+  serviceBranch: '',
+  militaryOccupationCode: ''
 })
+
+// MOS Selector state
+const mosSearchQuery = ref('')
+const showMosDropdown = ref(false)
+const selectedOccupation = ref<any>(null)
+const allOccupations = ref<any[]>([])
+const filteredOccupations = ref<any[]>([])
 
 // Load profile on mount
 onMounted(async () => {
@@ -279,6 +345,21 @@ const loadProfile = async () => {
     profileForm.lastName = profile.lastName
     profileForm.email = profile.email
     profileForm.serviceBranch = profile.serviceBranch
+    profileForm.militaryOccupationCode = profile.militaryOccupationCode || ''
+
+    // Load MOS if branch is set
+    if (profile.serviceBranch) {
+      await loadOccupations(profile.serviceBranch)
+
+      // Set selected occupation if MOS code exists
+      if (profile.militaryOccupationCode) {
+        const occupation = allOccupations.value.find(occ => occ.code === profile.militaryOccupationCode)
+        if (occupation) {
+          selectedOccupation.value = occupation
+          mosSearchQuery.value = occupation.code
+        }
+      }
+    }
   } catch (err: any) {
     console.error('Load profile error:', err)
     throw err
@@ -301,7 +382,8 @@ const saveProfile = async () => {
       body: JSON.stringify({
         firstName: profileForm.firstName,
         lastName: profileForm.lastName,
-        serviceBranch: profileForm.serviceBranch
+        serviceBranch: profileForm.serviceBranch,
+        militaryOccupationCode: profileForm.militaryOccupationCode
       })
     })
 
@@ -341,5 +423,99 @@ const formatDate = (dateString: string) => {
   if (!dateString) return 'Unknown'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+// MOS Helper Functions
+const getMosPlaceholder = () => {
+  const placeholders: Record<string, string> = {
+    'army': 'Search Army MOS (e.g., 11B, 68W)',
+    'air-force': 'Search Air Force AFSC (e.g., 2A3X3)',
+    'navy': 'Search Navy NEC (e.g., AT, CTN)',
+    'marine-corps': 'Search Marine Corps MOS (e.g., 0311)',
+    'coast-guard': 'Search Coast Guard Rating (e.g., BM)',
+  }
+  return placeholders[profileForm.serviceBranch] || 'Select service branch first'
+}
+
+const getBranchDescription = () => {
+  const descriptions: Record<string, string> = {
+    'army': 'Enter your Army Military Occupational Specialty (MOS) code',
+    'air-force': 'Enter your Air Force Specialty Code (AFSC)',
+    'navy': 'Enter your Navy Enlisted Classification (NEC) code',
+    'marine-corps': 'Enter your Marine Corps MOS code',
+    'coast-guard': 'Enter your Coast Guard rating',
+  }
+  return descriptions[profileForm.serviceBranch] || 'Select your service branch to choose your occupation code'
+}
+
+const onBranchChange = async () => {
+  // Clear MOS selection when branch changes
+  selectedOccupation.value = null
+  mosSearchQuery.value = ''
+  profileForm.militaryOccupationCode = ''
+  filteredOccupations.value = []
+
+  // Load occupations for the selected branch
+  if (profileForm.serviceBranch) {
+    await loadOccupations(profileForm.serviceBranch)
+  }
+}
+
+const loadOccupations = async (branch: string) => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(`/api/military-occupations/branch/${branch}`)
+
+    if (!response.ok) {
+      console.error('Failed to load occupations')
+      return
+    }
+
+    const data = await response.json()
+    allOccupations.value = data
+    filteredOccupations.value = data.slice(0, 20) // Show first 20 by default
+  } catch (err) {
+    console.error('Error loading occupations:', err)
+  }
+}
+
+const onMosSearch = () => {
+  const query = mosSearchQuery.value.toLowerCase().trim()
+
+  if (!query) {
+    filteredOccupations.value = allOccupations.value.slice(0, 20)
+    showMosDropdown.value = true
+    return
+  }
+
+  filteredOccupations.value = allOccupations.value.filter(occ =>
+    occ.code.toLowerCase().includes(query) ||
+    occ.title.toLowerCase().includes(query)
+  ).slice(0, 20)
+
+  showMosDropdown.value = true
+}
+
+const selectOccupation = (occupation: any) => {
+  selectedOccupation.value = occupation
+  mosSearchQuery.value = occupation.code
+  profileForm.militaryOccupationCode = occupation.code
+  showMosDropdown.value = false
+}
+
+const clearOccupation = () => {
+  selectedOccupation.value = null
+  mosSearchQuery.value = ''
+  profileForm.militaryOccupationCode = ''
+}
+
+// Close dropdown when clicking outside
+if (process.client) {
+  document.addEventListener('click', (e: any) => {
+    const mosInput = document.getElementById('militaryOccupationCode')
+    if (mosInput && !mosInput.contains(e.target)) {
+      showMosDropdown.value = false
+    }
+  })
 }
 </script>
