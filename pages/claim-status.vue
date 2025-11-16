@@ -10,11 +10,6 @@
     <!-- Hero Section -->
     <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- Breadcrumbs -->
-        <div class="mb-6">
-          <Breadcrumb theme="dark" />
-        </div>
-
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-4xl font-bold mb-2">VA Claim Status</h1>
@@ -42,13 +37,9 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <LoadingState
-        variant="spinner"
-        size="md"
-        message="Loading your claim data..."
-        :full-height="false"
-      />
+    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <p class="mt-4 text-slate-600">Loading your claim data...</p>
     </div>
 
     <!-- Error State -->
