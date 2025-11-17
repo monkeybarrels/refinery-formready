@@ -169,6 +169,46 @@
         </div>
       </div>
 
+      <!-- Company Platform Overview -->
+      <div class="mt-16 bg-slate-50 rounded-2xl p-8">
+        <div class="max-w-4xl mx-auto text-center">
+          <h2 class="text-3xl font-bold text-slate-900 mb-6">Transforming Veteran Benefits Through Technology</h2>
+          <p class="text-xl text-slate-700 mb-6 leading-relaxed">
+            ClaimReady is more than a document analysis tool—it's a comprehensive platform designed to empower veterans throughout their benefits journey.
+          </p>
+          <div class="grid md:grid-cols-2 gap-8 text-left mb-8">
+            <div class="bg-white rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Icon name="heroicons:users" class="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Who We Serve</h3>
+              </div>
+              <p class="text-slate-600 leading-relaxed">
+                We serve veterans nationwide who struggle to understand their VA communications, from newly separated service members navigating their first claims to experienced veterans managing complex appeals.
+              </p>
+            </div>
+            <div class="bg-white rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <Icon name="heroicons:rocket-launch" class="w-5 h-5 text-green-600" />
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Our Mission</h3>
+              </div>
+              <p class="text-slate-600 leading-relaxed">
+                Our platform democratizes access to benefits understanding, regardless of location or resources. We're building the definitive platform where veterans can confidently manage their benefits.
+              </p>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 text-center">
+            <h3 class="text-lg font-bold text-slate-900 mb-3">Why ClaimReady Matters</h3>
+            <p class="text-slate-700 leading-relaxed">
+              ClaimReady matters because veteran benefits are earned, not given. Every veteran deserves to understand what they've earned and how to access it fully. Our long-term vision extends beyond document analysis to create a complete veteran benefits ecosystem, including claims tracking, appeals guidance, and educational resources.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Veteran Connection -->
       <div class="mt-16 bg-white border-2 border-blue-100 rounded-2xl p-8">
         <div class="max-w-4xl mx-auto text-center">

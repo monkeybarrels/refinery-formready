@@ -82,11 +82,30 @@
         </p>
       </div>
 
-      <!-- Bottom Bar -->
+      <!-- Company Information -->
       <div class="border-t border-gray-200 mt-8 pt-8">
-        <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
-          <p>&copy; {{ currentYear }} ClaimReady. All rights reserved.</p>
+        <div class="text-center mb-6">
+          <div class="text-sm text-gray-600 space-y-1">
+            <p class="font-semibold text-gray-900">MonkeyBarrels LLC</p>
+            <p>Columbia, South Carolina</p>
+            <p>
+              <a href="mailto:support@claimready.io" class="text-blue-600 hover:text-blue-700 transition-colors">
+                support@claimready.io
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-6">
+          <p>&copy; {{ currentYear }} ClaimReady.io – All Rights Reserved</p>
           <div class="flex space-x-4 mt-4 md:mt-0">
+            <NuxtLink to="/about" class="hover:text-blue-600 transition-colors">
+              About
+            </NuxtLink>
+            <NuxtLink to="/roadmap" class="hover:text-blue-600 transition-colors">
+              Roadmap
+            </NuxtLink>
             <NuxtLink to="/privacy-policy" class="hover:text-blue-600 transition-colors">
               Privacy
             </NuxtLink>
