@@ -27,26 +27,28 @@
           <NuxtLink
             v-if="isAuthenticated"
             :to="getHomeRoute()"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
             :class="{ 'text-blue-600': isHomeRoute() }"
           >
             {{ getHomeLabel() }}
+            <span v-if="isHomeRoute()" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
           <!-- Analyze -->
           <NuxtLink
             to="/analyze"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
             :class="{ 'text-blue-600': $route.path === '/analyze' }"
           >
             Analyze
+            <span v-if="$route.path === '/analyze'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
           <!-- Documents (Always show but with different states) -->
           <NuxtLink
             v-if="isAuthenticated"
             to="/documents"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium flex items-center"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold flex items-center relative py-1"
             :class="{ 'text-blue-600': $route.path === '/documents' }"
           >
             Documents
@@ -55,25 +57,48 @@
               name="heroicons:lock-closed"
               class="w-3 h-3 ml-1 text-amber-500"
             />
+            <span v-if="$route.path === '/documents'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
           <!-- Pricing (Show for non-premium or guests) -->
           <NuxtLink
             v-if="!isPremiumUser"
             to="/pricing"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
             :class="{ 'text-blue-600': $route.path === '/pricing' }"
           >
             {{ isAuthenticated ? 'Upgrade' : 'Pricing' }}
+            <span v-if="$route.path === '/pricing'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
+          <!-- About -->
+          <NuxtLink
+            to="/about"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path === '/about' }"
+          >
+            About
+            <span v-if="$route.path === '/about'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
+          <!-- Roadmap -->
+          <NuxtLink
+            to="/roadmap"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path === '/roadmap' }"
+          >
+            Roadmap
+            <span v-if="$route.path === '/roadmap'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
           <!-- Help -->
           <NuxtLink
             to="/faq"
-            class="text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
             :class="{ 'text-blue-600': $route.path === '/faq' }"
           >
             Help
+            <span v-if="$route.path === '/faq'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
         </div>
         
@@ -243,6 +268,20 @@
             @click="mobileMenuOpen = false"
           >
             Pricing
+          </NuxtLink>
+          <NuxtLink
+            to="/about"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
+          >
+            About
+          </NuxtLink>
+          <NuxtLink
+            to="/roadmap"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
+          >
+            Roadmap
           </NuxtLink>
           <NuxtLink
             to="/faq"
