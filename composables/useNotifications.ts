@@ -6,7 +6,12 @@ import { useSubscription } from './useSubscription'
 interface Notification {
   type: string
   data: any
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  buffered?: boolean
+  createdAt?: string
 }
+
+type NotificationHandler = (notification: Notification) => void | Promise<void>
 
 /**
  * Composable for WebSocket push notifications
@@ -16,7 +21,8 @@ export const useNotifications = () => {
   const socket = ref<Socket | null>(null)
   const connected = ref(false)
   const error = ref<string | null>(null)
-  
+  const handlers = new Map<string, Set<NotificationHandler>>()
+
   const { isAuthenticated } = useAuth()
   const { refreshSubscriptionStatus } = useSubscription()
 
@@ -61,12 +67,24 @@ export const useNotifications = () => {
 
       socket.value.on('notification', async (notification: Notification) => {
         console.log('📬 Received notification:', notification)
-        
-        // Handle premium status changes
+
+        // Call registered handlers for this notification type
+        const typeHandlers = handlers.get(notification.type)
+        if (typeHandlers && typeHandlers.size > 0) {
+          for (const handler of typeHandlers) {
+            try {
+              await handler(notification)
+            } catch (e) {
+              console.error(`Error in notification handler for ${notification.type}:`, e)
+            }
+          }
+        }
+
+        // Handle premium status changes (built-in handler)
         if (notification.type === 'premium_status_changed') {
           const { isPremium } = notification.data
           console.log(`🔄 Premium status changed: ${isPremium}`)
-          
+
           // Refresh subscription status to sync with backend
           try {
             await refreshSubscriptionStatus()
@@ -113,6 +131,40 @@ export const useNotifications = () => {
     connect()
   }
 
+  /**
+   * Register a handler for a specific notification type
+   */
+  const on = (type: string, handler: NotificationHandler) => {
+    if (!handlers.has(type)) {
+      handlers.set(type, new Set())
+    }
+    handlers.get(type)!.add(handler)
+
+    // Return unsubscribe function
+    return () => {
+      const typeHandlers = handlers.get(type)
+      if (typeHandlers) {
+        typeHandlers.delete(handler)
+        if (typeHandlers.size === 0) {
+          handlers.delete(type)
+        }
+      }
+    }
+  }
+
+  /**
+   * Unregister a handler for a specific notification type
+   */
+  const off = (type: string, handler: NotificationHandler) => {
+    const typeHandlers = handlers.get(type)
+    if (typeHandlers) {
+      typeHandlers.delete(handler)
+      if (typeHandlers.size === 0) {
+        handlers.delete(type)
+      }
+    }
+  }
+
   // Watch for auth changes and connect/disconnect accordingly
   watch(() => isAuthenticated(), (authenticated) => {
     if (authenticated) {
@@ -134,6 +186,8 @@ export const useNotifications = () => {
     connect,
     disconnect,
     reconnect,
+    on,
+    off,
   }
 }
 
