@@ -35,13 +35,13 @@
 
       <!-- Main Content -->
       <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Empty State -->
-        <div v-if="documents.length === 0 && !loading" class="py-16">
+        <!-- Overall empty state when NO documents in either tab -->
+        <div v-if="analysesPagination.total === 0 && vaDocsPagination.total === 0" class="py-16">
           <EmptyState
             variant="empty"
             icon-name="heroicons:document-text"
             title="No documents yet"
-            description="Upload your first VA decision letter to get started"
+            description="Upload your first VA decision letter to get started. Use the Chrome extension to sync documents from VA.gov."
             :primary-action="{
               label: 'Analyze Your First Document',
               icon: 'heroicons:document-plus',
@@ -52,7 +52,7 @@
           />
         </div>
 
-        <!-- Documents Grid -->
+        <!-- Show tabs if ANY documents exist (either tab) -->
         <div v-else>
           <!-- Premium Features Banner -->
           <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
@@ -69,25 +69,78 @@
             </div>
           </div>
 
+          <!-- Tab Navigation -->
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-slate-900">
-              All Documents ({{ pagination.total }})
-            </h2>
-            <Button
-              @click="navigateTo('/analyze')"
-              variant="primary"
-            >
-              <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />
-              Analyze New Document
-            </Button>
+            <div class="flex space-x-1 bg-slate-100 rounded-lg p-1">
+              <button
+                @click="activeTab = 'analyses'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  activeTab === 'analyses'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                ]"
+              >
+                Analyses ({{ analysesPagination.total }})
+              </button>
+              <button
+                @click="activeTab = 'va-documents'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  activeTab === 'va-documents'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                ]"
+              >
+                VA Documents ({{ vaDocsPagination.total }})
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <!-- Process All Documents temporarily disabled -->
+              <!-- <Button
+                v-if="activeTab === 'va-documents' && vaDocuments.length > 0"
+                @click="processAllDocuments"
+                :loading="processingAll"
+                variant="secondary"
+              >
+                <Icon name="heroicons:cog-6-tooth" class="w-5 h-5 mr-2" />
+                Process All Documents
+              </Button> -->
+              <Button
+                @click="navigateTo('/analyze')"
+                variant="primary"
+              >
+                <Icon name="heroicons:document-plus" class="w-5 h-5 mr-2" />
+                Analyze New Document
+              </Button>
+            </div>
           </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            v-for="doc in documents"
-            :key="doc.documentId"
-            class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-blue-300 overflow-hidden"
-          >
+        <!-- Analyses Tab -->
+        <div v-if="activeTab === 'analyses'">
+          <!-- Empty state for analyses tab -->
+          <div v-if="analysisDocuments.length === 0" class="py-16">
+            <EmptyState
+              variant="empty"
+              icon-name="heroicons:document-text"
+              title="No analyzed documents yet"
+              description="Upload and analyze your first VA decision letter to get started"
+              :primary-action="{
+                label: 'Analyze Your First Document',
+                icon: 'heroicons:document-plus',
+                to: '/analyze',
+                variant: 'primary'
+              }"
+            />
+          </div>
+
+          <!-- Documents grid -->
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              v-for="doc in analysisDocuments"
+              :key="doc.documentId"
+              class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-blue-300 overflow-hidden"
+            >
             <!-- Document Header -->
             <div
               @click="navigateTo(`/analysis/${doc.documentId}`)"
@@ -149,7 +202,7 @@
             <!-- Action Buttons -->
             <div class="px-6 pb-6 flex gap-2">
               <Button
-                @click.stop="downloadPdf(doc.documentId, doc.fileName)"
+                @click.stop="downloadPdf(doc.documentId)"
                 variant="secondary"
                 size="sm"
                 class="flex-1"
@@ -168,9 +221,162 @@
             </div>
           </div>
         </div>
+        </div>
+
+        <!-- VA Documents Tab -->
+        <div v-if="activeTab === 'va-documents'">
+          <!-- Empty state for VA documents tab -->
+          <div v-if="vaDocuments.length === 0" class="py-16">
+            <EmptyState
+              variant="empty"
+              icon-name="heroicons:document-check"
+              title="No VA documents yet"
+              description="Sync your VA.gov account to automatically import your decision letters"
+              :primary-action="{
+                label: 'Go to VA Sync',
+                icon: 'heroicons:arrow-path',
+                to: '/va-sync',
+                variant: 'primary'
+              }"
+            />
+          </div>
+
+          <!-- Documents Table -->
+          <div v-else class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Document
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                  <tr
+                    v-for="doc in vaDocuments"
+                    :key="doc.id"
+                    @click="openDocumentDetail(doc.id)"
+                    class="hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <!-- Document Name & Icon -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Icon name="heroicons:document-text" size="20" class="text-green-600" />
+                        </div>
+                        <div class="ml-4">
+                          <div class="text-sm font-medium text-slate-900">
+                            {{ doc.fileName }}
+                          </div>
+                          <div class="text-xs text-slate-500">
+                            {{ formatBytes(doc.fileSizeBytes) }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Document Type -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-slate-900">
+                        {{ getDocumentTypeLabel(doc.documentType) }}
+                      </div>
+                      <div v-if="doc.classificationConfidence" class="text-xs text-slate-500">
+                        {{ Math.round(doc.classificationConfidence * 100) }}% confidence
+                      </div>
+                    </td>
+
+                    <!-- Status -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <Badge
+                        :variant="getVaStatusVariant(doc.processingStatus)"
+                        :text="getStatusLabel(doc.processingStatus)"
+                        size="sm"
+                      />
+                    </td>
+
+                    <!-- Date -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      <div>{{ formatDate(doc.createdAt) }}</div>
+                      <div v-if="doc.processedAt" class="text-xs text-slate-400">
+                        Processed {{ formatDate(doc.processedAt) }}
+                      </div>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex items-center justify-end gap-1">
+                        <!-- Slot 1: View Details - Always visible -->
+                        <button
+                          @click.stop="openDocumentDetail(doc.id)"
+                          type="button"
+                          title="View Details"
+                          class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+                        >
+                          <Icon name="heroicons:eye" size="16" />
+                        </button>
+
+                        <!-- Slot 2: Analyze/Retry - Conditional based on doc type and status -->
+                        <button
+                          v-if="doc.documentType === 'decision_letter'"
+                          @click.stop="canAnalyze(doc) && analyzeDocument(doc.id)"
+                          type="button"
+                          :title="getAnalysisButtonTitle(doc)"
+                          :disabled="!canAnalyze(doc)"
+                          :class="[
+                            'w-8 h-8 flex items-center justify-center rounded transition-colors',
+                            doc.analysisStatus === 'analyzing' ? 'text-blue-400 cursor-not-allowed' :
+                            doc.analysisStatus === 'completed' ? 'text-green-600 cursor-default' :
+                            doc.analysisStatus === 'failed' ? 'text-red-600 hover:text-red-700 hover:bg-red-50' :
+                            canAnalyze(doc) ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50' :
+                            'text-gray-300 cursor-not-allowed'
+                          ]"
+                        >
+                          <Icon :name="getAnalysisButtonIcon(doc)" size="16" />
+                        </button>
+                        <button
+                          v-else-if="doc.processingStatus === 'failed'"
+                          @click.stop="retryProcessing(doc.id)"
+                          type="button"
+                          title="Retry Processing"
+                          class="w-8 h-8 flex items-center justify-center rounded text-orange-600 hover:text-orange-700 hover:bg-orange-50 transition-colors"
+                        >
+                          <Icon name="heroicons:arrow-path" size="16" />
+                        </button>
+                        <div v-else class="w-8 h-8"></div>
+
+                        <!-- Slot 3: Delete - Always visible -->
+                        <button
+                          @click.stop="confirmDelete(doc)"
+                          type="button"
+                          title="Delete Document"
+                          class="w-8 h-8 flex items-center justify-center rounded text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                        >
+                          <Icon name="heroicons:trash" size="16" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
         <!-- Pagination -->
-        <div v-if="pagination.total > pagination.limit" class="mt-8 flex items-center justify-center gap-2">
+        <div v-if="currentPagination.total > currentPagination.limit" class="mt-8 flex items-center justify-center gap-2">
           <Button
             @click="goToPage(pagination.page - 1)"
             variant="ghost"
@@ -210,7 +416,7 @@
             <Icon name="heroicons:chevron-right" class="w-5 h-5" />
           </Button>
         </div>
-        </div>
+      </div>
       </div>
     </PremiumFeature>
 
@@ -228,9 +434,170 @@
       @confirm="handleDelete"
       @cancel="deleteModal.isOpen = false"
     >
-      <div class="bg-slate-50 rounded-lg p-4 text-sm">
-        <div class="font-medium text-slate-900 mb-1">{{ deleteModal.document?.fileName }}</div>
-        <div class="text-slate-600">Document ID: {{ deleteModal.document?.documentId }}</div>
+      <div class="space-y-3">
+        <!-- Document Name -->
+        <div class="bg-slate-50 rounded-lg p-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Document Name</p>
+          <p class="text-lg font-semibold text-slate-900">{{ deleteModal.document?.fileName }}</p>
+        </div>
+
+        <!-- Document Type -->
+        <div v-if="deleteModal.document?.documentType" class="bg-slate-50 rounded-lg p-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Document Type</p>
+          <Badge :text="getDocumentTypeLabel(deleteModal.document?.documentType)" />
+        </div>
+      </div>
+    </Modal>
+
+    <!-- Document Detail Modal -->
+    <Modal
+      v-model:isOpen="detailModal.isOpen"
+      :title="detailModal.document?.fileName || 'Document Details'"
+      size="xl"
+      :show-footer="false"
+      @cancel="detailModal.isOpen = false"
+    >
+      <!-- Loading State -->
+      <div v-if="detailModal.loading" class="flex items-center justify-center py-12">
+        <Icon name="svg-spinners:ring-resize" size="48" class="text-blue-600" />
+        <span class="ml-3 text-slate-600">Loading document details...</span>
+      </div>
+
+      <!-- Document Details -->
+      <div v-else-if="detailModal.document" class="space-y-6 max-h-[70vh] overflow-y-auto">
+        <!-- File Name Editor -->
+        <div class="bg-slate-50 rounded-lg p-4">
+          <label class="block text-xs text-slate-500 uppercase tracking-wider mb-2">
+            Document Name
+          </label>
+          <div class="flex items-center gap-2">
+            <input
+              v-if="detailModal.editingFileName"
+              v-model="detailModal.editedFileName"
+              @keyup.enter="saveFileName"
+              @keyup.escape="cancelEditFileName"
+              type="text"
+              class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter document name"
+              autofocus
+            />
+            <p v-else class="flex-1 text-sm font-medium text-slate-900">
+              {{ detailModal.document.fileName }}
+            </p>
+            <Button
+              v-if="!detailModal.editingFileName"
+              @click="startEditFileName"
+              variant="ghost"
+              size="sm"
+              title="Edit filename"
+            >
+              <Icon name="heroicons:pencil" size="16" />
+            </Button>
+            <template v-else>
+              <Button
+                @click="saveFileName"
+                variant="primary"
+                size="sm"
+                :loading="detailModal.savingFileName"
+              >
+                <Icon name="heroicons:check" size="16" />
+              </Button>
+              <Button
+                @click="cancelEditFileName"
+                variant="ghost"
+                size="sm"
+              >
+                <Icon name="heroicons:x-mark" size="16" />
+              </Button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Document Metadata -->
+        <div class="grid grid-cols-2 gap-4 bg-slate-50 rounded-lg p-4">
+          <div>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</p>
+            <Badge
+              :variant="getVaStatusVariant(detailModal.document.processingStatus)"
+              :text="getStatusLabel(detailModal.document.processingStatus)"
+              size="sm"
+            />
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Document Type</p>
+            <p class="text-sm font-medium text-slate-900">
+              {{ getDocumentTypeLabel(detailModal.document.documentType) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">File Size</p>
+            <p class="text-sm font-medium text-slate-900">
+              {{ formatBytes(detailModal.document.fileSizeBytes) }}
+            </p>
+          </div>
+          <div v-if="detailModal.document.classificationConfidence">
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Confidence</p>
+            <p class="text-sm font-medium text-slate-900">
+              {{ Math.round(detailModal.document.classificationConfidence * 100) }}%
+            </p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Upload Date</p>
+            <p class="text-sm font-medium text-slate-900">
+              {{ new Date(detailModal.document.createdAt).toLocaleDateString() }}
+            </p>
+          </div>
+          <div v-if="detailModal.document.processedAt">
+            <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Processed Date</p>
+            <p class="text-sm font-medium text-slate-900">
+              {{ new Date(detailModal.document.processedAt).toLocaleDateString() }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Processing Error (if failed) -->
+        <div v-if="detailModal.document.processingStatus === 'failed' && detailModal.document.processingError"
+             class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <div class="flex items-start">
+            <Icon name="heroicons:exclamation-triangle" size="20" class="text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 class="text-sm font-semibold text-red-900 mb-1">Processing Error</h4>
+              <p class="text-sm text-red-700">{{ detailModal.document.processingError }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PDF Preview -->
+        <div>
+          <div class="flex items-center mb-3">
+            <h3 class="text-lg font-semibold text-slate-900 flex items-center">
+              <Icon name="heroicons:document" size="20" class="mr-2" />
+              PDF Preview
+            </h3>
+          </div>
+
+          <!-- Loading PDF -->
+          <div v-if="detailModal.pdfLoading" class="flex items-center justify-center py-12 bg-slate-50 rounded-lg">
+            <Icon name="svg-spinners:ring-resize" size="32" class="text-blue-600 mr-2" />
+            <span class="text-slate-600">Loading PDF...</span>
+          </div>
+
+          <!-- PDF Viewer -->
+          <div v-else-if="detailModal.pdfUrl" class="bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+            <iframe
+              :src="detailModal.pdfUrl"
+              class="w-full h-[500px]"
+              frameborder="0"
+            ></iframe>
+          </div>
+
+          <!-- No PDF Available -->
+          <div v-else class="text-center py-12 bg-slate-50 rounded-lg">
+            <Icon name="heroicons:document-minus" size="48" class="text-slate-400 mx-auto mb-2" />
+            <p class="text-slate-600">PDF preview not available</p>
+          </div>
+        </div>
+
       </div>
     </Modal>
   </div>
@@ -258,28 +625,108 @@ definePageMeta({
   middleware: 'premium'
 })
 
-const router = useRouter()
 const toast = useToast()
 // Use subscription composable for premium features
-const { isPremium, fetchSubscriptionStatus } = useSubscription()
+const { fetchSubscriptionStatus } = useSubscription()
+
+// Setup WebSocket notifications
+const notifications = useNotifications()
+
+const route = useRoute()
+const router = useRouter()
 
 const loading = ref(true)
-const documents = ref<any[]>([])
 const downloadingId = ref<string | null>(null)
+const processingAll = ref(false)
 
-// Pagination state
-const pagination = ref({
-  page: 1,
+// Document detail modal state
+const detailModal = ref({
+  isOpen: false,
+  loading: false,
+  document: null as any,
+  content: null as any,
+  contentLoading: false,
+  contentExpanded: false,
+  pdfUrl: null as string | null,
+  pdfLoading: false,
+  editingFileName: false,
+  editedFileName: '',
+  savingFileName: false
+})
+
+// Initialize state from URL query parameters
+const activeTab = ref<'analyses' | 'va-documents'>(
+  (route.query.tab as 'analyses' | 'va-documents') || 'analyses'
+)
+
+// Analysis documents
+const analysisDocuments = ref<any[]>([])
+const analysesPagination = ref({
+  page: parseInt(route.query.analysesPage as string) || 1,
   limit: 9,
   total: 0
 })
+
+// VA documents
+const vaDocuments = ref<any[]>([])
+const vaDocsPagination = ref({
+  page: parseInt(route.query.vaPage as string) || 1,
+  limit: 9,
+  total: 0
+})
+
+// Current pagination (based on active tab)
+const currentPagination = computed(() => {
+  return activeTab.value === 'analyses' ? analysesPagination.value : vaDocsPagination.value
+})
+const documents = computed(() => {
+  return activeTab.value === 'analyses' ? analysisDocuments.value : vaDocuments.value
+})
+
+// Legacy pagination for existing code compatibility
+const pagination = computed(() => currentPagination.value)
 
 // Delete modal state
 const deleteModal = ref({
   isOpen: false,
   loading: false,
+  deleting: false,
   document: null as any
 })
+
+// Watch for tab changes and update URL
+watch(activeTab, (newTab) => {
+  updateUrl({ tab: newTab })
+})
+
+// Watch for pagination changes and update URL
+watch(() => analysesPagination.value.page, (newPage) => {
+  if (activeTab.value === 'analyses') {
+    updateUrl({ analysesPage: newPage })
+  }
+})
+
+watch(() => vaDocsPagination.value.page, (newPage) => {
+  if (activeTab.value === 'va-documents') {
+    updateUrl({ vaPage: newPage })
+    loadVaDocuments() // Reload data when page changes
+  }
+})
+
+// Helper to update URL without navigation
+const updateUrl = (params: Record<string, any>) => {
+  const query = { ...route.query }
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      delete query[key]
+    } else {
+      query[key] = String(value)
+    }
+  })
+
+  router.replace({ query })
+}
 
 onMounted(async () => {
   const { requireAuth, setupSessionMonitoring } = useAuth()
@@ -293,9 +740,26 @@ onMounted(async () => {
   // Set up session monitoring for auto-logout
   setupSessionMonitoring()
 
+  // Register handler for analysis completion notifications
+  notifications.on('analysis.completed', async (notification) => {
+    console.log('📊 Analysis completed notification received:', notification.data)
+
+    const { documentClassificationId, summary } = notification.data
+
+    // Show toast notification
+    toast.success(`Analysis complete! ${summary ? summary.substring(0, 100) + '...' : ''}`)
+
+    // Reload both VA documents (to update status) and analyses (to show new analysis)
+    await Promise.all([
+      loadVaDocuments(),
+      loadAnalysisDocuments()
+    ])
+  })
+
   try {
     await Promise.all([
-      loadDocuments(),
+      loadAnalysisDocuments(),
+      loadVaDocuments(),
       fetchSubscriptionStatus()
     ])
   } catch (error) {
@@ -306,34 +770,9 @@ onMounted(async () => {
   }
 })
 
+// Legacy function - now handled by loadAnalysisDocuments
 const loadDocuments = async () => {
-  try {
-    const { apiCall } = useApi()
-    const response = await apiCall(`/api/documents/analyses?page=${pagination.value.page}&limit=${pagination.value.limit}`)
-
-    if (response.ok) {
-      const data = await response.json()
-      documents.value = data.analyses.map((doc: any) => ({
-        documentId: doc.documentId,
-        fileName: doc.fileName,
-        status: doc.status || 'analyzed',
-        analyzedAt: doc.analyzedAt,
-        combinedRating: doc.combinedRating,
-        monthlyPayment: doc.monthlyPayment,
-        conditionsCount: doc.conditions.length || 0,
-        grantedCount: doc.conditions.filter((condition: any) => condition.status === 'approved').length || 0,
-        deniedCount: doc.conditions.filter((condition: any) => condition.status === 'denied').length || 0,
-        deferredCount: doc.conditions.filter((condition: any) => condition.status === 'deferred').length || 0
-      }))
-
-      pagination.value.total = data.pagination.total
-    } else {
-      throw new Error('Failed to fetch documents')
-    }
-  } catch (error) {
-    console.error('Failed to load documents:', error)
-    throw error
-  }
+  await loadAnalysisDocuments()
 }
 
 const goToPage = async (page: number) => {
@@ -401,11 +840,20 @@ const handleDelete = async () => {
   if (!deleteModal.value.document) return
 
   deleteModal.value.loading = true
-  const documentIdToDelete = deleteModal.value.document.documentId
+
+  // Handle both types of documents:
+  // - Analysis documents have 'documentId' property
+  // - VA documents have 'id' property
+  const doc = deleteModal.value.document
+  const isVaDocument = 'id' in doc && !('documentId' in doc)
+  const documentIdToDelete = isVaDocument ? doc.id : doc.documentId
+  const apiEndpoint = isVaDocument
+    ? `/api/document-management/documents/${documentIdToDelete}`
+    : `/api/documents/${documentIdToDelete}`
 
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(`/api/documents/${documentIdToDelete}`, {
+    const response = await apiCall(apiEndpoint, {
       method: 'DELETE'
     })
 
@@ -418,10 +866,14 @@ const handleDelete = async () => {
         pagination.value.page -= 1
       }
 
-      // Reload documents to refresh the list
+      // Reload appropriate documents list
       loading.value = true
       try {
-        await loadDocuments()
+        if (isVaDocument) {
+          await loadVaDocuments()
+        } else {
+          await loadDocuments()
+        }
       } finally {
         loading.value = false
       }
@@ -446,7 +898,7 @@ const handleDelete = async () => {
   }
 }
 
-const downloadPdf = async (documentId: string, fileName: string) => {
+const downloadPdf = async (documentId: string) => {
   downloadingId.value = documentId
 
   try {
@@ -484,12 +936,312 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString()
 }
 
-const getStatusVariant = (status: string): string => {
+const formatBytes = (bytes: number) => {
+  if (!bytes) return 'Unknown'
+  const kb = bytes / 1024
+  const mb = kb / 1024
+  if (mb >= 1) return `${mb.toFixed(2)} MB`
+  return `${kb.toFixed(2)} KB`
+}
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    uploaded: 'Uploaded',
+    processing: 'Processing',
+    classified: 'Classified',
+    failed: 'Failed'
+  }
+  return labels[status] || status
+}
+
+const getDocumentTypeLabel = (type: string | undefined) => {
+  if (!type) return 'Unknown'
+  const labels: Record<string, string> = {
+    decision_letter: 'Decision Letter',
+    correspondence: 'Correspondence',
+    medical_record: 'Medical Record',
+    administrative: 'Administrative'
+  }
+  return labels[type] || type
+}
+
+type BadgeVariant = 'primary' | 'default' | 'secondary' | 'approved' | 'denied' | 'deferred'
+
+const getStatusVariant = (status: string): BadgeVariant => {
   switch (status) {
-    case 'approved': return 'success'
-    case 'denied': return 'danger'
-    case 'pending': return 'warning'
-    default: return 'neutral'
+    case 'approved': return 'approved'
+    case 'denied': return 'denied'
+    case 'deferred': return 'deferred'
+    case 'pending': return 'secondary'
+    default: return 'default'
   }
 }
+
+const getVaStatusVariant = (status: string): BadgeVariant => {
+  switch (status) {
+    case 'classified': return 'approved'
+    case 'processing': return 'secondary'
+    case 'failed': return 'denied'
+    case 'uploaded': return 'default'
+    default: return 'default'
+  }
+}
+
+// Load analysis documents (existing decision letter analyses)
+const loadAnalysisDocuments = async () => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(
+      `/api/documents/analyses?page=${analysesPagination.value.page}&limit=${analysesPagination.value.limit}`
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      analysisDocuments.value = data.analyses.map((doc: any) => ({
+        documentId: doc.documentId,
+        fileName: doc.fileName,
+        status: doc.status || 'analyzed',
+        analyzedAt: doc.analyzedAt,
+        combinedRating: doc.combinedRating,
+        monthlyPayment: doc.monthlyPayment,
+        conditionsCount: doc.conditions.length || 0,
+        grantedCount: doc.conditions.filter((condition: any) => condition.status === 'approved').length || 0,
+        deniedCount: doc.conditions.filter((condition: any) => condition.status === 'denied').length || 0,
+        deferredCount: doc.conditions.filter((condition: any) => condition.status === 'deferred').length || 0
+      }))
+
+      analysesPagination.value.total = data.pagination.total
+    } else {
+      throw new Error('Failed to fetch analysis documents')
+    }
+  } catch (error) {
+    console.error('Failed to load analysis documents:', error)
+    throw error
+  }
+}
+
+// Load VA documents from Document Management system
+const loadVaDocuments = async () => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(
+      `/api/document-management/documents?status=all&limit=${vaDocsPagination.value.limit}&offset=${(vaDocsPagination.value.page - 1) * vaDocsPagination.value.limit}&sortBy=createdAt&sortOrder=desc`
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      vaDocuments.value = data.documents || []
+      vaDocsPagination.value.total = data.total || 0
+    } else {
+      throw new Error('Failed to fetch VA documents')
+    }
+  } catch (error) {
+    console.error('Failed to load VA documents:', error)
+    throw error
+  }
+}
+
+// Retry failed document processing
+const retryProcessing = async (documentId: string) => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(
+      `/api/document-management/documents/${documentId}/retry`,
+      { method: 'POST' }
+    )
+
+    if (response.ok) {
+      toast.success('Document processing requeued')
+      // Reload VA documents to show updated status
+      await loadVaDocuments()
+    } else {
+      throw new Error('Failed to retry processing')
+    }
+  } catch (error: any) {
+    console.error('Failed to retry processing:', error)
+    toast.error(error.message || 'Failed to retry processing')
+  }
+}
+
+// Helper functions for analysis button state
+const canAnalyze = (doc: any) => {
+  // Can only analyze if document is classified and not currently analyzing or already completed
+  return doc.processingStatus === 'classified' &&
+         (!doc.analysisStatus || doc.analysisStatus === 'not_started' || doc.analysisStatus === 'failed')
+}
+
+const getAnalysisButtonTitle = (doc: any) => {
+  if (doc.analysisStatus === 'analyzing') return 'Analysis in progress...'
+  if (doc.analysisStatus === 'completed') return 'Analysis complete'
+  if (doc.analysisStatus === 'failed') return 'Analysis failed - click to retry'
+  if (doc.processingStatus !== 'classified') return 'Classification required before analysis'
+  return 'Analyze Decision Letter'
+}
+
+const getAnalysisButtonIcon = (doc: any) => {
+  if (doc.analysisStatus === 'analyzing') return 'svg-spinners:ring-resize'
+  if (doc.analysisStatus === 'completed') return 'heroicons:check-circle'
+  if (doc.analysisStatus === 'failed') return 'heroicons:arrow-path'
+  return 'heroicons:sparkles'
+}
+
+// Send document for decision review and analysis
+const analyzeDocument = async (documentId: string) => {
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(
+      `/api/document-management/documents/${documentId}/analyze`,
+      { method: 'POST' }
+    )
+
+    if (response.ok) {
+      toast.success('Document sent for analysis')
+      // Reload VA documents to show updated status
+      await loadVaDocuments()
+    } else {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to send document for analysis')
+    }
+  } catch (error: any) {
+    console.error('Failed to analyze document:', error)
+    toast.error(error.message || 'Failed to send document for analysis')
+  }
+}
+
+// Process all VA documents to extract text content
+const processAllDocuments = async () => {
+  processingAll.value = true
+
+  try {
+    const { apiCall } = useApi()
+    toast.info('Processing all documents... This may take a few minutes.')
+
+    const response = await apiCall(
+      '/api/va-sync/decision-letters/process-all',
+      { method: 'POST' }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      toast.success(`Successfully processed ${data.processed} documents!`)
+      // Reload VA documents to show updated content
+      await loadVaDocuments()
+    } else {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Failed to process documents')
+    }
+  } catch (error: any) {
+    console.error('Failed to process documents:', error)
+    toast.error(error.message || 'Failed to process documents')
+  } finally {
+    processingAll.value = false
+  }
+}
+
+// Open document detail modal
+const openDocumentDetail = async (documentId: string) => {
+  detailModal.value.isOpen = true
+  detailModal.value.loading = true
+  detailModal.value.document = null
+  detailModal.value.content = null
+  detailModal.value.pdfUrl = null
+  detailModal.value.contentExpanded = false
+  detailModal.value.editingFileName = false
+  detailModal.value.editedFileName = ''
+
+  try {
+    const { apiCall } = useApi()
+
+    // Fetch document details
+    const docResponse = await apiCall(`/api/document-management/documents/${documentId}`)
+    if (!docResponse.ok) {
+      throw new Error('Failed to load document details')
+    }
+    detailModal.value.document = await docResponse.json()
+
+    // Fetch PDF URL
+    detailModal.value.pdfLoading = true
+    const pdfResponse = await apiCall(`/api/document-management/documents/${documentId}/pdf`)
+    if (pdfResponse.ok) {
+      const pdfData = await pdfResponse.json()
+      detailModal.value.pdfUrl = pdfData.url
+    }
+    detailModal.value.pdfLoading = false
+
+    // Fetch document content
+    detailModal.value.contentLoading = true
+    const contentResponse = await apiCall(
+      `/api/document-management/documents/${documentId}/content?maxLength=1000`
+    )
+
+    if (contentResponse.ok) {
+      detailModal.value.content = await contentResponse.json()
+    }
+  } catch (error: any) {
+    console.error('Failed to load document:', error)
+    toast.error(error.message || 'Failed to load document')
+    detailModal.value.isOpen = false
+  } finally {
+    detailModal.value.loading = false
+    detailModal.value.contentLoading = false
+    detailModal.value.pdfLoading = false
+  }
+}
+
+// Start editing filename
+const startEditFileName = () => {
+  detailModal.value.editedFileName = detailModal.value.document.fileName
+  detailModal.value.editingFileName = true
+}
+
+// Cancel editing filename
+const cancelEditFileName = () => {
+  detailModal.value.editingFileName = false
+  detailModal.value.editedFileName = ''
+}
+
+// Save filename
+const saveFileName = async () => {
+  if (!detailModal.value.editedFileName || !detailModal.value.editedFileName.trim()) {
+    toast.error('Filename cannot be empty')
+    return
+  }
+
+  detailModal.value.savingFileName = true
+
+  try {
+    const { apiCall } = useApi()
+    const response = await apiCall(
+      `/api/document-management/documents/${detailModal.value.document.id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: detailModal.value.editedFileName.trim(),
+        }),
+      }
+    )
+
+    if (response.ok) {
+      const updatedDoc = await response.json()
+      detailModal.value.document.fileName = updatedDoc.fileName
+      detailModal.value.editingFileName = false
+      detailModal.value.editedFileName = ''
+      toast.success('Filename updated successfully')
+
+      // Refresh the VA documents list to show updated name
+      await loadVaDocuments()
+    } else {
+      throw new Error('Failed to update filename')
+    }
+  } catch (error: any) {
+    console.error('Failed to update filename:', error)
+    toast.error(error.message || 'Failed to update filename')
+  } finally {
+    detailModal.value.savingFileName = false
+  }
+}
+
 </script>

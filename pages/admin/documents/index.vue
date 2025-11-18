@@ -165,9 +165,11 @@
                   </div>
                 </td>
                 <td class="px-6 py-4">
-                  <Badge :variant="getTypeVariant(document.source)" class="w-4 h-4">
-                    {{ getTypeName(document.source) }}
-                  </Badge>
+                  <Badge
+                    :variant="getTypeVariant(document.source)"
+                    :text="getTypeName(document.source)"
+                    class="w-4 h-4"
+                  />
                 </td>
                 <td class="px-6 py-4">
                   <div class="text-sm text-slate-900">{{ document.citation || 'N/A' }}</div>
@@ -266,6 +268,7 @@ const router = useRouter()
 // State
 const loading = ref(false)
 const documents = ref<any[]>([])
+const totalDocuments = ref(0)
 const searchQuery = ref('')
 const selectedType = ref('')
 const dateRange = ref('')
@@ -356,39 +359,57 @@ onMounted(async () => {
 const loadDocuments = async () => {
   loading.value = true
   try {
-    // In a real implementation, this would fetch from the API
-    // For now, we'll use mock data
-    documents.value = [
+    const config = useRuntimeConfig()
+    const token = useCookie('auth_token')
+
+    // Build query parameters
+    const params = new URLSearchParams()
+    params.append('status', 'all') // Get all statuses instead of just classified
+    params.append('limit', '100')
+    params.append('offset', '0')
+    params.append('sortBy', 'createdAt')
+    params.append('sortOrder', 'desc')
+
+    if (selectedType.value) {
+      params.append('documentType', selectedType.value)
+    }
+
+    // Fetch from Document Management API
+    const response = await fetch(
+      `${config.public.apiUrl}/document-management/documents?${params.toString()}`,
       {
-        id: '1',
-        title: 'PTSD Service Connection Requirements',
-        source: 'CFR38',
-        citation: '38 CFR 3.304(f)',
-        chunks: 15,
-        date: '2024-01-15',
-        url: 'https://example.com'
-      },
-      {
-        id: '2',
-        title: 'DSM-5 PTSD Criteria',
-        source: 'DSM5',
-        citation: 'DSM-5 309.81',
-        chunks: 8,
-        date: '2024-01-14',
-        url: 'https://dsm.psychiatryonline.org'
-      },
-      {
-        id: '3',
-        title: 'BVA Case 2023-12345',
-        source: 'BVA',
-        citation: 'BVA 2023-12345',
-        chunks: 12,
-        date: '2024-01-13',
-        url: 'https://example.com'
+        headers: {
+          'Authorization': `Bearer ${token.value}`,
+          'Content-Type': 'application/json',
+        },
       }
-    ]
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch documents: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+
+    // Map API response to UI format
+    documents.value = data.documents.map((doc: any) => ({
+      id: doc.id,
+      title: doc.fileName,
+      source: doc.sourceService.toUpperCase(),
+      citation: doc.documentType || 'Unknown',
+      chunks: doc.extractedText ? Math.ceil(doc.extractedText.length / 1000) : 0,
+      date: new Date(doc.createdAt).toISOString().split('T')[0],
+      url: doc.originalDocumentUrl || '#',
+      status: doc.processingStatus,
+      confidence: doc.confidence
+    }))
+
+    totalDocuments.value = data.total
   } catch (error) {
     console.error('Failed to load documents:', error)
+    // Keep documents empty on error
+    documents.value = []
+    totalDocuments.value = 0
   } finally {
     loading.value = false
   }
@@ -445,16 +466,17 @@ const nextPage = () => {
 }
 
 // Helper functions
-const getTypeVariant = (source: string): string => {
-  const variants: Record<string, string> = {
+const getTypeVariant = (source: string): 'approved' | 'denied' | 'deferred' | 'default' | 'primary' | 'secondary' => {
+  const variants: Record<string, 'approved' | 'denied' | 'deferred' | 'default' | 'primary' | 'secondary'> = {
     'CFR38': 'primary',
-    'DSM5': 'danger',
-    'BVA': 'success',
+    'DSM5': 'secondary',
+    'BVA': 'approved',
     'CAVC': 'secondary',
-    'VHA': 'warning',
-    'USC38': 'info'
+    'VHA': 'primary',
+    'USC38': 'primary',
+    'VA-SYNC': 'primary'
   }
-  return variants[source] || 'neutral'
+  return variants[source] || 'default'
 }
 
 const getTypeName = (source: string): string => {
