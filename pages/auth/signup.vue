@@ -205,10 +205,10 @@
               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded mt-1"
             />
             <label for="terms" class="ml-2 block text-sm text-slate-700">
-              I agree to the 
-              <a href="/terms" class="text-blue-600 hover:text-blue-500">Terms of Service</a>
-              and 
-              <a href="/privacy" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+              I agree to the
+              <a href="/terms-of-service" class="text-blue-600 hover:text-blue-500">Terms of Service</a>
+              and
+              <a href="/privacy-policy" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>
             </label>
           </div>
 
