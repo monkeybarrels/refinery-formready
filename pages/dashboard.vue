@@ -383,9 +383,11 @@ onMounted(async () => {
   setupSessionMonitoring()
 
   try {
-    // Load all dashboard data
+    // Load user profile first (needed for userId-dependent calls)
+    await loadUserProfile()
+
+    // Then load remaining data in parallel (all depend on user.userId)
     await Promise.all([
-      loadUserProfile(),
       loadRecentAnalysis(),
       loadAnalytics(),
       fetchSubscriptionStatus()
@@ -426,7 +428,7 @@ const loadUserProfile = async () => {
   }
 }
 
-// Load recent analysis from API
+// Load recent analysis from VA sync decisions
 const loadRecentAnalysis = async () => {
   try {
     const { apiCall } = useApi()
@@ -435,15 +437,27 @@ const loadRecentAnalysis = async () => {
       recentAnalysis.value = []
       return
     }
-    const response = await apiCall('/api/documents/analyses?limit=5')
+
+    // Get user ID for the API call
+    if (!user.userId) {
+      console.warn('No user ID available for loading analysis')
+      recentAnalysis.value = []
+      return
+    }
+
+    // Use VA sync endpoint for decision letters (new architecture)
+    // Note: analyses endpoint returns decision_letter type documents
+    const response = await apiCall(`/api/va-sync/analyses/${user.userId}`)
 
     if (response.ok) {
       const data = await response.json()
-      recentAnalysis.value = data.analyses.map((analysis: any) => ({
-        documentId: analysis.documentId,
-        fileName: analysis.fileName,
-        status: analysis.status || 'analyzed',
-        analyzedAt: analysis.analyzedAt,
+      // Map VA decision documents to dashboard format, limit to 5 most recent
+      const docs = Array.isArray(data) ? data : []
+      recentAnalysis.value = docs.slice(0, 5).map((doc: any) => ({
+        documentId: doc._id || doc.id,
+        fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
+        status: doc.processingState || 'uploaded',
+        analyzedAt: doc.analyzedAt || doc.uploadedAt,
       }))
     }
   } catch (error) {
