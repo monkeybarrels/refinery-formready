@@ -13,6 +13,24 @@
       <p class="mt-4 text-slate-600">Loading your analysis...</p>
     </div>
 
+    <!-- Processing State - Document needs extraction/analysis -->
+    <div v-else-if="processing" class="max-w-7xl mx-auto px-4 py-12 text-center">
+      <div class="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <h2 class="text-xl font-bold text-slate-900 mb-2">Analyzing Your Document</h2>
+        <p class="text-slate-600 mb-4">
+          {{ processingStatus }}
+        </p>
+        <div class="w-full bg-slate-200 rounded-full h-2">
+          <div
+            class="bg-blue-600 h-2 rounded-full transition-all duration-500"
+            :style="{ width: processingProgress + '%' }"
+          ></div>
+        </div>
+        <p class="text-sm text-slate-500 mt-2">This may take a minute...</p>
+      </div>
+    </div>
+
     <!-- Results -->
     <div v-else-if="document" class="max-w-7xl mx-auto px-4 py-8">
       <!-- Page Header -->
@@ -24,6 +42,9 @@
             </h1>
             <p class="text-slate-600">
               Analyzed {{ formatDate(document.uploadedAt) }}
+              <span v-if="document.decisionDate" class="ml-2 text-slate-500">
+                | Letter Date: {{ document.decisionDate }}
+              </span>
             </p>
           </div>
           <div class="flex items-center space-x-4">
@@ -39,8 +60,30 @@
         </div>
       </div>
 
-      <!-- Rating Hero Card -->
+      <!-- No Ratings Found Notice -->
+      <div v-if="!hasRatingsData" class="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+        <div class="flex items-start space-x-4">
+          <Icon name="heroicons:exclamation-triangle" class="w-8 h-8 text-amber-500 flex-shrink-0" />
+          <div>
+            <h3 class="text-lg font-semibold text-amber-800 mb-2">No Rating Information Found</h3>
+            <p class="text-amber-700 mb-3">
+              This document may not be a VA rating decision letter. Rating decision letters typically include:
+            </p>
+            <ul class="list-disc list-inside text-amber-700 text-sm space-y-1 mb-3">
+              <li>Service connection decisions (granted, denied, or deferred)</li>
+              <li>Disability rating percentages</li>
+              <li>Combined evaluation rating</li>
+            </ul>
+            <p class="text-sm text-amber-600">
+              <strong>Document type:</strong> {{ document.processingState === 'analyzed' ? 'Analyzed but no ratings detected' : document.processingState }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating Hero Card - Only show if there's meaningful data -->
       <RatingHeroCard
+        v-if="hasRatingsData"
         :combined-rating="document.combinedRating || 0"
         :monthly-payment="document.monthlyPayment || 0"
         :granted-count="grantedCount"
@@ -99,6 +142,9 @@ const router = useRouter()
 const documentId = route.params.documentId as string
 
 const loading = ref(true)
+const processing = ref(false)
+const processingStatus = ref('Preparing document...')
+const processingProgress = ref(0)
 const document = ref<any>(null)
 
 // Computed properties for condition counts and formatting
@@ -126,6 +172,15 @@ const deferredCount = computed(() => {
   return formattedConditions.value.filter((c: any) => c.decision === 'deferred').length
 })
 
+// Check if we have any meaningful ratings data to display
+const hasRatingsData = computed(() => {
+  // Has ratings data if:
+  // 1. There's a combined rating > 0, OR
+  // 2. There's at least one condition (granted, denied, or deferred)
+  return (document.value?.combinedRating && document.value.combinedRating > 0) ||
+         formattedConditions.value.length > 0
+})
+
 onMounted(async () => {
   const { requireAuth, setupSessionMonitoring } = useAuth()
 
@@ -150,7 +205,35 @@ onMounted(async () => {
 const loadDocument = async () => {
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(`/api/documents/${documentId}`)
+
+    // Try VA sync endpoint first (for documents from Chrome extension)
+    let response = await apiCall(`/api/va-sync/decision/${documentId}`)
+
+    if (response.ok) {
+      const doc = await response.json()
+
+      // DEBUG: Log what API actually returns
+      console.log('🔍 API Response:', JSON.stringify(doc, null, 2))
+      console.log('🔍 doc.ratings:', doc.ratings)
+      console.log('🔍 doc.combinedRating:', doc.combinedRating)
+      console.log('🔍 doc.isAnalyzed:', doc.isAnalyzed)
+      console.log('🔍 doc.processingState:', doc.processingState)
+
+      // Check if document needs processing (no extraction or analysis)
+      const needsProcessing = !doc.isAnalyzed && !doc.ratings?.length
+
+      if (needsProcessing) {
+        console.log('Document needs processing, triggering extraction/analysis...')
+        await triggerProcessing()
+        return
+      }
+
+      document.value = doc
+      return
+    }
+
+    // Fall back to old documents endpoint for legacy documents
+    response = await apiCall(`/api/documents/${documentId}`)
 
     if (response.ok) {
       document.value = await response.json()
@@ -158,6 +241,55 @@ const loadDocument = async () => {
   } catch (error) {
     console.error('Failed to load document:', error)
     throw error
+  }
+}
+
+/**
+ * Trigger processing for unprocessed documents
+ * This gives documents a "second chance" if they weren't processed correctly
+ */
+const triggerProcessing = async () => {
+  const { apiCall } = useApi()
+
+  processing.value = true
+  processingStatus.value = 'Extracting data from document...'
+  processingProgress.value = 20
+
+  try {
+    // Call the process endpoint for this specific document
+    const processResponse = await apiCall(`/api/va-sync/process/document/${documentId}`, {
+      method: 'POST',
+    })
+
+    if (!processResponse.ok) {
+      const errorData = await processResponse.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Processing failed')
+    }
+
+    const result = await processResponse.json()
+    console.log('Processing result:', result)
+
+    processingStatus.value = 'Analysis complete! Loading results...'
+    processingProgress.value = 90
+
+    // Reload the document after processing
+    await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay for UX
+
+    const response = await apiCall(`/api/va-sync/decision/${documentId}`)
+    if (response.ok) {
+      document.value = await response.json()
+      processingProgress.value = 100
+    } else {
+      throw new Error('Failed to load processed document')
+    }
+
+  } catch (error: any) {
+    console.error('Processing failed:', error)
+    processingStatus.value = `Processing failed: ${error.message}`
+    // Keep showing error for a moment, then show error state
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  } finally {
+    processing.value = false
   }
 }
 

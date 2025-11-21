@@ -11,7 +11,7 @@
         <!-- Modal Container -->
         <div class="flex items-center justify-center min-h-screen p-4">
           <div
-            class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all"
+            :class="['relative bg-white rounded-xl shadow-2xl w-full p-6 transform transition-all', sizeClasses]"
             @click.stop
           >
             <!-- Close Button -->
@@ -42,12 +42,12 @@
             </p>
 
             <!-- Content Slot -->
-            <div v-if="$slots.default" class="mb-6">
+            <div v-if="$slots.default" :class="showFooter ? 'mb-6' : ''">
               <slot />
             </div>
 
             <!-- Actions -->
-            <div class="flex gap-3 justify-end">
+            <div v-if="showFooter" class="flex gap-3 justify-end">
               <Button
                 v-if="showCancel"
                 @click="handleCancel"
@@ -89,9 +89,11 @@ interface Props {
   confirmVariant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   showClose?: boolean
   showCancel?: boolean
+  showFooter?: boolean
   loading?: boolean
   loadingText?: string
   closeOnBackdrop?: boolean
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -100,10 +102,29 @@ const props = withDefaults(defineProps<Props>(), {
   confirmVariant: 'primary',
   showClose: true,
   showCancel: true,
+  showFooter: true,
   loading: false,
   loadingText: 'Processing...',
   closeOnBackdrop: true,
-  iconVariant: 'info'
+  iconVariant: 'info',
+  size: 'md'
+})
+
+const sizeClasses = computed(() => {
+  switch (props.size) {
+    case 'sm':
+      return 'max-w-sm'
+    case 'md':
+      return 'max-w-md'
+    case 'lg':
+      return 'max-w-lg'
+    case 'xl':
+      return 'max-w-xl'
+    case '2xl':
+      return 'max-w-2xl'
+    default:
+      return 'max-w-md'
+  }
 })
 
 const emit = defineEmits<{
@@ -149,18 +170,28 @@ const handleBackdropClick = () => {
   }
 }
 
-// Prevent body scroll when modal is open
+// Handle Escape key to close modal
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && !props.loading) {
+    handleClose()
+  }
+}
+
+// Prevent body scroll when modal is open and add keyboard listener
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeydown)
   } else {
     document.body.style.overflow = ''
+    document.removeEventListener('keydown', handleKeydown)
   }
 })
 
 // Cleanup on unmount
 onUnmounted(() => {
   document.body.style.overflow = ''
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
