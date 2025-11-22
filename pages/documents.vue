@@ -139,74 +139,100 @@
             <div
               v-for="doc in analysisDocuments"
               :key="doc.documentId"
-              class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-blue-300 overflow-hidden"
+              class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-blue-300 overflow-hidden flex flex-col"
             >
             <!-- Document Header -->
             <div
               @click="navigateTo(`/analysis/${doc.documentId}`)"
-              class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 border-b border-blue-200 cursor-pointer"
+              :class="[
+                'p-6 border-b cursor-pointer',
+                isDocumentAnalyzed(doc)
+                  ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200'
+                  : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
+              ]"
             >
               <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center hover:scale-110 transition-transform">
-                  <Icon name="heroicons:document-text" class="w-6 h-6 text-white" />
+                <div
+                  :class="[
+                    'w-12 h-12 rounded-lg flex items-center justify-center hover:scale-110 transition-transform',
+                    isDocumentAnalyzed(doc) ? 'bg-blue-600' : 'bg-amber-500'
+                  ]"
+                >
+                  <Icon
+                    :name="isDocumentAnalyzed(doc) ? 'heroicons:document-text' : 'heroicons:clock'"
+                    class="w-6 h-6 text-white"
+                  />
                 </div>
-                <Badge :variant="getStatusVariant(doc.status)" :text="doc.status" />
+                <Badge :variant="getAnalysisStatusVariant(doc.status)" :text="getAnalysisStatusLabel(doc.status)" />
               </div>
               <h3 class="font-semibold text-slate-900 mb-1 truncate">
                 {{ doc.fileName }}
               </h3>
               <p class="text-sm text-slate-600">
-                {{ formatDate(doc.analyzedAt) }}
+                <span v-if="doc.decisionDate">Letter: {{ doc.decisionDate }}</span>
+                <span v-else>Uploaded {{ formatDate(doc.analyzedAt) }}</span>
               </p>
             </div>
 
-            <!-- Document Stats -->
+            <!-- Document Stats - Always shown with consistent height -->
             <div
               @click="navigateTo(`/analysis/${doc.documentId}`)"
-              class="p-6 cursor-pointer"
+              class="p-6 cursor-pointer flex-1 flex flex-col"
             >
-              <div v-if="doc.combinedRating !== null || doc.monthlyPayment !== null" class="grid grid-cols-2 gap-4 mb-4">
-                <div v-if="doc.combinedRating !== null" class="text-center p-3 bg-blue-50 rounded-lg">
+              <!-- Rating Section - Always shown -->
+              <div class="h-20 mb-4">
+                <div v-if="isDocumentAnalyzed(doc) && doc.combinedRating !== null" class="text-center p-3 bg-blue-50 rounded-lg h-full flex flex-col justify-center">
                   <div class="text-2xl font-bold text-blue-600">{{ doc.combinedRating }}%</div>
                   <div class="text-xs text-slate-600">Combined Rating</div>
                 </div>
-                <div v-if="doc.monthlyPayment !== null" class="text-center p-3 bg-green-50 rounded-lg">
-                  <div class="text-xl font-bold text-green-600">${{ Math.round(doc.monthlyPayment) }}</div>
-                  <div class="text-xs text-slate-600">Monthly</div>
+                <div v-else-if="isDocumentAnalyzed(doc)" class="text-center p-3 bg-slate-50 rounded-lg h-full flex flex-col justify-center">
+                  <div class="text-lg font-semibold text-slate-400">No Rating</div>
+                  <div class="text-xs text-slate-500">Combined rating not found</div>
+                </div>
+                <div v-else class="text-center p-3 bg-amber-50 rounded-lg h-full flex flex-col justify-center border border-amber-200">
+                  <Icon name="heroicons:clock" class="w-6 h-6 text-amber-500 mx-auto mb-1" />
+                  <div class="text-sm font-medium text-amber-700">Pending Analysis</div>
+                  <div class="text-xs text-amber-600">Click to process</div>
                 </div>
               </div>
 
-              <!-- Condition Summary -->
-              <div v-if="doc.conditionsCount" class="flex items-center justify-between text-sm mb-4">
-                <div class="flex items-center text-green-600">
-                  <Icon name="heroicons:check-circle" class="w-4 h-4 mr-1" />
-                  <span>{{ doc.grantedCount || 0 }} Granted</span>
+              <!-- Condition Summary - Always shown with fixed height -->
+              <div class="h-8 mb-4">
+                <div v-if="isDocumentAnalyzed(doc) && doc.conditionsCount > 0" class="flex items-center justify-center gap-4 text-sm">
+                  <div class="flex items-center text-green-600">
+                    <Icon name="heroicons:check-circle" class="w-4 h-4 mr-1" />
+                    <span>{{ doc.grantedCount || 0 }} Granted</span>
+                  </div>
+                  <div class="flex items-center text-red-600">
+                    <Icon name="heroicons:x-circle" class="w-4 h-4 mr-1" />
+                    <span>{{ doc.deniedCount || 0 }} Denied</span>
+                  </div>
                 </div>
-                <div class="flex items-center text-red-600">
-                  <Icon name="heroicons:x-circle" class="w-4 h-4 mr-1" />
-                  <span>{{ doc.deniedCount || 0 }} Denied</span>
+                <div v-else-if="isDocumentAnalyzed(doc)" class="text-center text-sm text-slate-400">
+                  No conditions found
                 </div>
-                <div v-if="doc.deferredCount > 0" class="flex items-center text-amber-600">
-                  <Icon name="heroicons:clock" class="w-4 h-4 mr-1" />
-                  <span>{{ doc.deferredCount || 0 }} Deferred</span>
+                <div v-else class="text-center text-sm text-amber-600">
+                  Conditions will appear after analysis
                 </div>
               </div>
 
-              <!-- View Button -->
-              <div class="flex items-center justify-between pt-4 border-t border-slate-200">
-                <span class="text-sm text-slate-600">Click to view details</span>
+              <!-- View Button - Always at bottom -->
+              <div class="flex items-center justify-between pt-4 border-t border-slate-200 mt-auto">
+                <span class="text-sm text-slate-600">
+                  {{ isDocumentAnalyzed(doc) ? 'Click to view details' : 'Click to analyze' }}
+                </span>
                 <Icon name="heroicons:arrow-right" class="w-5 h-5 text-blue-600 hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Action Buttons - Fixed position at bottom -->
             <div class="px-6 pb-6 flex gap-2">
               <Button
                 @click.stop="downloadPdf(doc.documentId)"
                 variant="secondary"
                 size="sm"
                 class="flex-1"
-                :disabled="downloadingId === doc.documentId"
+                :disabled="downloadingId === doc.documentId || !isDocumentAnalyzed(doc)"
               >
                 <Icon name="heroicons:arrow-down-tray" class="w-4 h-4 mr-1" />
                 {{ downloadingId === doc.documentId ? 'Downloading...' : 'Download PDF' }}
@@ -730,6 +756,10 @@ const updateUrl = (params: Record<string, any>) => {
 
 onMounted(async () => {
   const { requireAuth, setupSessionMonitoring } = useAuth()
+  const { initializeFromStorage } = useGlobalAuth()
+
+  // Ensure global auth state is initialized from localStorage first
+  initializeFromStorage()
 
   // Require authentication - will redirect if not authenticated
   const isAuth = await requireAuth()
@@ -757,11 +787,16 @@ onMounted(async () => {
   })
 
   try {
+    console.log('🚀 Starting to load all documents...')
+    console.log('🚀 About to call loadAnalysisDocuments, loadVaDocuments, fetchSubscriptionStatus')
+
     await Promise.all([
       loadAnalysisDocuments(),
       loadVaDocuments(),
       fetchSubscriptionStatus()
     ])
+
+    console.log('✅ All documents loaded successfully')
   } catch (error) {
     console.error('Failed to load documents:', error)
     toast.error('Failed to load documents')
@@ -841,19 +876,32 @@ const handleDelete = async () => {
 
   deleteModal.value.loading = true
 
-  // Handle both types of documents:
-  // - Analysis documents have 'documentId' property
-  // - VA documents have 'id' property
+  // Handle document types:
+  // - Analysis documents (from VA sync) have 'documentId' property
+  // - VA correspondence documents have 'id' property
   const doc = deleteModal.value.document
-  const isVaDocument = 'id' in doc && !('documentId' in doc)
-  const documentIdToDelete = isVaDocument ? doc.id : doc.documentId
-  const apiEndpoint = isVaDocument
-    ? `/api/document-management/documents/${documentIdToDelete}`
-    : `/api/documents/${documentIdToDelete}`
+  const isVaCorrespondence = 'id' in doc && !('documentId' in doc)
+  const isAnalysisDocument = 'documentId' in doc
+  const documentIdToDelete = isVaCorrespondence ? doc.id : doc.documentId
+
+  // VA correspondence documents can't be deleted yet
+  if (isVaCorrespondence) {
+    toast.error('Deleting VA correspondence is not yet supported')
+    deleteModal.value.loading = false
+    deleteModal.value.isOpen = false
+    deleteModal.value.document = null
+    return
+  }
 
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(apiEndpoint, {
+
+    // Analysis documents use VA sync endpoint
+    const endpoint = isAnalysisDocument
+      ? `/api/va-sync/decision/${documentIdToDelete}`
+      : `/api/documents/${documentIdToDelete}`
+
+    const response = await apiCall(endpoint, {
       method: 'DELETE'
     })
 
@@ -869,7 +917,9 @@ const handleDelete = async () => {
       // Reload appropriate documents list
       loading.value = true
       try {
-        if (isVaDocument) {
+        if (isAnalysisDocument) {
+          await loadAnalysisDocuments()
+        } else if (isVaCorrespondence) {
           await loadVaDocuments()
         } else {
           await loadDocuments()
@@ -987,76 +1037,154 @@ const getVaStatusVariant = (status: string): BadgeVariant => {
   }
 }
 
-// Load analysis documents (existing decision letter analyses)
+// Helper to check if document is analyzed
+const isDocumentAnalyzed = (doc: any): boolean => {
+  return doc.status === 'analyzed' || doc.status === 'extracted'
+}
+
+// Get analysis-specific status variant
+const getAnalysisStatusVariant = (status: string): BadgeVariant => {
+  switch (status) {
+    case 'analyzed': return 'approved'
+    case 'extracted': return 'primary'
+    case 'extracting':
+    case 'analyzing': return 'secondary'
+    case 'extraction_failed':
+    case 'analysis_failed': return 'denied'
+    case 'uploaded': return 'deferred'
+    default: return 'default'
+  }
+}
+
+// Get human-readable status label
+const getAnalysisStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    uploaded: 'Pending',
+    extracting: 'Extracting...',
+    extracted: 'Extracted',
+    analyzing: 'Analyzing...',
+    analyzed: 'Analyzed',
+    extraction_failed: 'Extract Failed',
+    analysis_failed: 'Analysis Failed'
+  }
+  return labels[status] || status
+}
+
+// Load analysis documents (decision letters from VA sync)
 const loadAnalysisDocuments = async () => {
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(
-      `/api/documents/analyses?page=${analysesPagination.value.page}&limit=${analysesPagination.value.limit}`
-    )
+    const { user } = useGlobalAuth()
+
+    if (!user.value?.id) {
+      console.warn('❌ No user ID available, skipping analysis documents load')
+      analysisDocuments.value = []
+      analysesPagination.value.total = 0
+      return
+    }
+
+    // VA sync uses authorizerId (Authorizer UUID), not MongoDB _id
+    const userId = user.value.authorizerId || user.value.userId || user.value.id
+    // Use analyses endpoint which filters for decision_letter only
+    const response = await apiCall(`/api/va-sync/analyses/${userId}`)
 
     if (response.ok) {
       const data = await response.json()
-      analysisDocuments.value = data.analyses.map((doc: any) => ({
-        documentId: doc.documentId,
-        fileName: doc.fileName,
-        status: doc.status || 'analyzed',
-        analyzedAt: doc.analyzedAt,
-        combinedRating: doc.combinedRating,
-        monthlyPayment: doc.monthlyPayment,
-        conditionsCount: doc.conditions.length || 0,
-        grantedCount: doc.conditions.filter((condition: any) => condition.status === 'approved').length || 0,
-        deniedCount: doc.conditions.filter((condition: any) => condition.status === 'denied').length || 0,
-        deferredCount: doc.conditions.filter((condition: any) => condition.status === 'deferred').length || 0
+      console.log('📊 Analysis documents received:', data?.length || 0)
+
+      // Map VA decision letters to analysis format
+      analysisDocuments.value = (data || []).map((doc: any) => ({
+        documentId: doc._id || doc.id,
+        fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
+        status: doc.processingState || 'uploaded',
+        analyzedAt: doc.analyzedAt || doc.uploadedAt,
+        decisionDate: doc.extractionData?.decisionDate || null, // Date of the VA letter
+        combinedRating: doc.extractionData?.combinedRating || null,
+        monthlyPayment: null, // Not available from VA sync
+        conditionsCount: doc.extractionData?.ratings?.length || 0,
+        grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
+        deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
+        deferredCount: 0
       }))
 
-      analysesPagination.value.total = data.pagination.total
+      analysesPagination.value.total = data?.length || 0
     } else {
       throw new Error('Failed to fetch analysis documents')
     }
   } catch (error) {
     console.error('Failed to load analysis documents:', error)
-    throw error
+    analysisDocuments.value = []
+    analysesPagination.value.total = 0
   }
 }
 
-// Load VA documents from Document Management system
+// Load VA documents from VA Sync system
 const loadVaDocuments = async () => {
+  console.log('📥 loadVaDocuments CALLED!')
   try {
     const { apiCall } = useApi()
-    const response = await apiCall(
-      `/api/document-management/documents?status=all&limit=${vaDocsPagination.value.limit}&offset=${(vaDocsPagination.value.page - 1) * vaDocsPagination.value.limit}&sortBy=createdAt&sortOrder=desc`
-    )
+    const { user } = useGlobalAuth()
+
+    console.log('🔍 loadVaDocuments - user.value:', user.value)
+    console.log('🔍 loadVaDocuments - user.value?.id:', user.value?.id)
+
+    if (!user.value?.id) {
+      console.warn('❌ No user ID available, skipping VA documents load')
+      console.warn('❌ user.value:', user.value)
+      vaDocuments.value = []
+      vaDocsPagination.value.total = 0
+      return
+    }
+
+    // VA sync uses authorizerId (Authorizer UUID), not MongoDB _id
+    const userId = user.value.authorizerId || user.value.userId || user.value.id
+    // Use va-documents endpoint which filters for correspondence only
+    const url = `/api/va-sync/va-documents/${userId}`
+    console.log('✅ Calling VA sync API with URL:', url)
+    console.log('✅ User ID being used:', userId)
+    console.log('✅ Using field:', user.value.authorizerId ? 'authorizerId' : (user.value.userId ? 'userId' : 'id'))
+
+    const response = await apiCall(url)
+    console.log('📦 VA sync response status:', response.status)
+    console.log('📦 VA sync response ok:', response.ok)
 
     if (response.ok) {
       const data = await response.json()
-      vaDocuments.value = data.documents || []
-      vaDocsPagination.value.total = data.total || 0
+      console.log('📦 VA sync data received:', data)
+      console.log('📦 Number of documents:', data?.length || 0)
+
+      // Map VA decision letters to frontend format
+      vaDocuments.value = (data || []).map((letter: any) => ({
+        id: letter._id || letter.id,
+        fileName: letter.displayName || letter.pdfFileName || 'VA Document',
+        fileSizeBytes: letter.pdfSizeBytes || 0,
+        documentType: letter.documentType || 'decision_letter',
+        processingStatus: letter.isParsed ? 'classified' : 'uploaded',
+        createdAt: letter.syncedAt || letter.createdAt,
+        processedAt: letter.parsedAt,
+        sourceService: 'VA-SYNC',
+        sourceDocumentId: letter.vaDocumentId,
+      }))
+      vaDocsPagination.value.total = vaDocuments.value.length
+      console.log('✅ VA documents loaded successfully:', vaDocuments.value.length)
     } else {
+      const errorText = await response.text()
+      console.error('❌ VA sync API error response:', errorText)
       throw new Error('Failed to fetch VA documents')
     }
   } catch (error) {
-    console.error('Failed to load VA documents:', error)
-    throw error
+    console.error('💥 EXCEPTION in loadVaDocuments:', error)
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack')
+    // Don't throw - just set empty state
+    vaDocuments.value = []
+    vaDocsPagination.value.total = 0
   }
 }
 
 // Retry failed document processing
 const retryProcessing = async (documentId: string) => {
   try {
-    const { apiCall } = useApi()
-    const response = await apiCall(
-      `/api/document-management/documents/${documentId}/retry`,
-      { method: 'POST' }
-    )
-
-    if (response.ok) {
-      toast.success('Document processing requeued')
-      // Reload VA documents to show updated status
-      await loadVaDocuments()
-    } else {
-      throw new Error('Failed to retry processing')
-    }
+    toast.error('Retry processing not yet implemented for VA documents')
   } catch (error: any) {
     console.error('Failed to retry processing:', error)
     toast.error(error.message || 'Failed to retry processing')
@@ -1088,20 +1216,7 @@ const getAnalysisButtonIcon = (doc: any) => {
 // Send document for decision review and analysis
 const analyzeDocument = async (documentId: string) => {
   try {
-    const { apiCall } = useApi()
-    const response = await apiCall(
-      `/api/document-management/documents/${documentId}/analyze`,
-      { method: 'POST' }
-    )
-
-    if (response.ok) {
-      toast.success('Document sent for analysis')
-      // Reload VA documents to show updated status
-      await loadVaDocuments()
-    } else {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to send document for analysis')
-    }
+    toast.error('Document analysis not yet implemented for VA documents')
   } catch (error: any) {
     console.error('Failed to analyze document:', error)
     toast.error(error.message || 'Failed to send document for analysis')
@@ -1152,30 +1267,41 @@ const openDocumentDetail = async (documentId: string) => {
   try {
     const { apiCall } = useApi()
 
+    // Use VA sync endpoint for VA documents tab, document-management for others
+    const isVaDocument = activeTab.value === 'va-documents'
+    const endpoint = isVaDocument
+      ? `/api/va-sync/correspondence/${documentId}`
+      : `/api/document-management/documents/${documentId}`
+
     // Fetch document details
-    const docResponse = await apiCall(`/api/document-management/documents/${documentId}`)
+    const docResponse = await apiCall(endpoint)
     if (!docResponse.ok) {
       throw new Error('Failed to load document details')
     }
     detailModal.value.document = await docResponse.json()
 
-    // Fetch PDF URL
+    // Fetch PDF URL (use VA sync endpoint for VA documents)
     detailModal.value.pdfLoading = true
-    const pdfResponse = await apiCall(`/api/document-management/documents/${documentId}/pdf`)
+    const pdfEndpoint = isVaDocument
+      ? `/api/va-sync/correspondence/${documentId}/pdf`
+      : `/api/document-management/documents/${documentId}/pdf`
+    const pdfResponse = await apiCall(pdfEndpoint)
     if (pdfResponse.ok) {
       const pdfData = await pdfResponse.json()
       detailModal.value.pdfUrl = pdfData.url
     }
     detailModal.value.pdfLoading = false
 
-    // Fetch document content
-    detailModal.value.contentLoading = true
-    const contentResponse = await apiCall(
-      `/api/document-management/documents/${documentId}/content?maxLength=1000`
-    )
+    // Fetch document content (only for non-VA documents - VA docs don't have extracted content)
+    if (!isVaDocument) {
+      detailModal.value.contentLoading = true
+      const contentResponse = await apiCall(
+        `/api/document-management/documents/${documentId}/content?maxLength=1000`
+      )
 
-    if (contentResponse.ok) {
-      detailModal.value.content = await contentResponse.json()
+      if (contentResponse.ok) {
+        detailModal.value.content = await contentResponse.json()
+      }
     }
   } catch (error: any) {
     console.error('Failed to load document:', error)
@@ -1202,46 +1328,9 @@ const cancelEditFileName = () => {
 
 // Save filename
 const saveFileName = async () => {
-  if (!detailModal.value.editedFileName || !detailModal.value.editedFileName.trim()) {
-    toast.error('Filename cannot be empty')
-    return
-  }
-
-  detailModal.value.savingFileName = true
-
-  try {
-    const { apiCall } = useApi()
-    const response = await apiCall(
-      `/api/document-management/documents/${detailModal.value.document.id}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: detailModal.value.editedFileName.trim(),
-        }),
-      }
-    )
-
-    if (response.ok) {
-      const updatedDoc = await response.json()
-      detailModal.value.document.fileName = updatedDoc.fileName
-      detailModal.value.editingFileName = false
-      detailModal.value.editedFileName = ''
-      toast.success('Filename updated successfully')
-
-      // Refresh the VA documents list to show updated name
-      await loadVaDocuments()
-    } else {
-      throw new Error('Failed to update filename')
-    }
-  } catch (error: any) {
-    console.error('Failed to update filename:', error)
-    toast.error(error.message || 'Failed to update filename')
-  } finally {
-    detailModal.value.savingFileName = false
-  }
+  toast.error('Editing filenames not yet implemented for VA documents')
+  detailModal.value.editingFileName = false
+  detailModal.value.editedFileName = ''
 }
 
 </script>

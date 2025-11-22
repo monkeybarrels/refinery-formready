@@ -60,6 +60,17 @@
             <span v-if="$route.path === '/documents'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
+          <!-- Claim Status -->
+          <NuxtLink
+            v-if="isAuthenticated"
+            to="/claim-status"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path === '/claim-status' }"
+          >
+            Claim Status
+            <span v-if="$route.path === '/claim-status'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
           <!-- Pricing (Show for non-premium or guests) -->
           <NuxtLink
             v-if="!isPremiumUser"

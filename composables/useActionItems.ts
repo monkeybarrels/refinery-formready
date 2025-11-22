@@ -23,7 +23,7 @@ export interface ActionItem {
  */
 interface ActionItemsResponse {
   documentId: string
-  userId: string
+  authorizerId: string
   generatedAt: string
   actionItems: ActionItem[]
   metadata: {

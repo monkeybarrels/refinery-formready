@@ -29,7 +29,7 @@ export const useBilling = () => {
   const error: Ref<string | null> = ref(null);
 
   /**
-   * Get current user ID from auth token
+   * Get current user ID (authorizerId) from auth token
    */
   const getUserId = (): string | null => {
     if (typeof window === 'undefined') return null;
@@ -37,9 +37,10 @@ export const useBilling = () => {
     if (!token) return null;
 
     try {
-      // Decode JWT token to get user ID
+      // Decode JWT token to get authorizerId
+      // Authorizer.dev tokens contain 'sub' which is the authorizerId
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId || payload.sub || payload.id || null;
+      return payload.sub || payload.authorizerId || payload.id || null;
     } catch {
       return null;
     }
