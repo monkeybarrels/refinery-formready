@@ -1,7 +1,10 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <!-- Minimal header with menu -->
-    <header class="bg-white shadow-sm">
+    <!-- Use full Navigation for authenticated users, minimal header for anonymous -->
+    <Navigation v-if="isAuthenticated" />
+
+    <!-- Minimal header with menu (anonymous users only) -->
+    <header v-else class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4">
         <div class="flex justify-between items-center">
           <div class="flex items-center space-x-4">
@@ -57,8 +60,8 @@
       </div>
     </header>
 
-    <!-- Expiration Notice -->
-    <div class="bg-amber-50 border-b border-amber-200 py-3">
+    <!-- Expiration Notice (anonymous users only) -->
+    <div v-if="!isAuthenticated" class="bg-amber-50 border-b border-amber-200 py-3">
       <div class="max-w-7xl mx-auto px-4 text-center">
         <Icon name="heroicons:clock" class="w-4 h-4 inline mr-2" />
         <span class="text-sm text-amber-800">
@@ -70,9 +73,19 @@
       </div>
     </div>
 
+    <!-- Success banner for authenticated users -->
+    <div v-if="isAuthenticated" class="bg-green-50 border-b border-green-200 py-3">
+      <div class="max-w-7xl mx-auto px-4 text-center">
+        <Icon name="heroicons:check-circle" class="w-4 h-4 inline mr-2 text-green-600" />
+        <span class="text-sm text-green-800">
+          Analysis complete! Your results have been saved to your account.
+        </span>
+      </div>
+    </div>
+
     <!-- Back Navigation -->
     <div class="max-w-7xl mx-auto px-4 py-4 sm:hidden">
-      <BackButton to="/analyze" label="Start New Analysis" />
+      <BackButton :to="isAuthenticated ? '/documents' : '/analyze'" :label="isAuthenticated ? 'Back to Documents' : 'Start New Analysis'" />
     </div>
 
     <!-- Loading State -->
@@ -83,8 +96,9 @@
 
     <!-- Results -->
     <div v-else-if="results" class="max-w-7xl mx-auto px-4 py-8">
-      <!-- Countdown Timer -->
+      <!-- Countdown Timer (anonymous users only) -->
       <CountdownTimer
+        v-if="!isAuthenticated"
         :expires-at="expirationDate"
         @show-signup="navigateTo('/auth/signup')"
       />
@@ -103,23 +117,21 @@
         :conditions="formattedConditions"
         :denial-reasons="results.denialReasons || []"
         :deferred-reasons="results.deferredReasons || []"
+        :is-authenticated="isAuthenticated"
         @show-signup="navigateTo('/auth/signup')"
       />
 
-      <!-- Locked Feature Teaser -->
+      <!-- Locked Feature Teaser (anonymous users only) -->
       <LockedFeatureTeaser
+        v-if="!isAuthenticated"
         @show-signup="navigateTo('/auth/signup')"
       />
 
-      <!-- Free vs Paid Comparison -->
+      <!-- Free vs Paid Comparison (anonymous users only) -->
       <FreeVsPaidGrid
+        v-if="!isAuthenticated"
         @show-signup="navigateTo('/auth/signup')"
       />
-
-      <!-- Social Proof (Hidden until we have real testimonials) -->
-      <!-- <SocialProof
-        @show-signup="navigateTo('/auth/signup')"
-      /> -->
 
       <!-- Actions -->
       <div class="mt-8 flex flex-col sm:flex-row gap-4">
@@ -128,9 +140,14 @@
           Download Summary PDF
         </Button>
 
-        <Button @click="navigateTo('/auth/signup')" variant="secondary">
+        <Button v-if="!isAuthenticated" @click="navigateTo('/auth/signup')" variant="secondary">
           <Icon name="heroicons:bookmark" class="w-4 h-4 mr-2" />
           Save Full Results (Sign Up Free)
+        </Button>
+
+        <Button v-if="isAuthenticated" @click="navigateTo('/documents')" variant="secondary">
+          <Icon name="heroicons:folder" class="w-4 h-4 mr-2" />
+          View All Documents
         </Button>
 
         <Button @click="navigateTo('/analyze')" variant="secondary">
@@ -139,8 +156,8 @@
         </Button>
       </div>
 
-      <!-- Final CTA -->
-      <div class="mt-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-2xl p-12 text-center text-white">
+      <!-- Final CTA (anonymous users only) -->
+      <div v-if="!isAuthenticated" class="mt-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-2xl p-12 text-center text-white">
         <h3 class="text-3xl font-bold mb-4">
           Ready to Take the Next Step?
         </h3>
@@ -179,6 +196,7 @@ import Button from "~/components/atoms/Button.vue";
 import BackButton from "~/components/atoms/BackButton.vue";
 import Logo from "~/components/atoms/Logo.vue";
 import Breadcrumb from "~/components/molecules/Breadcrumb.vue";
+import Navigation from "~/components/organisms/Navigation.vue";
 import RatingHeroCard from "~/components/organisms/RatingHeroCard.vue";
 import ConditionsGridEnhanced from "~/components/organisms/ConditionsGridEnhanced.vue";
 import CountdownTimer from "~/components/organisms/CountdownTimer.vue";
@@ -192,6 +210,10 @@ const sessionId = route.params.sessionId as string
 const loading = ref(true)
 const results = ref<any>(null)
 const showMobileMenu = ref(false)
+
+// Check authentication status
+const { isAuthenticated: isAuthenticatedFn } = useAuth()
+const isAuthenticated = computed(() => isAuthenticatedFn())
 
 // Computed properties for condition counts and formatting
 const formattedConditions = computed(() => {
