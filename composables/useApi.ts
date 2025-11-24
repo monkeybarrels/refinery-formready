@@ -36,13 +36,22 @@ export const useApi = () => {
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('auth_token')
 
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
+    // Check if body is FormData - if so, don't set Content-Type
+    // Let browser set it with the multipart boundary
+    const isFormData = options.body instanceof FormData
+
+    const defaultHeaders: Record<string, string> = {
       ...(token && { 'Authorization': `Bearer ${token}` })
     }
+
+    // Only add Content-Type for non-FormData requests
+    if (!isFormData) {
+      defaultHeaders['Content-Type'] = 'application/json'
+    }
+
     const url = getApiUrl(endpoint)
-    console.log('🔧 API URL:', url)
-    
+    console.log('🔧 API URL:', url, isFormData ? '(FormData)' : '')
+
     let response: Response
     try {
       response = await fetch(url, {

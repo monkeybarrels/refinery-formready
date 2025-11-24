@@ -1070,7 +1070,9 @@ const getAnalysisStatusLabel = (status: string): string => {
   return labels[status] || status
 }
 
-// Load analysis documents (decision letters from VA sync)
+// Load analysis documents from both sources:
+// 1. VA sync decision letters (Chrome extension uploads)
+// 2. Documents service analyses (direct uploads from /analyze page)
 const loadAnalysisDocuments = async () => {
   try {
     const { apiCall } = useApi()
@@ -1083,34 +1085,85 @@ const loadAnalysisDocuments = async () => {
       return
     }
 
-    // VA sync uses authorizerId (Authorizer UUID), not MongoDB _id
+    // Fetch from both sources in parallel
     const userId = user.value.authorizerId || user.value.userId || user.value.id
-    // Use analyses endpoint which filters for decision_letter only
-    const response = await apiCall(`/api/va-sync/analyses/${userId}`)
 
-    if (response.ok) {
-      const data = await response.json()
-      console.log('📊 Analysis documents received:', data?.length || 0)
+    const [vaSyncResponse, documentsResponse] = await Promise.all([
+      // VA sync analyses (Chrome extension uploads)
+      apiCall(`/api/va-sync/analyses/${userId}`).catch(err => {
+        console.warn('VA sync analyses failed:', err)
+        return { ok: false }
+      }),
+      // Documents service analyses (direct uploads from /analyze page)
+      apiCall('/api/documents/analyses').catch(err => {
+        console.warn('Documents analyses failed:', err)
+        return { ok: false }
+      })
+    ])
 
-      // Map VA decision letters to analysis format
-      analysisDocuments.value = (data || []).map((doc: any) => ({
+    let allDocuments: any[] = []
+
+    // Process VA sync documents
+    if (vaSyncResponse.ok) {
+      const vaSyncData = await vaSyncResponse.json()
+      console.log('📊 VA sync documents received:', vaSyncData?.length || 0)
+
+      const vaSyncDocs = (vaSyncData || []).map((doc: any) => ({
         documentId: doc._id || doc.id,
         fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
         status: doc.processingState || 'uploaded',
         analyzedAt: doc.analyzedAt || doc.uploadedAt,
-        decisionDate: doc.extractionData?.decisionDate || null, // Date of the VA letter
+        decisionDate: doc.extractionData?.decisionDate || null,
         combinedRating: doc.extractionData?.combinedRating || null,
-        monthlyPayment: null, // Not available from VA sync
+        monthlyPayment: null,
         conditionsCount: doc.extractionData?.ratings?.length || 0,
         grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
         deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
-        deferredCount: 0
+        deferredCount: 0,
+        source: 'va-sync'
       }))
-
-      analysesPagination.value.total = data?.length || 0
-    } else {
-      throw new Error('Failed to fetch analysis documents')
+      allDocuments.push(...vaSyncDocs)
     }
+
+    // Process documents service analyses (from /analyze page)
+    if (documentsResponse.ok) {
+      const documentsData = await documentsResponse.json()
+      console.log('📊 Documents service analyses received:', documentsData?.analyses?.length || 0)
+
+      const directUploadDocs = (documentsData?.analyses || []).map((doc: any) => ({
+        documentId: doc.documentId,
+        fileName: doc.fileName || 'Decision Letter',
+        status: doc.status || 'analyzed',
+        analyzedAt: doc.analyzedAt,
+        decisionDate: null,
+        combinedRating: doc.combinedRating || null,
+        monthlyPayment: doc.monthlyPayment || null,
+        conditionsCount: doc.conditionsCount || 0,
+        grantedCount: doc.grantedCount || 0,
+        deniedCount: doc.deniedCount || 0,
+        deferredCount: doc.deferredCount || 0,
+        source: 'direct-upload'
+      }))
+      allDocuments.push(...directUploadDocs)
+    }
+
+    // Deduplicate by documentId (prefer more recent entry)
+    const docMap = new Map<string, any>()
+    for (const doc of allDocuments) {
+      const existing = docMap.get(doc.documentId)
+      if (!existing || new Date(doc.analyzedAt) > new Date(existing.analyzedAt)) {
+        docMap.set(doc.documentId, doc)
+      }
+    }
+
+    // Sort by analyzedAt descending (most recent first)
+    analysisDocuments.value = Array.from(docMap.values()).sort((a, b) => {
+      return new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime()
+    })
+
+    analysesPagination.value.total = analysisDocuments.value.length
+    console.log('📊 Total unique analysis documents:', analysisDocuments.value.length)
+
   } catch (error) {
     console.error('Failed to load analysis documents:', error)
     analysisDocuments.value = []

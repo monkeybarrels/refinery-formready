@@ -114,10 +114,12 @@ import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
 import { useApi } from "~/composables/useApi";
+import { useFirebaseNotifications, type JobStatus } from "~/composables/useFirebaseNotifications";
 
 const toast = useToast()
 const { handleError } = useAnalysisErrors()
 const { trackFunnel, trackAnalysis, trackFileUpload } = useAnalytics()
+const { watchJob, unwatchJob } = useFirebaseNotifications()
 const route = useRoute()
 
 const analyzing = ref(false)
@@ -125,6 +127,23 @@ const sessionId = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
 const analysisStartTime = ref<number | null>(null)
+const currentJobId = ref<string | null>(null) // Track active job for cleanup
+
+// Map RTDB status to UI step (0-indexed for LoadingState)
+const statusToStep = (status: JobStatus['status']): number => {
+  switch (status) {
+    case 'queued':
+    case 'processing':
+      return 1 // "Uploading document" (already done, show as active)
+    case 'extracting':
+      return 2 // "Extracting text from PDF"
+    case 'analyzing':
+    case 'complete':
+      return 3 // "Analyzing decision details"
+    default:
+      return 1
+  }
+}
 
 // Get authentication and subscription state
 const { isAuthenticated: isAuthenticatedFn } = useAuth()
@@ -162,6 +181,14 @@ onMounted(async () => {
   } else {
     // Premium users or authenticated users don't have limits
     freeAnalysisCount.value = 0
+  }
+})
+
+// Cleanup RTDB watcher if user navigates away during analysis
+onUnmounted(() => {
+  if (currentJobId.value) {
+    unwatchJob(currentJobId.value)
+    currentJobId.value = null
   }
 })
 
@@ -209,70 +236,54 @@ const analyzeDocument = async () => {
     // Track analysis started
     trackAnalysis.started(userId, undefined)
 
-    // Step 1: Get presigned URL (authenticated or anonymous)
-    console.log('Step 1: Getting presigned URL...')
-    let presignedData: any
+    // Step 1 & 2 combined: Upload file directly through API (avoids GCS CORS issues)
+    console.log('Step 1: Uploading file through API...')
+    currentStep.value = 1
+
+    // Create FormData for multipart upload
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    formData.append('path', isAuthenticated.value ? 'documents' : 'uploads')
+
+    let uploadData: any
     let fileId: string
 
     if (isAuthenticated.value) {
-      // Use authenticated endpoint - returns fileId (UUID) and associates with user
-      const presignedResponse = await apiCall('/api/storage/upload/presigned', {
+      // Use authenticated endpoint (useApi detects FormData and sets correct headers)
+      const uploadResponse = await apiCall('/api/storage/upload', {
         method: 'POST',
-        body: JSON.stringify({
-          fileName: selectedFile.value.name,
-          contentType: selectedFile.value.type,
-          path: 'documents'
-        })
+        body: formData
       })
 
-      if (!presignedResponse.ok) {
-        const errorData = await presignedResponse.json().catch(() => ({}))
-        throw { response: presignedResponse, message: errorData.message || 'Presigned URL failed' }
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        throw { response: uploadResponse, message: errorData.message || 'Upload failed' }
       }
 
-      presignedData = await presignedResponse.json()
-      fileId = presignedData.fileId // This is a UUID, not anonymous-xxx
-      console.log('Step 1 complete: Got authenticated presigned URL, fileId:', fileId)
+      uploadData = await uploadResponse.json()
+      fileId = uploadData.fileId
+      console.log('Step 1 complete: File uploaded via API, fileId:', fileId)
     } else {
-      // Use anonymous endpoint for non-authenticated users
-      const presignedResponse = await fetch(
-        `${apiUrl}/api/storage/upload/presigned/anonymous`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: selectedFile.value.name,
-            contentType: selectedFile.value.type,
-            path: 'anonymous'
-          })
-        }
-      )
+      // Use public upload endpoint for anonymous users
+      const uploadResponse = await fetch(`${apiUrl}/api/storage/upload`, {
+        method: 'POST',
+        body: formData
+        // No headers - let browser set Content-Type with boundary for FormData
+      })
 
-      if (!presignedResponse.ok) {
-        const errorData = await presignedResponse.json().catch(() => ({}))
-        throw { response: presignedResponse, message: errorData.message || 'Presigned URL failed' }
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        throw { response: uploadResponse, message: errorData.message || 'Upload failed' }
       }
 
-      presignedData = await presignedResponse.json()
-      fileId = presignedData.fileId // This is also a UUID from presigned endpoint
-      console.log('Step 1 complete: Got anonymous presigned URL, fileId:', fileId)
+      uploadData = await uploadResponse.json()
+      fileId = uploadData.fileId
+      console.log('Step 1 complete: File uploaded via API (anonymous), fileId:', fileId)
     }
 
-    const { uploadUrl } = presignedData
-
-    // Step 2: Upload to S3
-    console.log('Step 2: Uploading to S3...')
+    // Step 2: Upload complete (already done in step 1)
     currentStep.value = 2
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: selectedFile.value,
-      headers: { 'Content-Type': selectedFile.value.type }
-    })
-
-    if (!uploadResponse.ok) {
-      throw { response: uploadResponse, message: 'S3 upload failed' }
-    }
-    console.log('Step 2 complete: File uploaded to S3')
+    console.log('Step 2 complete: File uploaded successfully')
 
     // Track file upload completion
     if (selectedFile.value) {
@@ -280,9 +291,7 @@ const analyzeDocument = async () => {
       trackFileUpload.completed(userId, selectedFile.value.type, selectedFile.value.size, uploadTime)
     }
 
-    // Construct full S3 URL from the upload URL
-    const s3Url = new URL(uploadUrl)
-    const storageUrl = `${s3Url.protocol}//${s3Url.host}${s3Url.pathname}`
+    // No storageUrl needed - fileId is all we need for the analyze endpoint
 
     // Step 3: Analyze
     console.log('Step 3: Starting analysis...')
@@ -297,13 +306,12 @@ const analyzeDocument = async () => {
       let documentId: string
 
       if (isAuthenticated.value) {
-        // Use authenticated endpoint - properly associates document with user
-        console.log('Using authenticated analyze endpoint with fileId:', fileId)
-        analyzeResponse = await apiCall('/api/va-knowledge/extract-from-s3', {
+        // Use async endpoint with real-time RTDB updates
+        console.log('Using async analyze endpoint with fileId:', fileId)
+        analyzeResponse = await apiCall('/api/analyze/async', {
           method: 'POST',
           body: JSON.stringify({
-            documentId: fileId, // Use the UUID fileId from presigned upload
-            storageUrl
+            fileId: fileId // Use the UUID fileId from direct upload
           }),
           signal: controller.signal
         })
@@ -316,24 +324,59 @@ const analyzeDocument = async () => {
         }
 
         const responseData = await analyzeResponse.json()
-        console.log('Analyze response data:', responseData)
+        console.log('Async analyze response:', responseData)
 
-        // For authenticated users, use fileId as documentId and redirect to analysis page
-        documentId = fileId
+        const jobId = responseData.jobId
+        const firebaseUserId = responseData.userId // Firebase Auth UID for RTDB path
+        currentJobId.value = jobId
 
-        console.log('Step 3 complete: Document processing started, documentId:', documentId)
+        console.log(`Job queued: ${jobId}, watching RTDB at /jobs/${firebaseUserId}/${jobId}`)
 
-        // Track analysis completion
-        const totalTime = Date.now() - analysisStartTime.value!
-        trackAnalysis.completed(userId, totalTime, documentId)
+        // Watch RTDB for real-time progress updates
+        // Pass firebaseUserId from API response (not localStorage which has MongoDB ID)
+        watchJob(jobId, (status: JobStatus) => {
+          console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
 
-        // Show success toast
-        toast.success('Analysis Started!', 'Your document is being processed...')
+          // Update UI step based on RTDB status
+          currentStep.value = statusToStep(status.status)
 
-        // Redirect to analysis page (will show loading state while processing)
-        setTimeout(() => {
-          navigateTo(`/analysis/${documentId}`)
-        }, 500)
+          if (status.status === 'complete') {
+            // Analysis complete - redirect to results
+            // Use sessionId (Redis session) for the results page
+            const resultSessionId = status.sessionId
+            const documentId = status.documentId || fileId
+
+            // Track analysis completion
+            const totalTime = Date.now() - analysisStartTime.value!
+            trackAnalysis.completed(userId, totalTime, documentId)
+
+            // Show success toast
+            toast.success('Analysis Complete!', 'Redirecting to your results...')
+
+            // Cleanup and redirect
+            unwatchJob(jobId)
+            currentJobId.value = null
+            analyzing.value = false
+
+            setTimeout(() => {
+              // Redirect to /results/{sessionId} which reads from Redis
+              navigateTo(`/results/${resultSessionId}`)
+            }, 500)
+          } else if (status.status === 'failed') {
+            // Analysis failed
+            const errorMessage = status.error || 'Analysis failed'
+            console.error('Analysis job failed:', errorMessage)
+
+            // Cleanup
+            unwatchJob(jobId)
+            currentJobId.value = null
+
+            throw { message: errorMessage }
+          }
+        }, firebaseUserId)
+
+        // Don't reset analyzing state here - let RTDB callback handle completion
+        return
       } else {
         // Anonymous flow - use session-based results
         analyzeResponse = await fetch(

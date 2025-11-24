@@ -1,7 +1,8 @@
-import { ref, onMounted, onUnmounted, watch, readonly } from 'vue'
+import { ref, onMounted, onUnmounted, watch, readonly, computed } from 'vue'
 import { io, Socket } from 'socket.io-client'
 import { useAuth } from './useAuth'
 import { useSubscription } from './useSubscription'
+import { useFirebaseNotifications } from './useFirebaseNotifications'
 
 interface Notification {
   type: string
@@ -9,15 +10,51 @@ interface Notification {
   priority?: 'low' | 'medium' | 'high' | 'urgent'
   buffered?: boolean
   createdAt?: string
+  id?: string
+  acknowledged?: boolean
 }
 
 type NotificationHandler = (notification: Notification) => void | Promise<void>
+type NotificationProviderType = 'socketio' | 'firebase-rtdb' | 'auto'
 
 /**
- * Composable for WebSocket push notifications
- * Connects to /notifications namespace and listens for real-time updates
+ * Composable for push notifications
+ * Supports both Socket.IO (WebSocket) and Firebase RTDB providers
+ * Set NUXT_PUBLIC_NOTIFICATION_PROVIDER to switch:
+ * - 'socketio': Use Socket.IO WebSocket connections (default for local dev)
+ * - 'firebase-rtdb': Use Firebase Realtime Database (recommended for cloud)
+ * - 'auto' (default): Auto-detect based on environment
  */
 export const useNotifications = () => {
+  const config = useRuntimeConfig()
+  const providerType = (config.public.notificationProvider || 'auto') as NotificationProviderType
+
+  // Determine which provider to use
+  const useFirebase = computed(() => {
+    if (providerType === 'firebase-rtdb') return true
+    if (providerType === 'socketio') return false
+    // Auto-detect: use Firebase if configured, otherwise Socket.IO
+    return !!(config.public.firebaseDatabaseUrl && config.public.firebaseProjectId)
+  })
+
+  // If using Firebase, delegate to Firebase composable
+  if (useFirebase.value) {
+    console.log('Using Firebase RTDB for notifications')
+    const firebase = useFirebaseNotifications()
+    return {
+      socket: ref(null), // No socket in Firebase mode
+      connected: firebase.connected,
+      error: firebase.error,
+      connect: firebase.connect,
+      disconnect: firebase.disconnect,
+      reconnect: firebase.reconnect,
+      on: firebase.on,
+      off: firebase.off,
+    }
+  }
+
+  // Socket.IO implementation (original code)
+  console.log('Using Socket.IO for notifications')
   const socket = ref<Socket | null>(null)
   const connected = ref(false)
   const error = ref<string | null>(null)
