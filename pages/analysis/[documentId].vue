@@ -99,14 +99,9 @@
         :is-authenticated="true"
       />
 
-      <!-- Action Items Section (Premium + Feature Flag) -->
+      <!-- Action Items Section (Premium only) -->
       <PremiumFeature feature-name="Action Items">
-        <FeatureFlag
-          flag-name="action_items_results_integration"
-          :show-fallback="false"
-        >
-          <ActionItemsSection :document-id="documentId" />
-        </FeatureFlag>
+        <ActionItemsSection :document-id="documentId" />
       </PremiumFeature>
     </div>
 
@@ -133,7 +128,6 @@ import Navigation from "~/components/organisms/Navigation.vue";
 import RatingHeroCard from "~/components/organisms/RatingHeroCard.vue";
 import ConditionsGridEnhanced from "~/components/organisms/ConditionsGridEnhanced.vue";
 import PremiumFeature from "~/components/organisms/PremiumFeature.vue";
-import FeatureFlag from "~/components/organisms/FeatureFlag.vue";
 import ActionItemsSection from "~/components/organisms/ActionItemsSection.vue";
 import ChatWidget from "~/components/features/chat/ChatWidget.vue";
 
