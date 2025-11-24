@@ -22,9 +22,12 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      # Use npm install instead of npm ci to handle cross-platform native bindings
-      # (oxc-parser requires platform-specific binaries that may not be in lock file)
-      run: npm install
+      # Remove package-lock.json to handle cross-platform native bindings
+      # oxc-parser requires platform-specific binaries that may not be in lock file
+      # when generated on macOS (npm bug: https://github.com/npm/cli/issues/4828)
+      run: |
+        rm -f package-lock.json
+        npm install
 
     - name: Run unit tests
       run: npm test
