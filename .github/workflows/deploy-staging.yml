@@ -19,7 +19,7 @@ env:
 
 concurrency:
   group: deploy-frontend-staging-${{ github.event.inputs.branch }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
