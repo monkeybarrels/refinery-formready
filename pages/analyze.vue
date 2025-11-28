@@ -345,6 +345,15 @@ const analyzeDocument = async () => {
             const resultSessionId = status.sessionId
             const documentId = status.documentId || fileId
 
+            console.log('✅ Analysis complete!', {
+              status: status.status,
+              documentId: documentId,
+              fileId: fileId,
+              sessionId: resultSessionId,
+              isAuthenticated: isAuthenticated.value,
+              statusDocumentId: status.documentId
+            })
+
             // Track analysis completion
             const totalTime = Date.now() - analysisStartTime.value!
             trackAnalysis.completed(userId, totalTime, documentId)
@@ -361,9 +370,17 @@ const analyzeDocument = async () => {
               // For authenticated users, redirect to full analysis page (with action items)
               // For anonymous users, redirect to results page (free version)
               if (isAuthenticated.value && documentId) {
+                console.log(`🔄 Redirecting authenticated user to /analysis/${documentId}`)
                 navigateTo(`/analysis/${documentId}`)
               } else {
                 // Anonymous users get the free results page
+                console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
+                if (!isAuthenticated.value) {
+                  console.log('   Reason: User not authenticated')
+                }
+                if (!documentId) {
+                  console.log('   Reason: No documentId available')
+                }
                 navigateTo(`/results/${resultSessionId}`)
               }
             }, 500)
