@@ -341,8 +341,7 @@ const analyzeDocument = async () => {
           currentStep.value = statusToStep(status.status)
 
           if (status.status === 'complete') {
-            // Analysis complete - redirect to results
-            // Use sessionId (Redis session) for the results page
+            // Analysis complete - redirect based on authentication status
             const resultSessionId = status.sessionId
             const documentId = status.documentId || fileId
 
@@ -359,8 +358,14 @@ const analyzeDocument = async () => {
             analyzing.value = false
 
             setTimeout(() => {
-              // Redirect to /results/{sessionId} which reads from Redis
-              navigateTo(`/results/${resultSessionId}`)
+              // For authenticated users, redirect to full analysis page (with action items)
+              // For anonymous users, redirect to results page (free version)
+              if (isAuthenticated.value && documentId) {
+                navigateTo(`/analysis/${documentId}`)
+              } else {
+                // Anonymous users get the free results page
+                navigateTo(`/results/${resultSessionId}`)
+              }
             }, 500)
           } else if (status.status === 'failed') {
             // Analysis failed

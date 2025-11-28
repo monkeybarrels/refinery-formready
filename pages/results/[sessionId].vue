@@ -252,15 +252,15 @@ const expirationDate = computed(() => {
 
 onMounted(async () => {
   try {
-    const config = useRuntimeConfig()
-    const apiUrl = config.public.apiUrl || 'http://localhost:3001'
+    const { apiCall } = useApi()
 
-    const response = await fetch(
-      `${apiUrl}/api/analyze/results/${sessionId}`
-    )
+    const response = await apiCall(`/api/analyze/results/${sessionId}`)
 
     if (response.ok) {
       results.value = await response.json()
+    } else if (response.status === 401) {
+      // Auth error - apiCall already handles logout, just show error
+      console.error('Authentication required to view results')
     }
   } catch (error) {
     console.error('Failed to load results:', error)
@@ -270,13 +270,29 @@ onMounted(async () => {
 })
 
 const downloadSummary = async () => {
-  const config = useRuntimeConfig()
-  const apiUrl = config.public.apiUrl || 'http://localhost:3001'
-
-  window.open(
-    `${apiUrl}/api/analyze/results/${sessionId}/summary-pdf`,
-    '_blank'
-  )
+  const { apiCall } = useApi()
+  
+  // For downloads, we need to fetch the PDF with auth headers and create a blob URL
+  // since window.open doesn't support custom headers
+  try {
+    const response = await apiCall(`/api/analyze/results/${sessionId}/summary-pdf`)
+    
+    if (response.ok) {
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `va-decision-summary-${sessionId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(blobUrl)
+      document.body.removeChild(a)
+    } else {
+      console.error('Failed to download PDF:', response.status)
+    }
+  } catch (error) {
+    console.error('Error downloading PDF:', error)
+  }
 }
 
 useHead({

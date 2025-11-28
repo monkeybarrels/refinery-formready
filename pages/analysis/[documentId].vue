@@ -131,6 +131,13 @@ import PremiumFeature from "~/components/organisms/PremiumFeature.vue";
 import ActionItemsSection from "~/components/organisms/ActionItemsSection.vue";
 import ChatWidget from "~/components/features/chat/ChatWidget.vue";
 
+// Ensure this route is properly registered and doesn't conflict with /analysis
+// Note: analysis-redirect middleware handles /analysis → /analyze redirect
+// This page handles /analysis/[documentId] routes
+definePageMeta({
+  middleware: 'auth' // Require authentication for analysis detail pages
+})
+
 const route = useRoute()
 const router = useRouter()
 const documentId = route.params.documentId as string
@@ -214,7 +221,9 @@ const loadDocument = async () => {
       console.log('🔍 doc.processingState:', doc.processingState)
 
       // Check if document needs processing (no extraction or analysis)
-      const needsProcessing = !doc.isAnalyzed && !doc.ratings?.length
+      // Also check if ratings array exists and has length
+      const hasRatings = Array.isArray(doc.ratings) && doc.ratings.length > 0
+      const needsProcessing = !doc.isAnalyzed && !hasRatings
 
       if (needsProcessing) {
         console.log('Document needs processing, triggering extraction/analysis...')
@@ -222,19 +231,38 @@ const loadDocument = async () => {
         return
       }
 
+      // Document is ready - set it for display
       document.value = doc
       return
+    } else {
+      // API returned error - log it for debugging
+      const errorText = await response.text().catch(() => 'Unknown error')
+      console.error(`❌ API error (${response.status}):`, errorText)
+      
+      // If 404, try fallback endpoint
+      if (response.status === 404) {
+        console.log('⚠️ Document not found in VA sync, trying fallback endpoint...')
+      } else {
+        // For other errors, throw to show error state
+        throw new Error(`Failed to load document: ${response.status} ${errorText}`)
+      }
     }
 
     // Fall back to old documents endpoint for legacy documents
-    response = await apiCall(`/api/documents/${documentId}`)
+    const fallbackResponse = await apiCall(`/api/documents/${documentId}`)
 
-    if (response.ok) {
-      document.value = await response.json()
+    if (fallbackResponse.ok) {
+      document.value = await fallbackResponse.json()
+    } else {
+      // Both endpoints failed - show error state
+      const errorText = await fallbackResponse.text().catch(() => 'Unknown error')
+      console.error(`❌ Fallback API error (${fallbackResponse.status}):`, errorText)
+      throw new Error(`Document not found: ${fallbackResponse.status}`)
     }
   } catch (error) {
     console.error('Failed to load document:', error)
-    throw error
+    // Don't throw - let the error state show in the UI
+    // The template will show "Document Not Found" message
   }
 }
 

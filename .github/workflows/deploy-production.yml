@@ -1,0 +1,156 @@
+name: Deploy Frontend to Production (Firebase)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.github/**'
+      - '!.github/workflows/deploy-production.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  FIREBASE_PROJECT: refinery-authentication
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions/providers/github-provider'
+  SERVICE_ACCOUNT: 'terraform-cicd@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+
+concurrency:
+  group: deploy-frontend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create production .env file
+        run: |
+          cat > .env << EOF
+          NUXT_PUBLIC_API_URL=${{ vars.PRODUCTION_API_URL || 'https://api.claimready.io' }}
+          NUXT_PUBLIC_AUTHORIZER_URL=${{ vars.AUTHORIZER_URL || 'https://auth.claimready.io' }}
+          NUXT_PUBLIC_AUTHORIZER_CLIENT_ID=${{ secrets.AUTHORIZER_CLIENT_ID }}
+          NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_LIVE_KEY }}
+          NUXT_PUBLIC_POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
+          NUXT_PUBLIC_POSTHOG_HOST=${{ vars.POSTHOG_HOST || 'https://us.i.posthog.com' }}
+          EOF
+
+      - name: Build Nuxt app
+        run: npm run generate
+
+      - name: Validate build output
+        run: |
+          if [ ! -d ".output/public" ]; then
+            echo "❌ Build failed: .output/public not found"
+            exit 1
+          fi
+
+          BUILD_SIZE=$(du -sh .output/public | cut -f1)
+          FILE_COUNT=$(find .output/public -type f | wc -l)
+
+          echo "✅ Build successful"
+          echo "   Size: ${BUILD_SIZE}"
+          echo "   Files: ${FILE_COUNT}"
+
+          # Basic validation - ensure index.html exists
+          if [ ! -f ".output/public/index.html" ]; then
+            echo "❌ Missing index.html"
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting (Production)
+        run: |
+          firebase deploy \
+            --only hosting \
+            --project ${{ env.FIREBASE_PROJECT }} \
+            --non-interactive
+
+      - name: Extract deployment info
+        id: info
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Create deployment summary
+        run: |
+          echo "## Production Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Site**: https://claimready.io" >> $GITHUB_STEP_SUMMARY
+          echo "- **Firebase URL**: https://refinery-authentication.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA**: \`${{ steps.info.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: main" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verification Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Visit https://claimready.io and verify the site loads" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test critical user flows (signup, login, analyze)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Check browser console for errors" >> $GITHUB_STEP_SUMMARY
+          echo "4. Verify API connectivity" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Rollback Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "To rollback to previous version:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# List recent versions" >> $GITHUB_STEP_SUMMARY
+          echo "firebase hosting:releases:list --project ${{ env.FIREBASE_PROJECT }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Rollback to previous version" >> $GITHUB_STEP_SUMMARY
+          echo "firebase hosting:rollback --project ${{ env.FIREBASE_PROJECT }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify deployment health
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 15
+
+          # Try to fetch the site
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://refinery-authentication.web.app" || echo "000")
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+          else
+            echo "⚠️ Health check returned HTTP $HTTP_STATUS"
+            echo "The site may take a few minutes to fully propagate"
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: HTTP $HTTP_STATUS" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "- **Result**: ✅ Site is live" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Result**: ⚠️ Site may still be propagating" >> $GITHUB_STEP_SUMMARY
+          fi
