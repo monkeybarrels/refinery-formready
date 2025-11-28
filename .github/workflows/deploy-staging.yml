@@ -61,8 +61,12 @@ jobs:
         id: firebase
         run: |
           FIREBASE_API_KEY=$(gcloud secrets versions access latest --secret="FIREBASE_API_KEY_STAGING" --project="${{ env.GCP_PROJECT_ID }}")
+          if [ -z "$FIREBASE_API_KEY" ]; then
+            echo "❌ ERROR: Failed to fetch Firebase API Key from Secret Manager"
+            exit 1
+          fi
           echo "firebase_api_key=${FIREBASE_API_KEY}" >> $GITHUB_OUTPUT
-          echo "✅ Fetched Firebase API Key from Secret Manager"
+          echo "✅ Fetched Firebase API Key from Secret Manager (length: ${#FIREBASE_API_KEY})"
 
       - name: Create staging .env file
         run: |
@@ -80,6 +84,9 @@ jobs:
           NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=refinery-authentication.firebaseapp.com
           NUXT_PUBLIC_FIREBASE_API_KEY=${{ steps.firebase.outputs.firebase_api_key }}
           EOF
+          echo "✅ Created .env file"
+          echo "📋 Verifying Firebase config in .env:"
+          grep -E "NUXT_PUBLIC_FIREBASE|NUXT_PUBLIC_NOTIFICATION" .env | sed 's/API_KEY=.*/API_KEY=***HIDDEN***/' || echo "⚠️  Warning: Firebase vars not found in .env"
 
       - name: Build Nuxt app
         run: npm run generate
