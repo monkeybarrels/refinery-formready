@@ -129,17 +129,16 @@ const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting,
 const analysisStartTime = ref<number | null>(null)
 const currentJobId = ref<string | null>(null) // Track active job for cleanup
 
-// Map RTDB status to UI step (0-indexed for LoadingState)
-const statusToStep = (status: JobStatus['status']): number => {
+// Map polling status to UI step (0-indexed for LoadingState)
+const statusToStep = (status: string): number => {
   switch (status) {
-    case 'queued':
-    case 'processing':
-      return 1 // "Uploading document" (already done, show as active)
-    case 'extracting':
+    case 'waiting':
+    case 'active':
       return 2 // "Extracting text from PDF"
-    case 'analyzing':
-    case 'complete':
+    case 'completed':
       return 3 // "Analyzing decision details"
+    case 'failed':
+      return 0 // Error state
     default:
       return 1
   }
@@ -184,10 +183,10 @@ onMounted(async () => {
   }
 })
 
-// Cleanup RTDB watcher if user navigates away during analysis
+// Cleanup polling if user navigates away during analysis
 onUnmounted(() => {
   if (currentJobId.value) {
-    unwatchJob(currentJobId.value)
+    stopPolling()
     currentJobId.value = null
   }
 })
