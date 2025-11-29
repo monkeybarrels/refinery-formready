@@ -115,11 +115,13 @@ import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
 import { useApi } from "~/composables/useApi";
 import { useFirebaseNotifications, type JobStatus } from "~/composables/useFirebaseNotifications";
+import { useJobPolling, type JobStatus as PollJobStatus } from "~/composables/useJobPolling";
 
 const toast = useToast()
 const { handleError } = useAnalysisErrors()
 const { trackFunnel, trackAnalysis, trackFileUpload } = useAnalytics()
 const { watchJob, unwatchJob } = useFirebaseNotifications()
+const { startPolling, stopPolling } = useJobPolling()
 const route = useRoute()
 
 const analyzing = ref(false)
@@ -330,74 +332,122 @@ const analyzeDocument = async () => {
         const firebaseUserId = responseData.userId // Firebase Auth UID for RTDB path
         currentJobId.value = jobId
 
-        console.log(`Job queued: ${jobId}, watching RTDB at /jobs/${firebaseUserId}/${jobId}`)
+        console.log(`Job queued: ${jobId}, starting polling...`)
 
-        // Watch RTDB for real-time progress updates
-        // Pass firebaseUserId from API response (not localStorage which has MongoDB ID)
-        watchJob(jobId, (status: JobStatus) => {
-          console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
+        // Use polling as primary method (more reliable than RTDB)
+        // Falls back to RTDB if polling fails
+        const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
+          const resultSessionId = result.sessionId
+          const documentId = result.documentId || fileId
 
-          // Update UI step based on RTDB status
-          currentStep.value = statusToStep(status.status)
+          console.log('✅ Analysis complete!', {
+            documentId: documentId,
+            fileId: fileId,
+            sessionId: resultSessionId,
+            isAuthenticated: isAuthenticated.value,
+          })
 
-          if (status.status === 'complete') {
-            // Analysis complete - redirect based on authentication status
-            const resultSessionId = status.sessionId
-            const documentId = status.documentId || fileId
+          // Track analysis completion
+          const totalTime = Date.now() - analysisStartTime.value!
+          trackAnalysis.completed(userId, totalTime, documentId)
 
-            console.log('✅ Analysis complete!', {
-              status: status.status,
-              documentId: documentId,
-              fileId: fileId,
-              sessionId: resultSessionId,
-              isAuthenticated: isAuthenticated.value,
-              statusDocumentId: status.documentId
-            })
+          // Show success toast
+          toast.success('Analysis Complete!', 'Redirecting to your results...')
 
-            // Track analysis completion
-            const totalTime = Date.now() - analysisStartTime.value!
-            trackAnalysis.completed(userId, totalTime, documentId)
+          // Cleanup
+          stopPolling()
+          unwatchJob(jobId)
+          currentJobId.value = null
+          analyzing.value = false
 
-            // Show success toast
-            toast.success('Analysis Complete!', 'Redirecting to your results...')
-
-            // Cleanup and redirect
-            unwatchJob(jobId)
-            currentJobId.value = null
-            analyzing.value = false
-
-            setTimeout(() => {
-              // For authenticated users, redirect to full analysis page (with action items)
-              // For anonymous users, redirect to results page (free version)
-              if (isAuthenticated.value && documentId) {
-                console.log(`🔄 Redirecting authenticated user to /analysis/${documentId}`)
-                navigateTo(`/analysis/${documentId}`)
-              } else {
-                // Anonymous users get the free results page
-                console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
-                if (!isAuthenticated.value) {
-                  console.log('   Reason: User not authenticated')
-                }
-                if (!documentId) {
-                  console.log('   Reason: No documentId available')
-                }
-                navigateTo(`/results/${resultSessionId}`)
+          setTimeout(() => {
+            // For authenticated users, redirect to full analysis page (with action items)
+            // For anonymous users, redirect to results page (free version)
+            if (isAuthenticated.value && documentId) {
+              console.log(`🔄 Redirecting authenticated user to /analysis/${documentId}`)
+              navigateTo(`/analysis/${documentId}`)
+            } else {
+              // Anonymous users get the free results page
+              console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
+              if (!isAuthenticated.value) {
+                console.log('   Reason: User not authenticated')
               }
-            }, 500)
-          } else if (status.status === 'failed') {
-            // Analysis failed
-            const errorMessage = status.error || 'Analysis failed'
-            console.error('Analysis job failed:', errorMessage)
+              if (!documentId) {
+                console.log('   Reason: No documentId available')
+              }
+              navigateTo(`/results/${resultSessionId}`)
+            }
+          }, 500)
+        }
 
-            // Cleanup
-            unwatchJob(jobId)
-            currentJobId.value = null
+        // Start polling (primary method)
+        startPolling(jobId, {
+          onUpdate: (status: PollJobStatus) => {
+            console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
+            // Map polling status to UI step
+            const stepMap: Record<string, number> = {
+              'waiting': 1,
+              'active': 2,
+              'completed': 4,
+              'failed': 0,
+            }
+            currentStep.value = stepMap[status.status] || 2
+          },
+          onComplete: (status: PollJobStatus) => {
+            if (status.result) {
+              handleJobComplete({
+                sessionId: status.result.sessionId || undefined,
+                documentId: status.result.documentId || undefined,
+              })
+            } else {
+              console.error('Job completed but no result data')
+              toast.error('Analysis Complete', 'But result data is missing')
+              analyzing.value = false
+            }
+          },
+          onError: (error: Error) => {
+            console.error('Polling error, falling back to RTDB:', error)
+            // Fallback to RTDB if polling fails
+            watchJob(jobId, (status: JobStatus) => {
+              console.log(`Job ${jobId} RTDB status update:`, status.status, `(${status.progress}%)`)
+              currentStep.value = statusToStep(status.status)
 
-            throw { message: errorMessage }
-          }
-        }, firebaseUserId)
+              if (status.status === 'complete') {
+                handleJobComplete({
+                  sessionId: status.sessionId,
+                  documentId: status.documentId,
+                })
+              } else if (status.status === 'failed') {
+                console.error('❌ Analysis failed:', status.error)
+                toast.error('Analysis Failed', status.error || 'Unknown error')
+                unwatchJob(jobId)
+                currentJobId.value = null
+                analyzing.value = false
+              }
+            }, firebaseUserId)
+          },
+        })
 
-        // Don't reset analyzing state here - let RTDB callback handle completion
+        // Also try RTDB as backup (in case polling misses updates)
+        try {
+          watchJob(jobId, (status: JobStatus) => {
+            console.log(`Job ${jobId} RTDB backup update:`, status.status, `(${status.progress}%)`)
+            currentStep.value = statusToStep(status.status)
+
+            if (status.status === 'complete') {
+              // RTDB got it first, stop polling
+              stopPolling()
+              handleJobComplete({
+                sessionId: status.sessionId,
+                documentId: status.documentId,
+              })
+            }
+          }, firebaseUserId)
+        } catch (rtdbError) {
+          console.warn('RTDB watch failed, using polling only:', rtdbError)
+        }
+
+        // Don't reset analyzing state here - let polling/RTDB callback handle completion
         return
       } else {
         // Anonymous flow - use session-based results
