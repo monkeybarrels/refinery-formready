@@ -4,7 +4,7 @@
  * Polls /api/analyze/job/:jobId every 2 seconds until complete
  */
 
-export interface JobStatus {
+export interface PollJobStatus {
   jobId: string
   fileId: string
   userId: string
@@ -23,8 +23,8 @@ export interface JobStatus {
 
 export interface PollJobOptions {
   jobId: string
-  onUpdate: (status: JobStatus) => void
-  onComplete: (status: JobStatus) => void
+  onUpdate: (status: PollJobStatus) => void
+  onComplete: (status: PollJobStatus) => void
   onError: (error: Error) => void
   pollInterval?: number // Default: 2000ms
   maxAttempts?: number // Default: 300 (10 minutes at 2s intervals)
@@ -58,6 +58,7 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
     }
 
     try {
+      // Get apiCall from useApi composable
       const { apiCall } = useApi()
       const response = await apiCall(`/api/analyze/job/${jobId}`)
 
@@ -70,7 +71,7 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
         throw new Error(`Failed to get job status: ${response.status}`)
       }
 
-      const status: JobStatus = await response.json()
+      const status: PollJobStatus = await response.json()
 
       // Call update handler
       onUpdate(status)
@@ -115,7 +116,7 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
  *   startPolling(jobId, { onComplete: (status) => { ... } })
  */
 export const useJobPolling = () => {
-  const status = ref<JobStatus | null>(null)
+  const status = ref<PollJobStatus | null>(null)
   const isLoading = ref(false)
   const error = ref<Error | null>(null)
   let stopPollingFn: (() => void) | null = null
@@ -123,8 +124,8 @@ export const useJobPolling = () => {
   const startPolling = (
     jobId: string,
     callbacks?: {
-      onUpdate?: (status: JobStatus) => void
-      onComplete?: (status: JobStatus) => void
+      onUpdate?: (status: PollJobStatus) => void
+      onComplete?: (status: PollJobStatus) => void
       onError?: (error: Error) => void
     }
   ) => {
