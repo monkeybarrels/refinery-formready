@@ -68,7 +68,23 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
           pollTimer = setTimeout(poll, pollInterval)
           return
         }
-        throw new Error(`Failed to get job status: ${response.status}`)
+        
+        // Try to get error message from response
+        let errorMessage = `Failed to get job status: ${response.status}`
+        try {
+          const errorData = await response.clone().json()
+          errorMessage = errorData.error?.message || errorData.message || errorMessage
+        } catch {
+          // Can't parse error, use default message
+        }
+        
+        // For 403/401, stop polling (permission/auth issue)
+        if (response.status === 403 || response.status === 401) {
+          onError(new Error(errorMessage))
+          return
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const status: PollJobStatus = await response.json()
@@ -84,7 +100,9 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
 
       // Check if failed
       if (status.status === 'failed') {
-        onError(new Error(status.failedReason || 'Job failed'))
+        // Job failed - show the actual error reason
+        const errorMessage = status.failedReason || 'Job failed during processing'
+        onError(new Error(errorMessage))
         return // Stop polling
       }
 
@@ -92,7 +110,9 @@ export const pollJobStatus = (options: PollJobOptions): (() => void) => {
       pollTimer = setTimeout(poll, pollInterval)
     } catch (error: any) {
       console.error('Error polling job status:', error)
-      onError(error)
+      // Extract actual error message if it's an ApiException
+      const errorMessage = error.message || error.toString() || 'Unknown error occurred'
+      onError(new Error(errorMessage))
     }
   }
 
