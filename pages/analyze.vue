@@ -114,13 +114,11 @@ import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
 import { useAnalytics } from "~/composables/useAnalytics";
 import { useApi } from "~/composables/useApi";
-import { useFirebaseNotifications, type JobStatus } from "~/composables/useFirebaseNotifications";
-import { useJobPolling, type JobStatus as PollJobStatus } from "~/composables/useJobPolling";
+import { useJobPolling, type PollJobStatus } from "~/composables/useJobPolling";
 
 const toast = useToast()
 const { handleError } = useAnalysisErrors()
 const { trackFunnel, trackAnalysis, trackFileUpload } = useAnalytics()
-const { watchJob, unwatchJob } = useFirebaseNotifications()
 const { startPolling, stopPolling } = useJobPolling()
 const route = useRoute()
 
@@ -332,16 +330,14 @@ const analyzeDocument = async () => {
         const firebaseUserId = responseData.userId // Firebase Auth UID for RTDB path
         currentJobId.value = jobId
 
-        console.log(`Job queued: ${jobId}, watching RTDB at /jobs/${firebaseUserId}/${jobId}`)
+        console.log(`Job queued: ${jobId}, starting polling...`)
 
-        // Watch RTDB for real-time progress updates (primary method)
-        // Falls back to polling if RTDB fails
+        // Use simple polling - reliable and works immediately
         const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
           const resultSessionId = result.sessionId
           const documentId = result.documentId || fileId
 
           console.log('✅ Analysis complete!', {
-            status: 'complete',
             documentId: documentId,
             fileId: fileId,
             sessionId: resultSessionId,
@@ -357,7 +353,6 @@ const analyzeDocument = async () => {
 
           // Cleanup
           stopPolling()
-          unwatchJob(jobId)
           currentJobId.value = null
           analyzing.value = false
 
@@ -381,69 +376,39 @@ const analyzeDocument = async () => {
           }, 500)
         }
 
-        // Try RTDB first (primary method)
-        try {
-          watchJob(jobId, (status: JobStatus) => {
+        // Start polling (simple, reliable, works immediately)
+        startPolling(jobId, {
+          onUpdate: (status: PollJobStatus) => {
             console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
-
-            // Update UI step based on RTDB status
-            currentStep.value = statusToStep(status.status)
-
-            if (status.status === 'complete') {
-              // Analysis complete - redirect based on authentication status
-              handleJobComplete({
-                sessionId: status.sessionId,
-                documentId: status.documentId,
-              })
-            } else if (status.status === 'failed') {
-              // Analysis failed
-              const errorMessage = status.error || 'Analysis failed'
-              console.error('Analysis job failed:', errorMessage)
-
-              // Cleanup
-              unwatchJob(jobId)
-              currentJobId.value = null
-              analyzing.value = false
-
-              toast.error('Analysis Failed', errorMessage)
+            // Map polling status to UI step
+            const stepMap: Record<string, number> = {
+              'waiting': 1,
+              'active': 2,
+              'completed': 4,
+              'failed': 0,
             }
-          }, firebaseUserId)
-        } catch (rtdbError) {
-          console.warn('RTDB watch failed, falling back to polling:', rtdbError)
-          // Fallback to polling if RTDB fails
-          startPolling(jobId, {
-            onUpdate: (status: PollJobStatus) => {
-              console.log(`Job ${jobId} polling status update:`, status.status, `(${status.progress}%)`)
-              // Map polling status to UI step
-              const stepMap: Record<string, number> = {
-                'waiting': 1,
-                'active': 2,
-                'completed': 4,
-                'failed': 0,
-              }
-              currentStep.value = stepMap[status.status] || 2
-            },
-            onComplete: (status: PollJobStatus) => {
-              if (status.result) {
-                handleJobComplete({
-                  sessionId: status.result.sessionId || undefined,
-                  documentId: status.result.documentId || undefined,
-                })
-              } else {
-                console.error('Job completed but no result data')
-                toast.error('Analysis Complete', 'But result data is missing')
-                analyzing.value = false
-              }
-            },
-            onError: (error: Error) => {
-              console.error('Polling also failed:', error)
-              toast.error('Status Tracking Failed', 'Unable to track job status')
+            currentStep.value = stepMap[status.status] || 2
+          },
+          onComplete: (status: PollJobStatus) => {
+            if (status.result) {
+              handleJobComplete({
+                sessionId: status.result.sessionId || undefined,
+                documentId: status.result.documentId || undefined,
+              })
+            } else {
+              console.error('Job completed but no result data')
+              toast.error('Analysis Complete', 'But result data is missing')
               analyzing.value = false
-            },
-          })
-        }
+            }
+          },
+          onError: (error: Error) => {
+            console.error('Polling failed:', error)
+            toast.error('Status Tracking Failed', error.message || 'Unable to track job status')
+            analyzing.value = false
+          },
+        })
 
-        // Don't reset analyzing state here - let RTDB/polling callback handle completion
+        // Don't reset analyzing state here - let polling callback handle completion
         return
       } else {
         // Anonymous flow - use session-based results
