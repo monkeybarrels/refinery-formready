@@ -1147,12 +1147,57 @@ const loadAnalysisDocuments = async () => {
       allDocuments.push(...directUploadDocs)
     }
 
-    // Deduplicate by documentId (prefer more recent entry)
+    // Deduplicate by documentId first, then by fileName + analyzedAt (within 5 minutes)
+    // This handles cases where the same file appears in both VA sync and direct upload with different IDs
     const docMap = new Map<string, any>()
+    const fileNameMap = new Map<string, any>() // Track by fileName for cross-source deduplication
+    
     for (const doc of allDocuments) {
-      const existing = docMap.get(doc.documentId)
-      if (!existing || new Date(doc.analyzedAt) > new Date(existing.analyzedAt)) {
-        docMap.set(doc.documentId, doc)
+      // First, try exact documentId match
+      const existingById = docMap.get(doc.documentId)
+      if (existingById) {
+        // Prefer document with better status (analyzed > extracted > uploaded)
+        const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1, 'analyzing': 1, 'extracting': 1 }
+        const existingPriority = statusPriority[existingById.status] || 0
+        const newPriority = statusPriority[doc.status] || 0
+        
+        if (newPriority > existingPriority || 
+            (newPriority === existingPriority && new Date(doc.analyzedAt) > new Date(existingById.analyzedAt))) {
+          docMap.set(doc.documentId, doc)
+        }
+        continue
+      }
+      
+      // Check for duplicate by fileName (same file from different sources)
+      const normalizedFileName = doc.fileName?.toLowerCase().trim()
+      const existingByFileName = fileNameMap.get(normalizedFileName)
+      
+      if (existingByFileName) {
+        // Check if they're the same file (uploaded within 5 minutes of each other)
+        const timeDiff = Math.abs(new Date(doc.analyzedAt).getTime() - new Date(existingByFileName.analyzedAt).getTime())
+        const fiveMinutes = 5 * 60 * 1000
+        
+        if (timeDiff < fiveMinutes) {
+          // Same file from different sources - prefer the one with better status
+          const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1, 'analyzing': 1, 'extracting': 1 }
+          const existingPriority = statusPriority[existingByFileName.status] || 0
+          const newPriority = statusPriority[doc.status] || 0
+          
+          if (newPriority > existingPriority) {
+            // Remove old entry and add new one
+            docMap.delete(existingByFileName.documentId)
+            docMap.set(doc.documentId, doc)
+            fileNameMap.set(normalizedFileName, doc)
+          }
+          // Otherwise keep existing entry
+          continue
+        }
+      }
+      
+      // New document - add to both maps
+      docMap.set(doc.documentId, doc)
+      if (normalizedFileName) {
+        fileNameMap.set(normalizedFileName, doc)
       }
     }
 
