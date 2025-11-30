@@ -334,18 +334,21 @@ const analyzeDocument = async () => {
         // Use simple polling - reliable and works immediately
         const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
           const resultSessionId = result.sessionId
-          const documentId = result.documentId || fileId
+          // For authenticated users, always use fileId as documentId (it's the same UUID)
+          // For anonymous users, we need sessionId
+          const documentId = isAuthenticated.value ? (result.documentId || fileId) : result.documentId
 
           console.log('✅ Analysis complete!', {
             documentId: documentId,
             fileId: fileId,
             sessionId: resultSessionId,
             isAuthenticated: isAuthenticated.value,
+            resultDocumentId: result.documentId,
           })
 
           // Track analysis completion
           const totalTime = Date.now() - analysisStartTime.value!
-          trackAnalysis.completed(userId, totalTime, documentId)
+          trackAnalysis.completed(userId, totalTime, documentId || fileId)
 
           // Show success toast
           toast.success('Analysis Complete!', 'Redirecting to your results...')
@@ -356,21 +359,35 @@ const analyzeDocument = async () => {
           analyzing.value = false
 
           setTimeout(() => {
-            // For authenticated users, redirect to full analysis page (with action items)
+            // For authenticated users, ALWAYS redirect to /analysis/:documentId (use fileId as fallback)
             // For anonymous users, redirect to results page (free version)
-            if (isAuthenticated.value && documentId) {
-              console.log(`🔄 Redirecting authenticated user to /analysis/${documentId}`)
-              navigateTo(`/analysis/${documentId}`)
+            if (isAuthenticated.value) {
+              const redirectDocumentId = documentId || fileId
+              if (redirectDocumentId) {
+                console.log(`🔄 Redirecting authenticated user to /analysis/${redirectDocumentId}`)
+                navigateTo(`/analysis/${redirectDocumentId}`)
+              } else {
+                console.error('❌ No documentId or fileId available for authenticated user!')
+                // Fallback: try to use sessionId if available, but this shouldn't happen
+                if (resultSessionId) {
+                  console.warn('⚠️ Falling back to /results/:sessionId (unexpected for authenticated user)')
+                  navigateTo(`/results/${resultSessionId}`)
+                } else {
+                  console.error('❌ No redirect target available!')
+                  toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
+                  navigateTo('/documents')
+                }
+              }
             } else {
               // Anonymous users get the free results page
               console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
-              if (!isAuthenticated.value) {
-                console.log('   Reason: User not authenticated')
+              if (!resultSessionId) {
+                console.error('❌ No sessionId available for anonymous user!')
+                toast.error('Analysis Complete', 'But unable to redirect. Please try again.')
+                navigateTo('/analyze')
+              } else {
+                navigateTo(`/results/${resultSessionId}`)
               }
-              if (!documentId) {
-                console.log('   Reason: No documentId available')
-              }
-              navigateTo(`/results/${resultSessionId}`)
             }
           }, 500)
         }
