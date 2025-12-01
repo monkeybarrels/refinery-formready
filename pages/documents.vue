@@ -1176,10 +1176,10 @@ const loadAnalysisDocuments = async () => {
       allDocuments.push(...directUploadDocs)
     }
 
-    // Deduplicate by documentId first, then by fileName + analyzedAt (within 5 minutes)
-    // This handles cases where the same file appears in both VA sync and direct upload with different IDs
+    // Deduplicate by documentId first, then by content matching (rating + conditions + time)
+    // This handles cases where the same file appears in both VA sync and direct upload with different IDs/names
     const docMap = new Map<string, any>()
-    const fileNameMap = new Map<string, any>() // Track by fileName for cross-source deduplication
+    const contentSignatureMap = new Map<string, any>() // Track by content signature for cross-source deduplication
     
     for (const doc of allDocuments) {
       // First, try exact documentId match
@@ -1197,26 +1197,37 @@ const loadAnalysisDocuments = async () => {
         continue
       }
       
-      // Check for duplicate by fileName (same file from different sources)
-      const normalizedFileName = doc.fileName?.toLowerCase().trim()
-      const existingByFileName = fileNameMap.get(normalizedFileName)
+      // Create content signature: combinedRating + conditionsCount + grantedCount + deniedCount
+      // This is more reliable than fileName matching (fileNames can differ)
+      const contentSignature = `${doc.combinedRating || 'none'}-${doc.conditionsCount || 0}-${doc.grantedCount || 0}-${doc.deniedCount || 0}`
+      const existingByContent = contentSignatureMap.get(contentSignature)
       
-      if (existingByFileName) {
-        // Check if they're the same file (uploaded within 5 minutes of each other)
-        const timeDiff = Math.abs(new Date(doc.analyzedAt).getTime() - new Date(existingByFileName.analyzedAt).getTime())
-        const fiveMinutes = 5 * 60 * 1000
+      if (existingByContent && doc.combinedRating !== null && doc.conditionsCount > 0) {
+        // Check if they're the same file (uploaded within 10 minutes of each other)
+        // Increased window to handle processing delays
+        const timeDiff = Math.abs(new Date(doc.analyzedAt).getTime() - new Date(existingByContent.analyzedAt).getTime())
+        const tenMinutes = 10 * 60 * 1000
         
-        if (timeDiff < fiveMinutes) {
-          // Same file from different sources - prefer the one with better status
+        if (timeDiff < tenMinutes) {
+          // Same file from different sources - prefer the one with better status or more complete data
           const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1, 'analyzing': 1, 'extracting': 1 }
-          const existingPriority = statusPriority[existingByFileName.status] || 0
+          const existingPriority = statusPriority[existingByContent.status] || 0
           const newPriority = statusPriority[doc.status] || 0
           
-          if (newPriority > existingPriority) {
+          // Also prefer the one with a better fileName (not auto-generated)
+          const existingHasAutoName = existingByContent.fileName?.includes('VA Document') || existingByContent.fileName?.startsWith('_')
+          const newHasAutoName = doc.fileName?.includes('VA Document') || doc.fileName?.startsWith('_')
+          
+          const shouldReplace = 
+            newPriority > existingPriority ||
+            (newPriority === existingPriority && !newHasAutoName && existingHasAutoName) ||
+            (newPriority === existingPriority && newHasAutoName === existingHasAutoName && new Date(doc.analyzedAt) > new Date(existingByContent.analyzedAt))
+          
+          if (shouldReplace) {
             // Remove old entry and add new one
-            docMap.delete(existingByFileName.documentId)
+            docMap.delete(existingByContent.documentId)
             docMap.set(doc.documentId, doc)
-            fileNameMap.set(normalizedFileName, doc)
+            contentSignatureMap.set(contentSignature, doc)
           }
           // Otherwise keep existing entry
           continue
@@ -1225,8 +1236,8 @@ const loadAnalysisDocuments = async () => {
       
       // New document - add to both maps
       docMap.set(doc.documentId, doc)
-      if (normalizedFileName) {
-        fileNameMap.set(normalizedFileName, doc)
+      if (doc.combinedRating !== null && doc.conditionsCount > 0) {
+        contentSignatureMap.set(contentSignature, doc)
       }
     }
 
