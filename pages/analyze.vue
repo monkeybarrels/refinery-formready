@@ -211,11 +211,10 @@ const stepClasses = (step: number) => {
 const analyzeDocument = async () => {
   if (!selectedFile.value) return
 
-  // Check usage limits before proceeding
-  // Premium users bypass all limits
-  if (!isAuthenticated.value && hasUsedFreeAnalysis.value && !isPremium.value) {
-    toast.warning('Free Analysis Limit Reached', `You've used all ${FREE_ANALYSIS_LIMIT} free analyses. Create a free account to continue.`)
-    showUpgradePrompt.value = true
+  // REQUIRE AUTHENTICATION
+  if (!isAuthenticated.value) {
+    toast.error('Authentication Required', 'Please log in to analyze documents')
+    navigateTo('/auth/login?redirect=/analyze')
     return
   }
 
@@ -227,7 +226,7 @@ const analyzeDocument = async () => {
     const config = useRuntimeConfig()
     const apiUrl = config.public.apiUrl || 'http://localhost:3001'
     const { apiCall } = useApi()
-    const userId = isAuthenticated.value ? 'authenticated' : 'anonymous'
+    const userId = 'authenticated' // Authentication is required
 
     console.log('Starting analysis for file:', selectedFile.value.name)
     console.log('User authenticated:', isAuthenticated.value)
@@ -304,7 +303,7 @@ const analyzeDocument = async () => {
       let analyzeResponse: Response
       let documentId: string
 
-      // CRITICAL: Use fallback auth check for staging compatibility
+      // CRITICAL: Authentication is REQUIRED - no anonymous flow
       // If user has token OR fileId (uploaded via auth endpoint), treat as authenticated
       const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
       const hasFileId = !!fileId
@@ -318,143 +317,104 @@ const analyzeDocument = async () => {
         fileId: fileId
       })
 
-      if (shouldUseAuthenticatedFlow) {
-        // Use async endpoint with real-time RTDB updates
-        console.log('Using async analyze endpoint with fileId:', fileId)
-        analyzeResponse = await apiCall('/api/analyze/async', {
-          method: 'POST',
-          body: JSON.stringify({
-            fileId: fileId // Use the UUID fileId from direct upload
-          }),
-          signal: controller.signal
-        })
-
-        clearTimeout(timeoutId)
-
-        if (!analyzeResponse.ok) {
-          const errorData = await analyzeResponse.json().catch(() => ({}))
-          throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
-        }
-
-        const responseData = await analyzeResponse.json()
-        console.log('Async analyze response:', responseData)
-
-        const jobId = responseData.jobId
-        const firebaseUserId = responseData.userId // Firebase Auth UID for RTDB path
-        currentJobId.value = jobId
-
-        console.log(`Job queued: ${jobId}, starting polling...`)
-
-        // Use simple polling - reliable and works immediately
-        // Capture fileId in closure to ensure it's available
-        const capturedFileId = fileId
-        const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
-          const resultSessionId = result.sessionId
-          
-          // CRITICAL: Check authentication status with detailed logging
-          const authCheck = isAuthenticated.value
-          const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
-          const hasFileId = !!capturedFileId
-          const hasDocumentId = !!result.documentId
-          
-          console.log('✅ Analysis complete!', {
-            documentId: result.documentId,
-            fileId: capturedFileId,
-            sessionId: resultSessionId,
-            isAuthenticated: authCheck,
-            hasToken: hasToken,
-            hasFileId: hasFileId,
-            hasDocumentId: hasDocumentId,
-            userId: userId,
-          })
-          
-          // CRITICAL: If we have a fileId (which means user uploaded via authenticated endpoint),
-          // OR if we have a token, treat as authenticated and redirect to /analysis/:documentId
-          // This ensures staging works even if isAuthenticated check fails
-          const shouldUseAuthenticatedFlow = authCheck || hasToken || hasFileId
-          
-          // For authenticated users, ALWAYS use fileId as documentId (it's the same UUID)
-          // Never use sessionId for authenticated users - they should go to /analysis/:documentId
-          const documentId = shouldUseAuthenticatedFlow ? (result.documentId || capturedFileId) : result.documentId
-
-          // Track analysis completion
-          const totalTime = Date.now() - analysisStartTime.value!
-          trackAnalysis.completed(userId, totalTime, documentId || capturedFileId)
-
-          // Show success toast
-          toast.success('Analysis Complete!', 'Redirecting to your results...')
-
-          // Cleanup
-          stopPolling()
-          currentJobId.value = null
-          analyzing.value = false
-
-          setTimeout(() => {
-            // CRITICAL: Authenticated users MUST go to /analysis/:documentId, NEVER /results/:sessionId
-            // Use shouldUseAuthenticatedFlow instead of just isAuthenticated.value
-            if (shouldUseAuthenticatedFlow) {
-              // Always use fileId as documentId for authenticated users
-              const redirectDocumentId = capturedFileId || documentId
-              if (redirectDocumentId) {
-                console.log(`🔄 Redirecting authenticated user to /analysis/${redirectDocumentId}`)
-                console.log(`   Auth check: ${authCheck}, Has token: ${hasToken}, Has fileId: ${hasFileId}`)
-                navigateTo(`/analysis/${redirectDocumentId}`)
-              } else {
-                // This should never happen, but if it does, go to documents page
-                console.error('❌ No fileId or documentId available for authenticated user!')
-                toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
-                navigateTo('/documents')
-              }
-            } else {
-              // Anonymous users get the free results page (but we don't support anonymous right now)
-              console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
-              console.log(`   Auth check: ${authCheck}, Has token: ${hasToken}, Has fileId: ${hasFileId}`)
-              if (!resultSessionId) {
-                console.error('❌ No sessionId available for anonymous user!')
-                toast.error('Analysis Complete', 'But unable to redirect. Please try again.')
-                navigateTo('/analyze')
-              } else {
-                navigateTo(`/results/${resultSessionId}`)
-              }
-            }
-          }, 500)
-        }
-
-        // Start polling (simple, reliable, works immediately)
-        startPolling(jobId, {
-          onUpdate: (status: PollJobStatus) => {
-            console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
-            // Map polling status to UI step
-            const stepMap: Record<string, number> = {
-              'waiting': 1,
-              'active': 2,
-              'completed': 4,
-              'failed': 0,
-            }
-            currentStep.value = stepMap[status.status] || 2
-          },
-          onComplete: (status: PollJobStatus) => {
-            if (status.result) {
-              handleJobComplete({
-                sessionId: status.result.sessionId || undefined,
-                documentId: status.result.documentId || undefined,
-              })
-            } else {
-              console.error('Job completed but no result data')
-              toast.error('Analysis Complete', 'But result data is missing')
-              analyzing.value = false
-            }
-          },
-          onError: (error: Error) => {
-            console.error('Polling failed:', error)
-            toast.error('Status Tracking Failed', error.message || 'Unable to track job status')
-            analyzing.value = false
-          },
-        })
-
-        // Don't reset analyzing state here - let polling callback handle completion
+      // REQUIRE authentication - redirect to login if not authenticated
+      if (!shouldUseAuthenticatedFlow) {
+        console.error('❌ User not authenticated - redirecting to login')
+        toast.error('Authentication Required', 'Please log in to analyze documents')
+        navigateTo('/auth/login?redirect=/analyze')
+        analyzing.value = false
         return
-      } else {
+      }
+
+      // Use async endpoint - AUTHENTICATED ONLY
+      console.log('Using async analyze endpoint with fileId:', fileId)
+      const analyzeResponse = await apiCall('/api/analyze/async', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileId: fileId
+        }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json().catch(() => ({}))
+        throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
+      }
+
+      const responseData = await analyzeResponse.json()
+      console.log('Async analyze response:', responseData)
+
+      const jobId = responseData.jobId
+      currentJobId.value = jobId
+
+      console.log(`Job queued: ${jobId}, starting polling...`)
+
+      // Capture fileId in closure
+      const capturedFileId = fileId
+      const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
+        const redirectDocumentId = result.documentId || capturedFileId
+        
+        console.log('✅ Analysis complete!', {
+          documentId: redirectDocumentId,
+          fileId: capturedFileId,
+        })
+
+        // Track analysis completion
+        const totalTime = Date.now() - analysisStartTime.value!
+        trackAnalysis.completed(userId, totalTime, redirectDocumentId)
+
+        // Show success toast
+        toast.success('Analysis Complete!', 'Redirecting to your results...')
+
+        // Cleanup
+        stopPolling()
+        currentJobId.value = null
+        analyzing.value = false
+
+        setTimeout(() => {
+          // ALWAYS redirect to /analysis/:documentId for authenticated users
+          if (redirectDocumentId) {
+            console.log(`🔄 Redirecting to /analysis/${redirectDocumentId}`)
+            navigateTo(`/analysis/${redirectDocumentId}`)
+          } else {
+            console.error('❌ No documentId available!')
+            navigateTo('/documents')
+          }
+        }, 500)
+      }
+
+      // Start polling
+      startPolling(jobId, {
+        onUpdate: (status: PollJobStatus) => {
+          console.log(`Job ${jobId} status update:`, status.status, `(${status.progress}%)`)
+          const stepMap: Record<string, number> = {
+            'waiting': 1,
+            'active': 2,
+            'completed': 4,
+            'failed': 0,
+          }
+          currentStep.value = stepMap[status.status] || 2
+        },
+        onComplete: (status: PollJobStatus) => {
+          if (status.result) {
+            handleJobComplete({
+              sessionId: status.result.sessionId || undefined,
+              documentId: status.result.documentId || undefined,
+            })
+          } else {
+            console.error('Job completed but no result data')
+            toast.error('Analysis Complete', 'But result data is missing')
+            analyzing.value = false
+          }
+        },
+        onError: (error: Error) => {
+          console.error('Polling failed:', error)
+          toast.error('Status Tracking Failed', error.message || 'Unable to track job status')
+          analyzing.value = false
+        },
+      })
         // CRITICAL: This should NEVER happen for authenticated users
         // If we have a token or fileId, we should have used authenticated flow above
         console.error('❌ CRITICAL: Falling into anonymous flow but user appears authenticated!', {
