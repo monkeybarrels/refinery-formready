@@ -16,9 +16,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // Check if route is public
   const isPublicRoute = publicRoutes.some(route => {
-    if (route === '/results') {
-      return to.path.startsWith('/results/')
-    }
     return to.path === route
   })
 
