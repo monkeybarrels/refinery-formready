@@ -55,10 +55,7 @@
 import FileUploadZone from "~/components/organisms/FileUploadZone.vue";
 import Navigation from "~/components/organisms/Navigation.vue";
 import Footer from "~/components/organisms/Footer.vue";
-import Button from "~/components/atoms/Button.vue";
-import EmptyState from "~/components/molecules/EmptyState.vue";
 import LoadingState from "~/components/molecules/LoadingState.vue";
-import UserStateCard from "~/components/molecules/UserStateCard.vue";
 import Breadcrumb from "~/components/molecules/Breadcrumb.vue";
 import { useToast } from "~/composables/useToast";
 import { useAnalysisErrors } from "~/composables/useAnalysisErrors";
@@ -255,7 +252,7 @@ const analyzeDocument = async () => {
 
       // Capture fileId in closure - THIS IS THE documentId
       const capturedFileId = fileId
-      const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
+      const handleJobComplete = (result: { documentId?: string }) => {
         // Always use documentId or fileId - fileId IS the documentId (same UUID)
         const redirectDocumentId = result.documentId || capturedFileId
         
