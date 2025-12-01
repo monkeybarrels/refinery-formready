@@ -88,8 +88,8 @@
       <BackButton :to="isAuthenticated ? '/documents' : '/analyze'" :label="isAuthenticated ? 'Back to Documents' : 'Start New Analysis'" />
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="max-w-7xl mx-auto px-4 py-12 text-center">
+    <!-- Redirecting State (deprecated route) -->
+    <div class="max-w-7xl mx-auto px-4 py-12 text-center">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
       <p class="mt-4 text-slate-600">Loading your analysis...</p>
     </div>
@@ -207,7 +207,8 @@ import SocialProof from "~/components/organisms/SocialProof.vue";
 const route = useRoute()
 const sessionId = route.params.sessionId as string
 
-const loading = ref(true)
+// DEPRECATED: This page is no longer used - redirects immediately
+const loading = ref(false)
 const results = ref<any>(null)
 const showMobileMenu = ref(false)
 
@@ -251,30 +252,15 @@ const expirationDate = computed(() => {
 })
 
 onMounted(async () => {
-  // If user is authenticated, redirect them to documents page
-  // Authenticated users should never be on /results/:sessionId
-  if (isAuthenticated.value) {
-    console.warn('⚠️ Authenticated user on /results/:sessionId - redirecting to /documents')
-    navigateTo('/documents')
-    return
-  }
-
-  try {
-    const { apiCall } = useApi()
-
-    const response = await apiCall(`/api/analyze/results/${sessionId}`)
-
-    if (response.ok) {
-      results.value = await response.json()
-    } else if (response.status === 401) {
-      // Auth error - apiCall already handles logout, just show error
-      console.error('Authentication required to view results')
-    }
-  } catch (error) {
-    console.error('Failed to load results:', error)
-  } finally {
-    loading.value = false
-  }
+  // DEPRECATED: /results/:sessionId is no longer supported
+  // We no longer create sessionId (authenticated users only)
+  // Immediately redirect ALL users to /documents
+  console.warn('⚠️ /results/:sessionId is deprecated - redirecting to /documents')
+  console.warn('   sessionId:', sessionId)
+  console.warn('   Authenticated users should use /analysis/:documentId')
+  
+  // Redirect immediately - no fetching, no processing
+  navigateTo('/documents', { replace: true })
 })
 
 const downloadSummary = async () => {
