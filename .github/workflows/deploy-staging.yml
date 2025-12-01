@@ -55,8 +55,12 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Remove package-lock.json to handle cross-platform native bindings
+          # oxc-parser requires platform-specific binaries that may not be in lock file
+          # when generated on macOS (npm bug: https://github.com/npm/cli/issues/4828)
+          rm -f package-lock.json
           rm -rf node_modules
-          npm ci
+          npm install
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
