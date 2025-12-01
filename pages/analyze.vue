@@ -322,14 +322,20 @@ const analyzeDocument = async () => {
 
       console.log(`Job queued: ${jobId}, starting polling...`)
 
-      // Capture fileId in closure
+      // Capture fileId in closure - THIS IS THE documentId
       const capturedFileId = fileId
       const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
+        // CRITICAL: NEVER use sessionId - always use documentId or fileId
+        // fileId IS the documentId (they're the same UUID)
         const redirectDocumentId = result.documentId || capturedFileId
         
         console.log('✅ Analysis complete!', {
           documentId: redirectDocumentId,
           fileId: capturedFileId,
+          resultDocumentId: result.documentId,
+          resultSessionId: result.sessionId,
+          // Log warning if sessionId is present but we're ignoring it
+          ...(result.sessionId && { warning: 'sessionId present but ignored - using documentId only' })
         })
 
         // Track analysis completion
@@ -345,12 +351,15 @@ const analyzeDocument = async () => {
         analyzing.value = false
 
         setTimeout(() => {
-          // ALWAYS redirect to /analysis/:documentId for authenticated users
+          // ALWAYS redirect to /analysis/:documentId - NEVER /results/:sessionId
           if (redirectDocumentId) {
             console.log(`🔄 Redirecting to /analysis/${redirectDocumentId}`)
+            console.log(`   IGNORING sessionId: ${result.sessionId || 'none'}`)
             navigateTo(`/analysis/${redirectDocumentId}`)
           } else {
-            console.error('❌ No documentId available!')
+            console.error('❌ CRITICAL: No documentId or fileId available!')
+            console.error('   result.documentId:', result.documentId)
+            console.error('   capturedFileId:', capturedFileId)
             navigateTo('/documents')
           }
         }, 500)
@@ -370,9 +379,25 @@ const analyzeDocument = async () => {
         },
         onComplete: (status: PollJobStatus) => {
           if (status.result) {
+            // CRITICAL: Always use documentId or fileId, NEVER sessionId
+            // fileId IS the documentId (they're the same UUID)
+            const documentId = status.result.documentId || capturedFileId
+            if (!documentId) {
+              console.error('❌ CRITICAL: No documentId in result and no capturedFileId!')
+              console.error('   Result:', JSON.stringify(status.result, null, 2))
+              toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
+              analyzing.value = false
+              navigateTo('/documents')
+              return
+            }
+            
+            // IGNORE sessionId completely - we only use documentId
+            console.log('✅ Job complete - using documentId:', documentId)
+            console.log('   IGNORING sessionId:', status.result.sessionId)
+            
             handleJobComplete({
-              sessionId: status.result.sessionId || undefined,
-              documentId: status.result.documentId || undefined,
+              documentId: documentId, // Always use documentId, never sessionId
+              sessionId: undefined, // Explicitly set to undefined to prevent any use
             })
           } else {
             console.error('Job completed but no result data')
