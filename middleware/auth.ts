@@ -11,8 +11,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     '/',
     '/auth/login',
     '/auth/signup',
-    '/analyze', // Anonymous analysis page
-    '/results' // Anonymous results page (starts with /results)
+    // /analyze and /results now require authentication
   ]
 
   // Check if route is public
