@@ -304,7 +304,21 @@ const analyzeDocument = async () => {
       let analyzeResponse: Response
       let documentId: string
 
-      if (isAuthenticated.value) {
+      // CRITICAL: Use fallback auth check for staging compatibility
+      // If user has token OR fileId (uploaded via auth endpoint), treat as authenticated
+      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
+      const hasFileId = !!fileId
+      const shouldUseAuthenticatedFlow = isAuthenticated.value || hasToken || hasFileId
+      
+      console.log('🔍 Auth check for analyze endpoint:', {
+        isAuthenticated: isAuthenticated.value,
+        hasToken: hasToken,
+        hasFileId: hasFileId,
+        shouldUseAuthenticatedFlow: shouldUseAuthenticatedFlow,
+        fileId: fileId
+      })
+
+      if (shouldUseAuthenticatedFlow) {
         // Use async endpoint with real-time RTDB updates
         console.log('Using async analyze endpoint with fileId:', fileId)
         analyzeResponse = await apiCall('/api/analyze/async', {
@@ -441,7 +455,69 @@ const analyzeDocument = async () => {
         // Don't reset analyzing state here - let polling callback handle completion
         return
       } else {
-        // Anonymous flow - use session-based results
+        // CRITICAL: This should NEVER happen for authenticated users
+        // If we have a token or fileId, we should have used authenticated flow above
+        console.error('❌ CRITICAL: Falling into anonymous flow but user appears authenticated!', {
+          isAuthenticated: isAuthenticated.value,
+          hasToken: typeof window !== 'undefined' && !!localStorage.getItem('auth_token'),
+          hasFileId: !!fileId,
+          fileId: fileId
+        })
+        
+        // If we somehow got here but have a fileId, something is very wrong
+        // Force authenticated flow instead
+        if (fileId) {
+          console.error('⚠️ Forcing authenticated flow due to fileId presence')
+          // Re-run with authenticated endpoint
+          analyzeResponse = await apiCall('/api/analyze/async', {
+            method: 'POST',
+            body: JSON.stringify({ fileId }),
+            signal: controller.signal
+          })
+          
+          if (!analyzeResponse.ok) {
+            const errorData = await analyzeResponse.json().catch(() => ({}))
+            throw { response: analyzeResponse, message: errorData.message || 'Analysis failed' }
+          }
+          
+          const responseData = await analyzeResponse.json()
+          const jobId = responseData.jobId
+          currentJobId.value = jobId
+          
+          const capturedFileId = fileId
+          const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
+            const redirectDocumentId = result.documentId || capturedFileId
+            if (redirectDocumentId) {
+              console.log(`🔄 Forced authenticated redirect to /analysis/${redirectDocumentId}`)
+              navigateTo(`/analysis/${redirectDocumentId}`)
+            } else {
+              navigateTo('/documents')
+            }
+          }
+          
+          startPolling(jobId, {
+            onUpdate: (status: PollJobStatus) => {
+              currentStep.value = statusToStep(status.status)
+            },
+            onComplete: (status: PollJobStatus) => {
+              if (status.result) {
+                handleJobComplete({
+                  sessionId: status.result.sessionId || undefined,
+                  documentId: status.result.documentId || undefined,
+                })
+              }
+            },
+            onError: (error: Error) => {
+              console.error('Polling failed:', error)
+              analyzing.value = false
+            },
+          })
+          
+          return
+        }
+        
+        // Truly anonymous flow - use session-based results (should rarely happen)
+        console.warn('⚠️ Using anonymous flow - user has no token or fileId')
         analyzeResponse = await fetch(
           `${apiUrl}/api/analyze/anonymous`,
           {
@@ -483,7 +559,7 @@ const analyzeDocument = async () => {
         // Show success toast
         toast.success('Analysis Complete!', 'Redirecting to your results...')
 
-        // Redirect to results page
+        // Redirect to results page (only for truly anonymous users)
         setTimeout(() => {
           navigateTo(`/results/${newSessionId}`)
         }, 500)
