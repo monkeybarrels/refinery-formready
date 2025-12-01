@@ -332,15 +332,17 @@ const analyzeDocument = async () => {
         console.log(`Job queued: ${jobId}, starting polling...`)
 
         // Use simple polling - reliable and works immediately
+        // Capture fileId in closure to ensure it's available
+        const capturedFileId = fileId
         const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
           const resultSessionId = result.sessionId
-          // For authenticated users, always use fileId as documentId (it's the same UUID)
-          // For anonymous users, we need sessionId
-          const documentId = isAuthenticated.value ? (result.documentId || fileId) : result.documentId
+          // For authenticated users, ALWAYS use fileId as documentId (it's the same UUID)
+          // Never use sessionId for authenticated users - they should go to /analysis/:documentId
+          const documentId = isAuthenticated.value ? (result.documentId || capturedFileId) : result.documentId
 
           console.log('✅ Analysis complete!', {
             documentId: documentId,
-            fileId: fileId,
+            fileId: capturedFileId,
             sessionId: resultSessionId,
             isAuthenticated: isAuthenticated.value,
             resultDocumentId: result.documentId,
@@ -348,7 +350,7 @@ const analyzeDocument = async () => {
 
           // Track analysis completion
           const totalTime = Date.now() - analysisStartTime.value!
-          trackAnalysis.completed(userId, totalTime, documentId || fileId)
+          trackAnalysis.completed(userId, totalTime, documentId || capturedFileId)
 
           // Show success toast
           toast.success('Analysis Complete!', 'Redirecting to your results...')
@@ -359,27 +361,21 @@ const analyzeDocument = async () => {
           analyzing.value = false
 
           setTimeout(() => {
-            // For authenticated users, ALWAYS redirect to /analysis/:documentId (use fileId as fallback)
-            // For anonymous users, redirect to results page (free version)
+            // CRITICAL: Authenticated users MUST go to /analysis/:documentId, NEVER /results/:sessionId
             if (isAuthenticated.value) {
-              const redirectDocumentId = documentId || fileId
+              // Always use fileId as documentId for authenticated users
+              const redirectDocumentId = capturedFileId || documentId
               if (redirectDocumentId) {
                 console.log(`🔄 Redirecting authenticated user to /analysis/${redirectDocumentId}`)
                 navigateTo(`/analysis/${redirectDocumentId}`)
               } else {
-                console.error('❌ No documentId or fileId available for authenticated user!')
-                // Fallback: try to use sessionId if available, but this shouldn't happen
-                if (resultSessionId) {
-                  console.warn('⚠️ Falling back to /results/:sessionId (unexpected for authenticated user)')
-                  navigateTo(`/results/${resultSessionId}`)
-                } else {
-                  console.error('❌ No redirect target available!')
-                  toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
-                  navigateTo('/documents')
-                }
+                // This should never happen, but if it does, go to documents page
+                console.error('❌ No fileId or documentId available for authenticated user!')
+                toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
+                navigateTo('/documents')
               }
             } else {
-              // Anonymous users get the free results page
+              // Anonymous users get the free results page (but we don't support anonymous right now)
               console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
               if (!resultSessionId) {
                 console.error('❌ No sessionId available for anonymous user!')

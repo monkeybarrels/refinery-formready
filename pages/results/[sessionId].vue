@@ -251,6 +251,14 @@ const expirationDate = computed(() => {
 })
 
 onMounted(async () => {
+  // If user is authenticated, redirect them to documents page
+  // Authenticated users should never be on /results/:sessionId
+  if (isAuthenticated.value) {
+    console.warn('⚠️ Authenticated user on /results/:sessionId - redirecting to /documents')
+    navigateTo('/documents')
+    return
+  }
+
   try {
     const { apiCall } = useApi()
 
