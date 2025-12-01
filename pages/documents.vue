@@ -1214,22 +1214,55 @@ const loadAnalysisDocuments = async () => {
           const existingPriority = statusPriority[existingByContent.status] || 0
           const newPriority = statusPriority[doc.status] || 0
           
-          // Also prefer the one with a better fileName (not auto-generated)
-          const existingHasAutoName = existingByContent.fileName?.includes('VA Document') || existingByContent.fileName?.startsWith('_')
-          const newHasAutoName = doc.fileName?.includes('VA Document') || doc.fileName?.startsWith('_')
+          // Detect auto-generated names vs smart names (renamed during analysis)
+          // Auto-generated: "VA Document YYYY-MM-DD.pdf", starts with "_", or generic "Decision Letter" without rating
+          // Smart names: Generated from extraction data (e.g., "Jan 15, 2025 - Rating Decision (80%)")
+          // Smart names contain "%" or "Rating Decision" pattern
+          const existingHasAutoName = 
+            existingByContent.fileName?.includes('VA Document') || 
+            existingByContent.fileName?.startsWith('_') ||
+            (existingByContent.fileName === 'Decision Letter')
+          const newHasAutoName = 
+            doc.fileName?.includes('VA Document') || 
+            doc.fileName?.startsWith('_') ||
+            (doc.fileName === 'Decision Letter')
           
-          const shouldReplace = 
-            newPriority > existingPriority ||
-            (newPriority === existingPriority && !newHasAutoName && existingHasAutoName) ||
-            (newPriority === existingPriority && newHasAutoName === existingHasAutoName && new Date(doc.analyzedAt) > new Date(existingByContent.analyzedAt))
+          // Smart names are generated during analysis (contain "%" or "Rating Decision")
+          const existingHasSmartName = existingByContent.fileName?.includes('%') || existingByContent.fileName?.includes('Rating Decision')
+          const newHasSmartName = doc.fileName?.includes('%') || doc.fileName?.includes('Rating Decision')
+          
+          // Prefer analyzed version (which gets renamed with smart displayName)
+          // Priority: 1) Better status, 2) Smart name over auto name, 3) Newer timestamp
+          let shouldReplace = false
+          
+          if (newPriority > existingPriority) {
+            // New has better status - always prefer it
+            shouldReplace = true
+          } else if (newPriority === existingPriority) {
+            // Same status - prefer smart name over auto name
+            if (newHasSmartName && existingHasAutoName) {
+              // New has smart name (analyzed/renamed), existing has auto - prefer new
+              shouldReplace = true
+            } else if (newHasAutoName && existingHasSmartName) {
+              // New has auto, existing has smart - keep existing
+              shouldReplace = false
+            } else {
+              // Both same type - prefer newer
+              shouldReplace = new Date(doc.analyzedAt) > new Date(existingByContent.analyzedAt)
+            }
+          }
           
           if (shouldReplace) {
-            // Remove old entry and add new one
+            // Remove old entry (the duplicate) and add new one (the renamed/analyzed version)
+            console.log(`🔄 Deduplicating: Keeping "${doc.fileName}" (${doc.status}), dropping "${existingByContent.fileName}" (${existingByContent.status})`)
             docMap.delete(existingByContent.documentId)
             docMap.set(doc.documentId, doc)
             contentSignatureMap.set(contentSignature, doc)
+          } else {
+            // Keep existing entry (it's the better one)
+            console.log(`🔄 Deduplicating: Keeping "${existingByContent.fileName}" (${existingByContent.status}), dropping "${doc.fileName}" (${doc.status})`)
           }
-          // Otherwise keep existing entry
+          // Skip adding this duplicate
           continue
         }
       }
