@@ -1038,8 +1038,18 @@ const getVaStatusVariant = (status: string): BadgeVariant => {
 }
 
 // Helper to check if document is analyzed
+// Check both status and actual data availability (ratings/conditions)
 const isDocumentAnalyzed = (doc: any): boolean => {
-  return doc.status === 'analyzed' || doc.status === 'extracted'
+  // Check status first
+  if (doc.status === 'analyzed' || doc.status === 'extracted') {
+    return true
+  }
+  // Also check if document has actual extraction data (ratings/conditions)
+  // This handles cases where status might be wrong but data exists
+  if (doc.conditionsCount > 0 || doc.combinedRating !== null) {
+    return true
+  }
+  return false
 }
 
 // Get analysis-specific status variant
@@ -1108,20 +1118,39 @@ const loadAnalysisDocuments = async () => {
       const vaSyncData = await vaSyncResponse.json()
       console.log('📊 VA sync documents received:', vaSyncData?.length || 0)
 
-      const vaSyncDocs = (vaSyncData || []).map((doc: any) => ({
-        documentId: doc._id || doc.id,
-        fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
-        status: doc.processingState || 'uploaded',
-        analyzedAt: doc.analyzedAt || doc.uploadedAt,
-        decisionDate: doc.extractionData?.decisionDate || null,
-        combinedRating: doc.extractionData?.combinedRating || null,
-        monthlyPayment: null,
-        conditionsCount: doc.extractionData?.ratings?.length || 0,
-        grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
-        deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
-        deferredCount: 0,
-        source: 'va-sync'
-      }))
+      const vaSyncDocs = (vaSyncData || []).map((doc: any) => {
+        // Determine actual status based on processingState and data availability
+        // If document has extraction data (ratings), it's at least extracted
+        // If document has analysis data and isAnalyzed flag, it's analyzed
+        let status = doc.processingState || 'uploaded'
+        const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
+        const hasAnalysisData = doc.isAnalyzed && doc.analysisData
+        
+        // Override status based on actual data availability
+        if (hasAnalysisData) {
+          status = 'analyzed'
+        } else if (hasExtractionData) {
+          status = 'extracted'
+        } else if (status === 'completed') {
+          // Handle legacy 'completed' status - treat as uploaded if no data
+          status = 'uploaded'
+        }
+        
+        return {
+          documentId: doc._id || doc.id,
+          fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
+          status: status,
+          analyzedAt: doc.analyzedAt || doc.uploadedAt,
+          decisionDate: doc.extractionData?.decisionDate || null,
+          combinedRating: doc.extractionData?.combinedRating || null,
+          monthlyPayment: null,
+          conditionsCount: doc.extractionData?.ratings?.length || 0,
+          grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
+          deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
+          deferredCount: 0,
+          source: 'va-sync'
+        }
+      })
       allDocuments.push(...vaSyncDocs)
     }
 
