@@ -238,46 +238,34 @@ const analyzeDocument = async () => {
     console.log('Step 1: Uploading file through API...')
     currentStep.value = 1
 
+    // REQUIRE AUTHENTICATION for upload
+    if (!isAuthenticated.value) {
+      console.error('❌ User not authenticated - redirecting to login')
+      toast.error('Authentication Required', 'Please log in to analyze documents')
+      analyzing.value = false
+      navigateTo('/auth/login?redirect=/analyze')
+      return
+    }
+
     // Create FormData for multipart upload
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    formData.append('path', isAuthenticated.value ? 'documents' : 'uploads')
+    formData.append('path', 'documents')
 
-    let uploadData: any
-    let fileId: string
+    // Use authenticated endpoint (useApi detects FormData and sets correct headers)
+    const uploadResponse = await apiCall('/api/storage/upload', {
+      method: 'POST',
+      body: formData
+    })
 
-    if (isAuthenticated.value) {
-      // Use authenticated endpoint (useApi detects FormData and sets correct headers)
-      const uploadResponse = await apiCall('/api/storage/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}))
-        throw { response: uploadResponse, message: errorData.message || 'Upload failed' }
-      }
-
-      uploadData = await uploadResponse.json()
-      fileId = uploadData.fileId
-      console.log('Step 1 complete: File uploaded via API, fileId:', fileId)
-    } else {
-      // Use public upload endpoint for anonymous users
-      const uploadResponse = await fetch(`${apiUrl}/api/storage/upload`, {
-        method: 'POST',
-        body: formData
-        // No headers - let browser set Content-Type with boundary for FormData
-      })
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}))
-        throw { response: uploadResponse, message: errorData.message || 'Upload failed' }
-      }
-
-      uploadData = await uploadResponse.json()
-      fileId = uploadData.fileId
-      console.log('Step 1 complete: File uploaded via API (anonymous), fileId:', fileId)
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({}))
+      throw { response: uploadResponse, message: errorData.message || 'Upload failed' }
     }
+
+    const uploadData = await uploadResponse.json()
+    const fileId = uploadData.fileId
+    console.log('Step 1 complete: File uploaded via API, fileId:', fileId)
 
     // Step 2: Upload complete (already done in step 1)
     currentStep.value = 2
@@ -300,25 +288,8 @@ const analyzeDocument = async () => {
     const timeoutId = setTimeout(() => controller.abort(), 90000)
 
     try {
-      let analyzeResponse: Response
-      let documentId: string
-
-      // CRITICAL: Authentication is REQUIRED - no anonymous flow
-      // If user has token OR fileId (uploaded via auth endpoint), treat as authenticated
-      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
-      const hasFileId = !!fileId
-      const shouldUseAuthenticatedFlow = isAuthenticated.value || hasToken || hasFileId
-      
-      console.log('🔍 Auth check for analyze endpoint:', {
-        isAuthenticated: isAuthenticated.value,
-        hasToken: hasToken,
-        hasFileId: hasFileId,
-        shouldUseAuthenticatedFlow: shouldUseAuthenticatedFlow,
-        fileId: fileId
-      })
-
-      // REQUIRE authentication - redirect to login if not authenticated
-      if (!shouldUseAuthenticatedFlow) {
+      // REQUIRE authentication - already checked above, but double-check
+      if (!isAuthenticated.value) {
         console.error('❌ User not authenticated - redirecting to login')
         toast.error('Authentication Required', 'Please log in to analyze documents')
         navigateTo('/auth/login?redirect=/analyze')
