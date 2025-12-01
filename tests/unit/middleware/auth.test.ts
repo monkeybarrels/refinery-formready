@@ -33,8 +33,7 @@ describe('auth middleware', () => {
       { path: '/', name: 'index' },
       { path: '/auth/login', name: 'auth-login' },
       { path: '/auth/signup', name: 'auth-signup' },
-      { path: '/analyze', name: 'analyze' },
-      { path: '/results/abc123', name: 'results-sessionId' },
+      // /analyze and /results now require authentication
     ]
 
     publicRoutes.forEach(({ path, name }) => {
@@ -57,6 +56,8 @@ describe('auth middleware', () => {
       { path: '/profile', name: 'profile' },
       { path: '/settings', name: 'settings' },
       { path: '/analysis/doc123', name: 'analysis-documentId' },
+      { path: '/analyze', name: 'analyze' }, // Now requires authentication
+      { path: '/results/abc123', name: 'results-sessionId' }, // Now requires authentication
     ]
 
     protectedRoutes.forEach(({ path, name }) => {
@@ -118,18 +119,23 @@ describe('auth middleware', () => {
       expect(mockNavigateTo.mock.calls[0][0]).toContain('redirect=/dashboard?tab=analytics')
     })
 
-    it('should handle results routes with different session IDs', async () => {
+    it('should require authentication for results routes with different session IDs', async () => {
       const sessionIds = ['abc123', 'xyz789', 'test-session-id']
 
       for (const sessionId of sessionIds) {
         vi.clearAllMocks()
+        mockIsAuthenticated.mockReturnValue(false)
 
         const to = { path: `/results/${sessionId}`, name: 'results-sessionId' }
         const from = { path: '/', name: 'index' }
 
         await authMiddleware(to as any, from as any)
 
-        expect(mockNavigateTo).not.toHaveBeenCalled()
+        // Should redirect to login since /results now requires authentication
+        expect(mockIsAuthenticated).toHaveBeenCalled()
+        expect(mockNavigateTo).toHaveBeenCalled()
+        expect(mockNavigateTo.mock.calls[0][0]).toContain('/auth/login')
+        expect(mockNavigateTo.mock.calls[0][0]).toContain(`redirect=/results/${sessionId}`)
       }
     })
 
