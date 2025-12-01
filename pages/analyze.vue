@@ -6,8 +6,7 @@
     <!-- Page Header -->
     <div class="bg-white border-b border-slate-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Breadcrumbs for authenticated users -->
-        <div v-if="isAuthenticated" class="mb-4">
+        <div class="mb-4">
           <Breadcrumb />
         </div>
 
@@ -20,53 +19,8 @@
       </div>
     </div>
 
-    <!-- Usage Limit Reached (Anonymous Users Only) -->
-    <div v-if="!analyzing && !sessionId && !isAuthenticated && hasUsedFreeAnalysis && !isPremium" class="max-w-3xl mx-auto px-4 py-8">
-      <div class="bg-white rounded-2xl shadow-xl p-8">
-        <EmptyState
-          variant="limit-reached"
-          icon-name="heroicons:lock-closed"
-          :title="`You've Used Your ${FREE_ANALYSIS_LIMIT} Free Analyses`"
-          description="Create a free account to continue analyzing decision letters"
-          :benefits="[
-            'Unlimited decision letter analysis',
-            'Save and access your analysis history',
-            'Track multiple claims',
-            'Evidence checklists and recommendations'
-          ]"
-          benefits-title="With a free account you get:"
-          :primary-action="{
-            label: 'Create Free Account',
-            icon: 'heroicons:user-plus',
-            to: '/auth/signup'
-          }"
-          :secondary-action="{
-            label: 'Sign In',
-            icon: 'heroicons:arrow-right-on-rectangle',
-            to: '/auth/login'
-          }"
-          :tertiary-action="{
-            label: 'View Premium Plans',
-            icon: 'heroicons:arrow-right',
-            to: '/pricing'
-          }"
-          footer-message="Want advanced features like multi-claim tracking and AI form generation?"
-        />
-      </div>
-    </div>
-
     <!-- Upload Section -->
-    <div v-if="!analyzing && !sessionId && !(hasUsedFreeAnalysis && !isAuthenticated && !isPremium)" class="max-w-3xl mx-auto px-4 py-8">
-      <!-- User State Card -->
-      <div v-if="!isAuthenticated && !isPremium" class="mb-6">
-        <UserStateCard
-          user-state="guest"
-          :remaining-uses="FREE_ANALYSIS_LIMIT - freeAnalysisCount"
-          :total-uses="FREE_ANALYSIS_LIMIT"
-          :show-upgrade-action="true"
-        />
-      </div>
-
+    <div v-if="!analyzing" class="max-w-3xl mx-auto px-4 py-8">
       <FileUploadZone
         @file-select="handleFileSelect"
         @analyze="analyzeDocument"
@@ -91,10 +45,6 @@
       </div>
     </div>
 
-    <!-- Redirect to results -->
-    <div v-if="sessionId">
-      <!-- Auto-redirect handled in script -->
-    </div>
 
     <!-- Footer -->
     <Footer class="mt-auto" />
@@ -123,7 +73,6 @@ const { startPolling, stopPolling } = useJobPolling()
 const route = useRoute()
 
 const analyzing = ref(false)
-const sessionId = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
 const currentStep = ref(0) // Track progress: 0=idle, 1=uploading, 2=extracting, 3=analyzing
 const analysisStartTime = ref<number | null>(null)
@@ -144,43 +93,25 @@ const statusToStep = (status: string): number => {
   }
 }
 
-// Get authentication and subscription state
+// Get authentication state - REQUIRED
 const { isAuthenticated: isAuthenticatedFn } = useAuth()
 const isAuthenticated = computed(() => isAuthenticatedFn())
 const { isPremium } = useSubscription()
-const FREE_ANALYSIS_LIMIT = 3
-const freeAnalysisCount = ref(0)
-const hasUsedFreeAnalysis = computed(() => freeAnalysisCount.value >= FREE_ANALYSIS_LIMIT)
-const showUpgradePrompt = ref(false)
 
 // Track upload page view on mount (funnel step 2)
 onMounted(async () => {
+  // REQUIRE authentication - redirect if not authenticated
+  if (!isAuthenticated.value) {
+    navigateTo('/auth/login?redirect=/analyze')
+    return
+  }
+
   const source = route.query.utm_source as string | undefined
   trackFunnel.uploadPageViewed(source)
 
-  // Check if user is authenticated and fetch subscription status
-  if (isAuthenticated.value) {
-    const { fetchSubscriptionStatus } = useSubscription()
-    await fetchSubscriptionStatus()
-  }
-
-  // Dev helper: Reset free analysis count (remove in production)
-  // Add ?reset=1 to URL to reset: /analyze?reset=1
-  if (import.meta.dev && route.query.reset === '1') {
-    localStorage.removeItem('free_analysis_count')
-    freeAnalysisCount.value = 0
-    console.log('✅ Free analysis count reset')
-  }
-
-  // Check if anonymous user has used their free analyses
-  // Premium users bypass this limit
-  if (!isAuthenticated.value && !isPremium.value) {
-    const storedCount = localStorage.getItem('free_analysis_count')
-    freeAnalysisCount.value = storedCount ? parseInt(storedCount, 10) : 0
-  } else {
-    // Premium users or authenticated users don't have limits
-    freeAnalysisCount.value = 0
-  }
+  // Fetch subscription status
+  const { fetchSubscriptionStatus } = useSubscription()
+  await fetchSubscriptionStatus()
 })
 
 // Cleanup polling if user navigates away during analysis
@@ -211,7 +142,7 @@ const stepClasses = (step: number) => {
 const analyzeDocument = async () => {
   if (!selectedFile.value) return
 
-  // REQUIRE AUTHENTICATION
+  // REQUIRE AUTHENTICATION - no exceptions
   if (!isAuthenticated.value) {
     toast.error('Authentication Required', 'Please log in to analyze documents')
     navigateTo('/auth/login?redirect=/analyze')
@@ -325,17 +256,12 @@ const analyzeDocument = async () => {
       // Capture fileId in closure - THIS IS THE documentId
       const capturedFileId = fileId
       const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
-        // CRITICAL: NEVER use sessionId - always use documentId or fileId
-        // fileId IS the documentId (they're the same UUID)
+        // Always use documentId or fileId - fileId IS the documentId (same UUID)
         const redirectDocumentId = result.documentId || capturedFileId
         
         console.log('✅ Analysis complete!', {
           documentId: redirectDocumentId,
           fileId: capturedFileId,
-          resultDocumentId: result.documentId,
-          resultSessionId: result.sessionId,
-          // Log warning if sessionId is present but we're ignoring it
-          ...(result.sessionId && { warning: 'sessionId present but ignored - using documentId only' })
         })
 
         // Track analysis completion
@@ -351,15 +277,12 @@ const analyzeDocument = async () => {
         analyzing.value = false
 
         setTimeout(() => {
-          // ALWAYS redirect to /analysis/:documentId - NEVER /results/:sessionId
+          // Always redirect to /analysis/:documentId
           if (redirectDocumentId) {
             console.log(`🔄 Redirecting to /analysis/${redirectDocumentId}`)
-            console.log(`   IGNORING sessionId: ${result.sessionId || 'none'}`)
             navigateTo(`/analysis/${redirectDocumentId}`)
           } else {
-            console.error('❌ CRITICAL: No documentId or fileId available!')
-            console.error('   result.documentId:', result.documentId)
-            console.error('   capturedFileId:', capturedFileId)
+            console.error('❌ No documentId available!')
             navigateTo('/documents')
           }
         }, 500)
@@ -379,25 +302,17 @@ const analyzeDocument = async () => {
         },
         onComplete: (status: PollJobStatus) => {
           if (status.result) {
-            // CRITICAL: Always use documentId or fileId, NEVER sessionId
-            // fileId IS the documentId (they're the same UUID)
             const documentId = status.result.documentId || capturedFileId
             if (!documentId) {
-              console.error('❌ CRITICAL: No documentId in result and no capturedFileId!')
-              console.error('   Result:', JSON.stringify(status.result, null, 2))
+              console.error('❌ No documentId available!')
               toast.error('Analysis Complete', 'But unable to redirect. Please check your documents.')
               analyzing.value = false
               navigateTo('/documents')
               return
             }
             
-            // IGNORE sessionId completely - we only use documentId
-            console.log('✅ Job complete - using documentId:', documentId)
-            console.log('   IGNORING sessionId:', status.result.sessionId)
-            
             handleJobComplete({
-              documentId: documentId, // Always use documentId, never sessionId
-              sessionId: undefined, // Explicitly set to undefined to prevent any use
+              documentId: documentId,
             })
           } else {
             console.error('Job completed but no result data')
@@ -431,7 +346,7 @@ const analyzeDocument = async () => {
     // Track analysis failure
     const errorMessage = error?.message || error?.response?.statusText || 'Unknown error'
     const errorCode = error?.response?.status?.toString()
-    trackAnalysis.failed('anonymous', errorMessage, errorCode)
+    trackAnalysis.failed('authenticated', errorMessage, errorCode)
 
     // Use our error handler with retry capability
     handleError(error, stage, () => {
@@ -441,9 +356,8 @@ const analyzeDocument = async () => {
       setTimeout(() => analyzeDocument(), 100)
     })
   } finally {
-    if (!sessionId.value) {
-      // Only reset if we didn't succeed
-      analyzing.value = false
+    // Reset state if analysis didn't complete successfully
+    if (!analyzing.value) {
       currentStep.value = 0
     }
   }
@@ -452,7 +366,7 @@ const analyzeDocument = async () => {
 useHead({
   title: 'Analyze VA Decision Letter - ClaimReady',
   meta: [
-    { name: 'description', content: 'Upload your VA decision letter for instant analysis. No account required.' }
+    { name: 'description', content: 'Upload your VA decision letter for instant analysis.' }
   ]
 })
 </script>
