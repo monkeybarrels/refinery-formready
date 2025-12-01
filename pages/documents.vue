@@ -1118,39 +1118,51 @@ const loadAnalysisDocuments = async () => {
       const vaSyncData = await vaSyncResponse.json()
       console.log('📊 VA sync documents received:', vaSyncData?.length || 0)
 
-      const vaSyncDocs = (vaSyncData || []).map((doc: any) => {
-        // Determine actual status based on processingState and data availability
-        // If document has extraction data (ratings), it's at least extracted
-        // If document has analysis data and isAnalyzed flag, it's analyzed
-        let status = doc.processingState || 'uploaded'
-        const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
-        const hasAnalysisData = doc.isAnalyzed && doc.analysisData
-        
-        // Override status based on actual data availability
-        if (hasAnalysisData) {
-          status = 'analyzed'
-        } else if (hasExtractionData) {
-          status = 'extracted'
-        } else if (status === 'completed') {
-          // Handle legacy 'completed' status - treat as uploaded if no data
-          status = 'uploaded'
-        }
-        
-        return {
-          documentId: doc._id || doc.id,
-          fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
-          status: status,
-          analyzedAt: doc.analyzedAt || doc.uploadedAt,
-          decisionDate: doc.extractionData?.decisionDate || null,
-          combinedRating: doc.extractionData?.combinedRating || null,
-          monthlyPayment: null,
-          conditionsCount: doc.extractionData?.ratings?.length || 0,
-          grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
-          deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
-          deferredCount: 0,
-          source: 'va-sync'
-        }
-      })
+      // Filter VA sync documents to only include analyzed/extracted ones
+      // Raw uploaded documents without extraction/analysis should NOT appear in Analyses tab
+      const vaSyncDocs = (vaSyncData || [])
+        .filter((doc: any) => {
+          // Only include documents that have been analyzed or at least extracted
+          const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
+          const hasAnalysisData = doc.isAnalyzed && doc.analysisData
+          const isExtracted = doc.isExtracted === true
+          
+          // Must have at least extraction data or analysis data
+          return hasExtractionData || hasAnalysisData || isExtracted
+        })
+        .map((doc: any) => {
+          // Determine actual status based on processingState and data availability
+          // If document has extraction data (ratings), it's at least extracted
+          // If document has analysis data and isAnalyzed flag, it's analyzed
+          let status = doc.processingState || 'uploaded'
+          const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
+          const hasAnalysisData = doc.isAnalyzed && doc.analysisData
+          
+          // Override status based on actual data availability
+          if (hasAnalysisData) {
+            status = 'analyzed'
+          } else if (hasExtractionData) {
+            status = 'extracted'
+          } else if (status === 'completed') {
+            // Handle legacy 'completed' status - treat as uploaded if no data
+            status = 'uploaded'
+          }
+          
+          return {
+            documentId: doc._id || doc.id,
+            fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
+            status: status,
+            analyzedAt: doc.analyzedAt || doc.uploadedAt,
+            decisionDate: doc.extractionData?.decisionDate || null,
+            combinedRating: doc.extractionData?.combinedRating || null,
+            monthlyPayment: null,
+            conditionsCount: doc.extractionData?.ratings?.length || 0,
+            grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
+            deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
+            deferredCount: 0,
+            source: 'va-sync'
+          }
+        })
       allDocuments.push(...vaSyncDocs)
     }
 
@@ -1159,20 +1171,31 @@ const loadAnalysisDocuments = async () => {
       const documentsData = await documentsResponse.json()
       console.log('📊 Documents service analyses received:', documentsData?.analyses?.length || 0)
 
-      const directUploadDocs = (documentsData?.analyses || []).map((doc: any) => ({
-        documentId: doc.documentId,
-        fileName: doc.fileName || 'Decision Letter',
-        status: doc.status || 'analyzed',
-        analyzedAt: doc.analyzedAt,
-        decisionDate: null,
-        combinedRating: doc.combinedRating || null,
-        monthlyPayment: doc.monthlyPayment || null,
-        conditionsCount: doc.conditionsCount || 0,
-        grantedCount: doc.grantedCount || 0,
-        deniedCount: doc.deniedCount || 0,
-        deferredCount: doc.deferredCount || 0,
-        source: 'direct-upload'
-      }))
+      // Filter direct upload documents to only include analyzed/extracted ones
+      // Raw storage files without extraction/analysis should NOT appear in Analyses tab
+      const directUploadDocs = (documentsData?.analyses || [])
+        .filter((doc: any) => {
+          // Only include documents that have been analyzed or at least extracted
+          // Must have either analysis results (summary/conditions) OR extraction data (conditionsCount > 0)
+          const hasAnalysis = doc.summary || (doc.conditions && doc.conditions.length > 0)
+          const hasExtraction = doc.conditionsCount > 0 || doc.combinedRating !== null
+          
+          return hasAnalysis || hasExtraction
+        })
+        .map((doc: any) => ({
+          documentId: doc.documentId,
+          fileName: doc.fileName || 'Decision Letter',
+          status: doc.status || 'analyzed',
+          analyzedAt: doc.analyzedAt,
+          decisionDate: null,
+          combinedRating: doc.combinedRating || null,
+          monthlyPayment: doc.monthlyPayment || null,
+          conditionsCount: doc.conditionsCount || 0,
+          grantedCount: doc.grantedCount || 0,
+          deniedCount: doc.deniedCount || 0,
+          deferredCount: doc.deferredCount || 0,
+          source: 'direct-upload'
+        }))
       allDocuments.push(...directUploadDocs)
     }
 
