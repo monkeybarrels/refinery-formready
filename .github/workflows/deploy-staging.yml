@@ -1,6 +1,14 @@
 name: Deploy Frontend to Staging (Firebase Preview)
 
 on:
+  push:
+    branches: [development]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.github/**'
+      - '!.github/workflows/deploy-staging.yml'
   workflow_dispatch:
     inputs:
       branch:
@@ -37,7 +45,7 @@ jobs:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -105,10 +113,19 @@ jobs:
       - name: Extract branch name and SHA
         id: extract
         run: |
-          BRANCH_NAME=$(echo "${{ github.event.inputs.branch }}" | sed 's/\//-/g')
+          # Get branch name from input (manual) or from push event (automatic)
+          BRANCH_INPUT="${{ github.event.inputs.branch }}"
+          if [ -z "$BRANCH_INPUT" ]; then
+            # Automatic deployment - extract branch from ref
+            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///' | sed 's/\//-/g')
+          else
+            # Manual deployment - use input
+            BRANCH_NAME=$(echo "$BRANCH_INPUT" | sed 's/\//-/g')
+          fi
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           CHANNEL_NAME="${BRANCH_NAME}-${SHORT_SHA}"
           echo "channel_name=${CHANNEL_NAME}" >> $GITHUB_OUTPUT
+          echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
 
       - name: Deploy to Firebase preview channel
         id: deploy
@@ -152,7 +169,7 @@ jobs:
           echo "- **Preview URL**: ${{ steps.deploy.outputs.preview_url }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Channel**: \`${{ steps.extract.outputs.channel_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Expiration**: 30 days" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.event.inputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ steps.extract.outputs.branch_name || github.event.inputs.branch || github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
