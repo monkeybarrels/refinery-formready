@@ -336,17 +336,32 @@ const analyzeDocument = async () => {
         const capturedFileId = fileId
         const handleJobComplete = (result: { sessionId?: string; documentId?: string }) => {
           const resultSessionId = result.sessionId
-          // For authenticated users, ALWAYS use fileId as documentId (it's the same UUID)
-          // Never use sessionId for authenticated users - they should go to /analysis/:documentId
-          const documentId = isAuthenticated.value ? (result.documentId || capturedFileId) : result.documentId
-
+          
+          // CRITICAL: Check authentication status with detailed logging
+          const authCheck = isAuthenticated.value
+          const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
+          const hasFileId = !!capturedFileId
+          const hasDocumentId = !!result.documentId
+          
           console.log('✅ Analysis complete!', {
-            documentId: documentId,
+            documentId: result.documentId,
             fileId: capturedFileId,
             sessionId: resultSessionId,
-            isAuthenticated: isAuthenticated.value,
-            resultDocumentId: result.documentId,
+            isAuthenticated: authCheck,
+            hasToken: hasToken,
+            hasFileId: hasFileId,
+            hasDocumentId: hasDocumentId,
+            userId: userId,
           })
+          
+          // CRITICAL: If we have a fileId (which means user uploaded via authenticated endpoint),
+          // OR if we have a token, treat as authenticated and redirect to /analysis/:documentId
+          // This ensures staging works even if isAuthenticated check fails
+          const shouldUseAuthenticatedFlow = authCheck || hasToken || hasFileId
+          
+          // For authenticated users, ALWAYS use fileId as documentId (it's the same UUID)
+          // Never use sessionId for authenticated users - they should go to /analysis/:documentId
+          const documentId = shouldUseAuthenticatedFlow ? (result.documentId || capturedFileId) : result.documentId
 
           // Track analysis completion
           const totalTime = Date.now() - analysisStartTime.value!
@@ -362,11 +377,13 @@ const analyzeDocument = async () => {
 
           setTimeout(() => {
             // CRITICAL: Authenticated users MUST go to /analysis/:documentId, NEVER /results/:sessionId
-            if (isAuthenticated.value) {
+            // Use shouldUseAuthenticatedFlow instead of just isAuthenticated.value
+            if (shouldUseAuthenticatedFlow) {
               // Always use fileId as documentId for authenticated users
               const redirectDocumentId = capturedFileId || documentId
               if (redirectDocumentId) {
                 console.log(`🔄 Redirecting authenticated user to /analysis/${redirectDocumentId}`)
+                console.log(`   Auth check: ${authCheck}, Has token: ${hasToken}, Has fileId: ${hasFileId}`)
                 navigateTo(`/analysis/${redirectDocumentId}`)
               } else {
                 // This should never happen, but if it does, go to documents page
@@ -377,6 +394,7 @@ const analyzeDocument = async () => {
             } else {
               // Anonymous users get the free results page (but we don't support anonymous right now)
               console.log(`🔄 Redirecting anonymous user to /results/${resultSessionId}`)
+              console.log(`   Auth check: ${authCheck}, Has token: ${hasToken}, Has fileId: ${hasFileId}`)
               if (!resultSessionId) {
                 console.error('❌ No sessionId available for anonymous user!')
                 toast.error('Analysis Complete', 'But unable to redirect. Please try again.')
