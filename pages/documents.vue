@@ -876,30 +876,16 @@ const handleDelete = async () => {
 
   deleteModal.value.loading = true
 
-  // Handle document types:
-  // - Analysis documents (from VA sync) have 'documentId' property
-  // - VA correspondence documents have 'id' property
+  // ALL documents now use StorageFile (single source of truth)
+  // NO legacy VAClaimDecision support
   const doc = deleteModal.value.document
-  const isVaCorrespondence = 'id' in doc && !('documentId' in doc)
-  const isAnalysisDocument = 'documentId' in doc
-  const documentIdToDelete = isVaCorrespondence ? doc.id : doc.documentId
-
-  // VA correspondence documents can't be deleted yet
-  if (isVaCorrespondence) {
-    toast.error('Deleting VA correspondence is not yet supported')
-    deleteModal.value.loading = false
-    deleteModal.value.isOpen = false
-    deleteModal.value.document = null
-    return
-  }
+  const documentIdToDelete = doc.documentId
 
   try {
     const { apiCall } = useApi()
 
-    // Analysis documents use VA sync endpoint
-    const endpoint = isAnalysisDocument
-      ? `/api/va-sync/decision/${documentIdToDelete}`
-      : `/api/documents/${documentIdToDelete}`
+    // All documents use StorageFile endpoint
+    const endpoint = `/api/documents/${documentIdToDelete}`
 
     const response = await apiCall(endpoint, {
       method: 'DELETE'
@@ -917,9 +903,9 @@ const handleDelete = async () => {
       // Reload appropriate documents list
       loading.value = true
       try {
-        if (isAnalysisDocument) {
+        if (activeTab.value === 'analyses') {
           await loadAnalysisDocuments()
-        } else if (isVaCorrespondence) {
+        } else if (activeTab.value === 'va-documents') {
           await loadVaDocuments()
         } else {
           await loadDocuments()
@@ -1095,91 +1081,27 @@ const loadAnalysisDocuments = async () => {
       return
     }
 
-    // Fetch from both sources in parallel
+    // ONLY use StorageFile-based documents (single source of truth)
+    // NO legacy VAClaimDecision support - all documents must be in StorageFile
     const userId = user.value.authorizerId || user.value.userId || user.value.id
 
-    const [vaSyncResponse, documentsResponse] = await Promise.all([
-      // VA sync analyses (Chrome extension uploads)
-      apiCall(`/api/va-sync/analyses/${userId}`).catch(err => {
-        console.warn('VA sync analyses failed:', err)
-        return { ok: false }
-      }),
-      // Documents service analyses (direct uploads from /analyze page)
-      apiCall('/api/documents/analyses').catch(err => {
-        console.warn('Documents analyses failed:', err)
-        return { ok: false }
-      })
-    ])
+    // Only fetch from documents service (StorageFile + artifacts)
+    const documentsResponse = await apiCall('/api/documents/analyses').catch(err => {
+      console.warn('Documents analyses failed:', err)
+      return { ok: false }
+    })
 
-    let allDocuments: any[] = []
-
-    // Process VA sync documents
-    if (vaSyncResponse.ok) {
-      const vaSyncData = await vaSyncResponse.json()
-      console.log('📊 VA sync documents received:', vaSyncData?.length || 0)
-
-      // Filter VA sync documents to only include analyzed/extracted ones
-      // Raw uploaded documents without extraction/analysis should NOT appear in Analyses tab
-      const vaSyncDocs = (vaSyncData || [])
-        .filter((doc: any) => {
-          // Only include documents that have been analyzed or at least extracted
-          const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
-          const hasAnalysisData = doc.isAnalyzed && doc.analysisData
-          const isExtracted = doc.isExtracted === true
-          
-          // Must have at least extraction data or analysis data
-          return hasExtractionData || hasAnalysisData || isExtracted
-        })
-        .map((doc: any) => {
-          // Determine actual status based on processingState and data availability
-          // If document has extraction data (ratings), it's at least extracted
-          // If document has analysis data and isAnalyzed flag, it's analyzed
-          let status = doc.processingState || 'uploaded'
-          const hasExtractionData = doc.extractionData?.ratings && doc.extractionData.ratings.length > 0
-          const hasAnalysisData = doc.isAnalyzed && doc.analysisData
-          
-          // Override status based on actual data availability
-          if (hasAnalysisData) {
-            status = 'analyzed'
-          } else if (hasExtractionData) {
-            status = 'extracted'
-          } else if (status === 'completed') {
-            // Handle legacy 'completed' status - treat as uploaded if no data
-            status = 'uploaded'
-          }
-          
-          return {
-            documentId: doc._id || doc.id,
-            fileName: doc.displayName || doc.pdfFileName || 'Decision Letter',
-            status: status,
-            analyzedAt: doc.analyzedAt || doc.uploadedAt,
-            decisionDate: doc.extractionData?.decisionDate || null,
-            combinedRating: doc.extractionData?.combinedRating || null,
-            monthlyPayment: null,
-            conditionsCount: doc.extractionData?.ratings?.length || 0,
-            grantedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'granted').length || 0,
-            deniedCount: doc.extractionData?.ratings?.filter((r: any) => r.decision === 'denied').length || 0,
-            deferredCount: 0,
-            source: 'va-sync'
-          }
-        })
-      allDocuments.push(...vaSyncDocs)
-    }
-
-    // Process documents service analyses (from /analyze page)
+    // Process StorageFile-based documents (single source of truth)
     if (documentsResponse.ok) {
       const documentsData = await documentsResponse.json()
-      console.log('📊 Documents service analyses received:', documentsData?.analyses?.length || 0)
+      console.log('📊 StorageFile documents received:', documentsData?.analyses?.length || 0)
 
-      // Filter direct upload documents to only include analyzed/extracted ones
-      // Raw storage files without extraction/analysis should NOT appear in Analyses tab
-      const directUploadDocs = (documentsData?.analyses || [])
+      // Filter to only include analyzed/extracted documents
+      const storageFileDocs = (documentsData?.analyses || [])
         .filter((doc: any) => {
           // Only include documents that have been analyzed or at least extracted
-          // Must have either analysis results (summary/conditions) OR extraction data (conditionsCount > 0)
           const hasAnalysis = doc.summary || (doc.conditions && doc.conditions.length > 0)
           const hasExtraction = doc.conditionsCount > 0 || doc.combinedRating !== null
-          
           return hasAnalysis || hasExtraction
         })
         .map((doc: any) => ({
@@ -1194,117 +1116,39 @@ const loadAnalysisDocuments = async () => {
           grantedCount: doc.grantedCount || 0,
           deniedCount: doc.deniedCount || 0,
           deferredCount: doc.deferredCount || 0,
-          source: 'direct-upload'
+          source: 'storage_file'
         }))
-      allDocuments.push(...directUploadDocs)
-    }
 
-    // Deduplicate by documentId first, then by content matching (rating + conditions + time)
-    // This handles cases where the same file appears in both VA sync and direct upload with different IDs/names
-    const docMap = new Map<string, any>()
-    const contentSignatureMap = new Map<string, any>() // Track by content signature for cross-source deduplication
-    
-    for (const doc of allDocuments) {
-      // First, try exact documentId match
-      const existingById = docMap.get(doc.documentId)
-      if (existingById) {
-        // Prefer document with better status (analyzed > extracted > uploaded)
-        const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1, 'analyzing': 1, 'extracting': 1 }
-        const existingPriority = statusPriority[existingById.status] || 0
-        const newPriority = statusPriority[doc.status] || 0
-        
-        if (newPriority > existingPriority || 
-            (newPriority === existingPriority && new Date(doc.analyzedAt) > new Date(existingById.analyzedAt))) {
+      // Simple deduplication by documentId (fileId is unique)
+      const docMap = new Map<string, any>()
+      for (const doc of storageFileDocs) {
+        // If duplicate by ID, keep the one with better status
+        const existing = docMap.get(doc.documentId)
+        if (existing) {
+          const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1 }
+          const existingPriority = statusPriority[existing.status] || 0
+          const newPriority = statusPriority[doc.status] || 0
+          if (newPriority > existingPriority || 
+              (newPriority === existingPriority && new Date(doc.analyzedAt) > new Date(existing.analyzedAt))) {
+            docMap.set(doc.documentId, doc)
+          }
+        } else {
           docMap.set(doc.documentId, doc)
         }
-        continue
       }
-      
-      // Create content signature: combinedRating + conditionsCount + grantedCount + deniedCount
-      // This is more reliable than fileName matching (fileNames can differ)
-      const contentSignature = `${doc.combinedRating || 'none'}-${doc.conditionsCount || 0}-${doc.grantedCount || 0}-${doc.deniedCount || 0}`
-      const existingByContent = contentSignatureMap.get(contentSignature)
-      
-      if (existingByContent && doc.combinedRating !== null && doc.conditionsCount > 0) {
-        // Check if they're the same file (uploaded within 10 minutes of each other)
-        // Increased window to handle processing delays
-        const timeDiff = Math.abs(new Date(doc.analyzedAt).getTime() - new Date(existingByContent.analyzedAt).getTime())
-        const tenMinutes = 10 * 60 * 1000
-        
-        if (timeDiff < tenMinutes) {
-          // Same file from different sources - prefer the one with better status or more complete data
-          const statusPriority = { 'analyzed': 3, 'extracted': 2, 'uploaded': 1, 'analyzing': 1, 'extracting': 1 }
-          const existingPriority = statusPriority[existingByContent.status] || 0
-          const newPriority = statusPriority[doc.status] || 0
-          
-          // Detect auto-generated names vs smart names (renamed during analysis)
-          // Auto-generated: "VA Document YYYY-MM-DD.pdf", starts with "_", or generic "Decision Letter" without rating
-          // Smart names: Generated from extraction data (e.g., "Jan 15, 2025 - Rating Decision (80%)")
-          // Smart names contain "%" or "Rating Decision" pattern
-          const existingHasAutoName = 
-            existingByContent.fileName?.includes('VA Document') || 
-            existingByContent.fileName?.startsWith('_') ||
-            (existingByContent.fileName === 'Decision Letter')
-          const newHasAutoName = 
-            doc.fileName?.includes('VA Document') || 
-            doc.fileName?.startsWith('_') ||
-            (doc.fileName === 'Decision Letter')
-          
-          // Smart names are generated during analysis (contain "%" or "Rating Decision")
-          const existingHasSmartName = existingByContent.fileName?.includes('%') || existingByContent.fileName?.includes('Rating Decision')
-          const newHasSmartName = doc.fileName?.includes('%') || doc.fileName?.includes('Rating Decision')
-          
-          // Prefer analyzed version (which gets renamed with smart displayName)
-          // Priority: 1) Better status, 2) Smart name over auto name, 3) Newer timestamp
-          let shouldReplace = false
-          
-          if (newPriority > existingPriority) {
-            // New has better status - always prefer it
-            shouldReplace = true
-          } else if (newPriority === existingPriority) {
-            // Same status - prefer smart name over auto name
-            if (newHasSmartName && existingHasAutoName) {
-              // New has smart name (analyzed/renamed), existing has auto - prefer new
-              shouldReplace = true
-            } else if (newHasAutoName && existingHasSmartName) {
-              // New has auto, existing has smart - keep existing
-              shouldReplace = false
-            } else {
-              // Both same type - prefer newer
-              shouldReplace = new Date(doc.analyzedAt) > new Date(existingByContent.analyzedAt)
-            }
-          }
-          
-          if (shouldReplace) {
-            // Remove old entry (the duplicate) and add new one (the renamed/analyzed version)
-            console.log(`🔄 Deduplicating: Keeping "${doc.fileName}" (${doc.status}), dropping "${existingByContent.fileName}" (${existingByContent.status})`)
-            docMap.delete(existingByContent.documentId)
-            docMap.set(doc.documentId, doc)
-            contentSignatureMap.set(contentSignature, doc)
-          } else {
-            // Keep existing entry (it's the better one)
-            console.log(`🔄 Deduplicating: Keeping "${existingByContent.fileName}" (${existingByContent.status}), dropping "${doc.fileName}" (${doc.status})`)
-          }
-          // Skip adding this duplicate
-          continue
-        }
-      }
-      
-      // New document - add to both maps
-      docMap.set(doc.documentId, doc)
-      if (doc.combinedRating !== null && doc.conditionsCount > 0) {
-        contentSignatureMap.set(contentSignature, doc)
-      }
+
+      // Sort by analyzedAt descending (most recent first)
+      analysisDocuments.value = Array.from(docMap.values()).sort((a, b) => {
+        return new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime()
+      })
+
+      analysesPagination.value.total = analysisDocuments.value.length
+      console.log('📊 Total unique analysis documents:', analysisDocuments.value.length)
+    } else {
+      // No documents found
+      analysisDocuments.value = []
+      analysesPagination.value.total = 0
     }
-
-    // Sort by analyzedAt descending (most recent first)
-    analysisDocuments.value = Array.from(docMap.values()).sort((a, b) => {
-      return new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime()
-    })
-
-    analysesPagination.value.total = analysisDocuments.value.length
-    console.log('📊 Total unique analysis documents:', analysisDocuments.value.length)
-
   } catch (error) {
     console.error('Failed to load analysis documents:', error)
     analysisDocuments.value = []

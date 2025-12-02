@@ -207,23 +207,17 @@ const loadDocument = async () => {
   try {
     const { apiCall } = useApi()
 
-    // Try VA sync endpoint first (for documents from Chrome extension)
-    let response = await apiCall(`/api/va-sync/decision/${documentId}`)
+    // ONLY use StorageFile endpoint (single source of truth)
+    // NO legacy VAClaimDecision support
+    const response = await apiCall(`/api/documents/${documentId}`)
 
     if (response.ok) {
       const doc = await response.json()
 
-      // DEBUG: Log what API actually returns
-      console.log('🔍 API Response:', JSON.stringify(doc, null, 2))
-      console.log('🔍 doc.ratings:', doc.ratings)
-      console.log('🔍 doc.combinedRating:', doc.combinedRating)
-      console.log('🔍 doc.isAnalyzed:', doc.isAnalyzed)
-      console.log('🔍 doc.processingState:', doc.processingState)
-
       // Check if document needs processing (no extraction or analysis)
-      // Also check if ratings array exists and has length
       const hasRatings = Array.isArray(doc.ratings) && doc.ratings.length > 0
-      const needsProcessing = !doc.isAnalyzed && !hasRatings
+      const hasAnalysis = doc.analysisResult && doc.analysisResult.summary
+      const needsProcessing = !hasAnalysis && !hasRatings
 
       if (needsProcessing) {
         console.log('Document needs processing, triggering extraction/analysis...')
@@ -233,31 +227,11 @@ const loadDocument = async () => {
 
       // Document is ready - set it for display
       document.value = doc
-      return
     } else {
-      // API returned error - log it for debugging
+      // Document not found
       const errorText = await response.text().catch(() => 'Unknown error')
-      console.error(`❌ API error (${response.status}):`, errorText)
-      
-      // If 404, try fallback endpoint
-      if (response.status === 404) {
-        console.log('⚠️ Document not found in VA sync, trying fallback endpoint...')
-      } else {
-        // For other errors, throw to show error state
-        throw new Error(`Failed to load document: ${response.status} ${errorText}`)
-      }
-    }
-
-    // Fall back to old documents endpoint for legacy documents
-    const fallbackResponse = await apiCall(`/api/documents/${documentId}`)
-
-    if (fallbackResponse.ok) {
-      document.value = await fallbackResponse.json()
-    } else {
-      // Both endpoints failed - show error state
-      const errorText = await fallbackResponse.text().catch(() => 'Unknown error')
-      console.error(`❌ Fallback API error (${fallbackResponse.status}):`, errorText)
-      throw new Error(`Document not found: ${fallbackResponse.status}`)
+      console.error(`❌ Document not found (${response.status}):`, errorText)
+      throw new Error(`Document not found: ${response.status}`)
     }
   } catch (error) {
     console.error('Failed to load document:', error)
