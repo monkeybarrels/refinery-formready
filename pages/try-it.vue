@@ -729,12 +729,14 @@ const pollForResults = async (jobId: string, fileId: string) => {
         analysisProgress.value = 100
         analysisStatus.value = 'Analysis complete!'
 
-        // Results are returned directly from job status for anonymous users
-        // No DB fetch - results are ephemeral and stored in session only
+        // Results are returned from job status for anonymous users
+        // The result object contains { documentId, status, results }
+        // We need the nested 'results' field which has extraction data
         if (status.result) {
-          results.value = status.result
+          const extractionData = status.result.results || status.result
+          results.value = extractionData
           // Store in session for ephemeral access
-          storeEphemeralResults(status.result)
+          storeEphemeralResults(extractionData)
         }
 
         await new Promise(resolve => setTimeout(resolve, 500))
