@@ -207,17 +207,20 @@ const loadDocument = async () => {
   try {
     const { apiCall } = useApi()
 
-    // ONLY use StorageFile endpoint (single source of truth)
-    // NO legacy VAClaimDecision support
-    const response = await apiCall(`/api/documents/${documentId}`)
+    // Use va-sync endpoint which supports both FileStorage and VAClaimDecision
+    const response = await apiCall(`/api/va-sync/decision/${documentId}`)
 
     if (response.ok) {
       const doc = await response.json()
 
-      // Check if document needs processing (no extraction or analysis)
+      // Check if document needs processing
+      // Only trigger processing for FileStorage documents (source: 'file_storage')
+      // that don't have ratings yet. Chrome extension documents (source: 'va_sync')
+      // are processed separately by the backfill service.
       const hasRatings = Array.isArray(doc.ratings) && doc.ratings.length > 0
-      const hasAnalysis = doc.analysisResult && doc.analysisResult.summary
-      const needsProcessing = !hasAnalysis && !hasRatings
+      const hasAnalysis = doc.analysisData && doc.analysisData.summary
+      const isFileStorage = doc.source === 'file_storage'
+      const needsProcessing = isFileStorage && !hasAnalysis && !hasRatings
 
       if (needsProcessing) {
         console.log('Document needs processing, triggering extraction/analysis...')
@@ -226,7 +229,19 @@ const loadDocument = async () => {
       }
 
       // Document is ready - set it for display
-      document.value = doc
+      // Map the response to match the expected format
+      document.value = {
+        ...doc,
+        fileName: doc.fileName,
+        uploadedAt: doc.uploadedAt,
+        combinedRating: doc.combinedRating,
+        monthlyPayment: doc.monthlyPayment,
+        ratings: doc.ratings,
+        denialReasons: doc.denialReasons || [],
+        deferredReasons: doc.deferredReasons || [],
+        analysisResult: doc.analysisData,
+        processingState: doc.processingState,
+      }
     } else {
       // Document not found
       const errorText = await response.text().catch(() => 'Unknown error')
@@ -252,9 +267,13 @@ const triggerProcessing = async () => {
   processingProgress.value = 20
 
   try {
-    // Call the process endpoint for this specific document
-    const processResponse = await apiCall(`/api/va-sync/process/document/${documentId}`, {
+    // Use StorageFile analyze endpoint (single source of truth)
+    // NO legacy VAClaimDecision support
+    const processResponse = await apiCall(`/api/analyze/async`, {
       method: 'POST',
+      body: JSON.stringify({
+        fileId: documentId
+      })
     })
 
     if (!processResponse.ok) {
@@ -273,7 +292,20 @@ const triggerProcessing = async () => {
 
     const response = await apiCall(`/api/va-sync/decision/${documentId}`)
     if (response.ok) {
-      document.value = await response.json()
+      const doc = await response.json()
+      // Map the response to match the expected format
+      document.value = {
+        ...doc,
+        fileName: doc.fileName,
+        uploadedAt: doc.uploadedAt,
+        combinedRating: doc.combinedRating,
+        monthlyPayment: doc.monthlyPayment,
+        ratings: doc.ratings,
+        denialReasons: doc.denialReasons || [],
+        deferredReasons: doc.deferredReasons || [],
+        analysisResult: doc.analysisData,
+        processingState: doc.processingState,
+      }
       processingProgress.value = 100
     } else {
       throw new Error('Failed to load processed document')

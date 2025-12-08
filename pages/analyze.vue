@@ -181,7 +181,7 @@ const analyzeDocument = async () => {
     formData.append('path', 'documents')
 
     // Use authenticated endpoint (useApi detects FormData and sets correct headers)
-    const uploadResponse = await apiCall('/api/storage/upload', {
+    const uploadResponse = await apiCall('/api/file-storage/upload', {
       method: 'POST',
       body: formData
     })

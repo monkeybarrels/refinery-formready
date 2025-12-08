@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  <div class="min-h-screen bg-slate-50">
     <!-- Navigation -->
     <Navigation
       :show-new-analysis="true"
@@ -7,311 +7,158 @@
       :show-user-menu="true"
     />
 
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-blue-800 to-blue-900 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- Breadcrumbs -->
-        <div class="mb-6">
-          <Breadcrumb theme="dark" />
-        </div>
-
+    <!-- Simplified Hero Section -->
+    <div class="bg-white border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-4xl font-bold mb-2">Welcome back, {{ user.firstName }}</h1>
-            <p class="text-xl text-blue-100 mb-4">{{ user.serviceBranch }} Veteran</p>
-            <div class="flex items-center space-x-6">
-              <div class="flex items-center">
-                <Icon name="heroicons:document-text" class="w-5 h-5 mr-2" />
-                <span class="text-sm">{{ analytics.totalDocuments }} Documents</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:chart-bar" class="w-5 h-5 mr-2" />
-                <span class="text-sm">{{ analytics.totalAnalyses }} Analyses</span>
-              </div>
-              <div class="flex items-center">
-                <Icon name="heroicons:check-circle" class="w-5 h-5 mr-2" />
-                <span class="text-sm">{{ analytics.successRate }}% Success Rate</span>
-              </div>
-            </div>
+            <h1 class="text-3xl font-bold text-slate-900">Welcome back, {{ user.firstName }}</h1>
+            <p class="text-lg text-slate-600 mt-1">{{ user.serviceBranch }} Veteran</p>
+          </div>
+          <div v-if="isPremium" class="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm font-medium">
+            <Icon name="heroicons:star" class="w-4 h-4 mr-1" />
+            Premium Member
           </div>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <LoadingState
         variant="spinner"
         size="md"
-        message="Loading your dashboard..."
+        message="Loading your profile..."
         :full-height="false"
       />
     </div>
 
     <!-- Main Content -->
     <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- User Status Card -->
-      <div class="mb-8">
-        <UserStateCard
-          :user-state="isPremium ? 'premium' : 'free'"
-          :show-upgrade-action="!isPremium"
-        />
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div 
-            @click="navigateTo('/analyze')"
-            class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-blue-200"
-          >
-            <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                <Icon name="heroicons:document-plus" class="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 class="text-xl font-semibold text-slate-900 mb-2">Analyze New Document</h3>
-              <p class="text-slate-600">Upload and analyze your VA decision letter</p>
-            </div>
-          </div>
-          
-          <div 
-            v-if="isPremium"
-            @click="navigateTo('/documents')"
-            class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-green-200"
-          >
-            <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                <Icon name="heroicons:folder" class="w-8 h-8 text-green-600" />
-              </div>
-              <h3 class="text-xl font-semibold text-slate-900 mb-2">View Documents</h3>
-              <p class="text-slate-600">Browse your uploaded documents and analyses</p>
-            </div>
-          </div>
-          
-          <!-- Premium Features -->
-          <div
-            @click="!isPremium && navigateTo('/pricing')"
-            class="relative bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg border-2 border-blue-200 transition-all duration-200"
-            :class="isPremium ? '' : 'cursor-pointer hover:shadow-xl hover:border-blue-300'"
-          >
-            <div class="absolute top-4 right-4 z-10">
-              <PremiumBadge v-if="isPremium" size="sm" />
-              <div v-else class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xs px-3 py-1 rounded-full">
-                PREMIUM
-              </div>
-            </div>
-            <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Icon name="heroicons:clipboard-document-list" class="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 class="text-xl font-semibold text-slate-900 mb-2">Advanced Form Generation</h3>
-              <p class="text-slate-600">{{ isPremium ? 'Generate VA forms with AI assistance' : 'Unlock AI-powered form generation' }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Analysis -->
-      <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-slate-900">Recent Analysis</h2>
-          <Button 
-            v-if="recentAnalysis.length > 0 && isPremium"
-            @click="navigateTo('/documents')"
-            variant="secondary"
-            class="text-sm"
-          >
-            View All
-            <Icon name="heroicons:arrow-right" class="w-4 h-4 ml-1" />
-          </Button>
-        </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div v-if="recentAnalysis.length === 0" class="py-12">
-          <EmptyState
-            variant="empty"
-            icon-name="heroicons:document-text"
-            title="No analysis yet"
-            description="Upload your first VA decision letter to get started"
-            :primary-action="{
-              label: 'Analyze Your First Decision Letter',
-              icon: 'heroicons:document-plus',
-              to: '/analyze',
-              variant: 'primary'
-            }"
-            footer-message="Get instant insights and personalized next steps"
-          />
-        </div>
-
-        <div v-else-if="isPremium" class="space-y-4">
-          <div 
-            v-for="analysis in recentAnalysis" 
-            :key="analysis.documentId"
-            class="flex items-center justify-between p-6 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg hover:from-blue-50 hover:to-blue-100 transition-all duration-200 cursor-pointer group border border-slate-200 hover:border-blue-300"
-            @click="navigateTo(`/analysis/${analysis.documentId}`)"
-          >
-            <div class="flex items-center">
-              <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
-                <Icon name="heroicons:document-text" class="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p class="font-semibold text-slate-900 mb-1">{{ analysis.fileName }}</p>
-                <p class="text-sm text-slate-600">{{ formatDate(analysis.analyzedAt) }}</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-3">
-              <Badge :variant="getAnalysisVariant(analysis.status)" :text="analysis.status" />
-              <Icon name="heroicons:chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-            </div>
-          </div>
-        </div>
-        
-        <div v-else class="text-center py-12">
-          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Icon name="heroicons:lock-closed" class="w-10 h-10 text-blue-600" />
-          </div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">Upgrade to Premium</h3>
-          <p class="text-slate-600 mb-6">View your analysis history and manage all your documents</p>
-          <Button 
-            @click="navigateTo('/pricing')"
-            variant="primary"
-            class="px-8 py-3"
-          >
-            <Icon name="heroicons:star" class="w-5 h-5 mr-2" />
-            Upgrade to Premium
-          </Button>
-        </div>
-      </div>
-
-      <!-- Premium Features Section -->
-      <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg p-8 border-2 border-blue-200 mb-8">
-        <div class="flex items-center justify-between mb-6">
+        <!-- Left Column: Main Focus (66%) -->
+        <div class="lg:col-span-2 space-y-8">
+          
+          <!-- 1. RATING CARD (The "North Star") -->
           <div>
-            <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center">
-              <Icon name="heroicons:star" class="w-6 h-6 text-yellow-500 mr-2" />
-              Premium Features
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+              <Icon name="heroicons:chart-pie" class="w-5 h-5 mr-2 text-blue-600" />
+              Current Rating
             </h2>
-            <p class="text-slate-600">Unlock advanced tools to maximize your VA benefits claim success</p>
+            
+            <RatingSnapshotCard
+              v-if="hasExtension && latestSnapshot"
+              :combined-rating="latestSnapshot.combinedRating"
+              :effective-date="latestSnapshot.effectiveDate"
+              :last-sync-date="latestSnapshot.snapshotDate"
+              :condition-count="latestSnapshot.conditions.length"
+              :conditions="latestSnapshot.conditions"
+            />
+            
+            <ExtensionInstallCTA v-else-if="!hasExtension" />
           </div>
-          <PremiumBadge v-if="isPremium" size="md" />
-          <Button
-            v-else
-            @click="navigateTo('/pricing')"
-            variant="primary"
-            size="sm"
-          >
-            Upgrade Now
-          </Button>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:folder" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Document Management</h3>
-            </div>
-            <p class="text-sm text-slate-600">Organize, search, and manage all your decision letters</p>
-          </div>
-          
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Form Generation</h3>
-            </div>
-            <p class="text-sm text-slate-600">AI-powered VA form generation and auto-fill</p>
-          </div>
-          
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:chart-bar" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Advanced Analytics</h3>
-            </div>
-            <p class="text-sm text-slate-600">Track trends, success rates, and claim patterns</p>
-          </div>
-          
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:check-circle" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Action Plans</h3>
-            </div>
-            <p class="text-sm text-slate-600">Personalized next steps and evidence recommendations</p>
-          </div>
-          
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:clock" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Timeline Tracking</h3>
-            </div>
-            <p class="text-sm text-slate-600">Track deadlines and appeal timelines</p>
-          </div>
-          
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <div class="flex items-center mb-2">
-              <Icon name="heroicons:shield-check" class="w-5 h-5 text-blue-600 mr-2" />
-              <h3 class="font-semibold text-slate-900">Priority Support</h3>
-            </div>
-            <p class="text-sm text-slate-600">Get help when you need it most</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- Analytics Dashboard -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Document Statistics -->
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-          <h3 class="text-lg font-semibold text-slate-900 mb-4">Your Documents</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ analytics.totalDocuments }}</div>
-              <div class="text-sm text-slate-500">Total Documents</div>
+          <!-- 2. MY DECISION LETTERS (Simplified List) -->
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-slate-900 flex items-center">
+                <Icon name="heroicons:document-text" class="w-5 h-5 mr-2 text-blue-600" />
+                My Decision Letters
+              </h2>
+              <Button 
+                v-if="recentAnalysis.length > 0"
+                @click="navigateTo('/documents')"
+                variant="ghost"
+                size="sm"
+              >
+                View All
+              </Button>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">{{ analytics.totalAnalyses }}</div>
-              <div class="text-sm text-slate-500">Completed</div>
+
+            <div v-if="recentAnalysis.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center">
+              <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Icon name="heroicons:document-plus" class="w-6 h-6 text-slate-400" />
+              </div>
+              <h3 class="text-sm font-medium text-slate-900">No letters yet</h3>
+              <p class="text-sm text-slate-500 mt-1 mb-4">Upload a decision letter to get started</p>
+              <Button 
+                @click="navigateTo('/analyze')"
+                variant="secondary"
+                size="sm"
+              >
+                Upload Letter
+              </Button>
             </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-amber-600">{{ analytics.successRate }}%</div>
-              <div class="text-sm text-slate-500">Success Rate</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-red-600">{{ analytics.denials }}</div>
-              <div class="text-sm text-slate-500">Denials</div>
+
+            <div v-else class="space-y-3">
+              <div 
+                v-for="doc in recentAnalysis" 
+                :key="doc.documentId"
+                class="bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 transition-colors cursor-pointer flex items-center justify-between group"
+                @click="navigateTo(`/analysis/${doc.documentId}`)"
+              >
+                <div class="flex items-center">
+                  <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mr-4 text-blue-600">
+                    <Icon name="heroicons:document-text" class="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 class="font-medium text-slate-900">{{ doc.fileName }}</h3>
+                    <p class="text-xs text-slate-500">
+                      {{ formatDate(doc.analyzedAt) }} • 
+                      <span :class="{
+                        'text-green-600': doc.status === 'analyzed' || doc.status === 'approved',
+                        'text-amber-600': doc.status === 'processing' || doc.status === 'uploaded',
+                        'text-red-600': doc.status === 'failed'
+                      }">{{ formatStatus(doc.status) }}</span>
+                    </p>
+                  </div>
+                </div>
+                <Icon name="heroicons:chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
+              </div>
             </div>
           </div>
+
         </div>
 
-        <!-- Analysis Status -->
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-          <h3 class="text-lg font-semibold text-slate-900 mb-4">Analysis Status</h3>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-700">Approved</span>
-              <div class="flex items-center">
-                <div class="w-16 bg-slate-200 rounded-full h-2 mr-2">
-                  <div class="bg-green-600 h-2 rounded-full" :style="{ width: `${getPercentage(analytics.approvals, analytics.totalAnalyses)}%` }"></div>
-                </div>
-                <span class="text-sm font-medium text-slate-900">{{ analytics.approvals }}</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-700">Pending</span>
-              <div class="flex items-center">
-                <div class="w-16 bg-slate-200 rounded-full h-2 mr-2">
-                  <div class="bg-amber-600 h-2 rounded-full" :style="{ width: `${getPercentage(analytics.pending, analytics.totalAnalyses)}%` }"></div>
-                </div>
-                <span class="text-sm font-medium text-slate-900">{{ analytics.pending }}</span>
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-700">Denied</span>
-              <div class="flex items-center">
-                <div class="w-16 bg-slate-200 rounded-full h-2 mr-2">
-                  <div class="bg-red-600 h-2 rounded-full" :style="{ width: `${getPercentage(analytics.denials, analytics.totalAnalyses)}%` }"></div>
-                </div>
-                <span class="text-sm font-medium text-slate-900">{{ analytics.denials }}</span>
-              </div>
+        <!-- Right Column: Actions & Support (33%) -->
+        <div class="space-y-6">
+          
+          <!-- Quick Actions -->
+          <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 class="font-semibold text-slate-900 mb-4">Quick Actions</h3>
+            <div class="space-y-3">
+              <button 
+                @click="navigateTo('/analyze')"
+                class="w-full flex items-center p-3 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm"
+              >
+                <Icon name="heroicons:arrow-up-tray" class="w-5 h-5 mr-3" />
+                Upload New Letter
+              </button>
+              
+              <button 
+                @click="navigateTo('/documents')"
+                class="w-full flex items-center p-3 rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors font-medium text-sm"
+              >
+                <Icon name="heroicons:folder-open" class="w-5 h-5 mr-3" />
+                View All Documents
+              </button>
             </div>
           </div>
+
+          <!-- Need Help? -->
+          <div class="bg-slate-900 rounded-xl p-6 text-white">
+            <h3 class="font-semibold mb-2">Need Help?</h3>
+            <p class="text-sm text-slate-300 mb-4">Our team of VA experts is here to help you understand your rating.</p>
+            <Button 
+              variant="secondary" 
+              class="w-full justify-center"
+              @click="navigateTo('/support')"
+            >
+              Contact Support
+            </Button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -329,6 +176,8 @@ import EmptyState from '~/components/molecules/EmptyState.vue'
 import LoadingState from '~/components/molecules/LoadingState.vue'
 import UserStateCard from '~/components/molecules/UserStateCard.vue'
 import Breadcrumb from '~/components/molecules/Breadcrumb.vue'
+import RatingSnapshotCard from '~/components/organisms/RatingSnapshotCard.vue'
+import ExtensionInstallCTA from '~/components/organisms/ExtensionInstallCTA.vue'
 
 // Head
 useHead({
@@ -342,6 +191,13 @@ const router = useRouter()
 
 // Use subscription composable
 const { isPremium: subscriptionPremium, fetchSubscriptionStatus } = useSubscription()
+
+// Use rating snapshot composable (Chrome extension data)
+const {
+  latestSnapshot,
+  hasExtension,
+  fetchAll: fetchRatingSnapshotData,
+} = useRatingSnapshot()
 
 // State
 const loading = ref(true)
@@ -358,16 +214,6 @@ const user = reactive({
 const isPremium = computed(() => subscriptionPremium.value || user.isPremium)
 
 const recentAnalysis = ref([])
-const analytics = reactive({
-  totalDocuments: 0,
-  totalAnalyses: 0,
-  successRate: 0,
-  avgProcessingTime: '0 months',
-  recentDocuments: 0,
-  denials: 0,
-  approvals: 0,
-  pending: 0,
-})
 
 // Check user session and load data
 onMounted(async () => {
@@ -389,8 +235,8 @@ onMounted(async () => {
     // Then load remaining data in parallel (all depend on user.userId)
     await Promise.all([
       loadRecentAnalysis(),
-      loadAnalytics(),
-      fetchSubscriptionStatus()
+      fetchSubscriptionStatus(),
+      fetchRatingSnapshotData(user.userId), // Fetch Chrome extension data
     ])
   } catch (error) {
     console.error('Failed to load dashboard:', error)
@@ -465,25 +311,6 @@ const loadRecentAnalysis = async () => {
   }
 }
 
-// Load analytics from API
-const loadAnalytics = async () => {
-  try {
-    const { apiCall } = useApi()
-    // Only load if premium (analytics endpoint is premium-only)
-    if (!isPremium.value) {
-      return
-    }
-    const response = await apiCall('/api/documents/analytics')
-
-    if (response.ok) {
-      const data = await response.json()
-      Object.assign(analytics, data)
-    }
-  } catch (error) {
-    console.error('Failed to load analytics:', error)
-  }
-}
-
 // Logout handler
 const handleLogout = async () => {
   const { logout } = useAuth()
@@ -522,8 +349,16 @@ const getAnalysisVariant = (status: string): string => {
   }
 }
 
-const getPercentage = (value: number, total: number): number => {
-  if (total === 0) return 0
-  return Math.round((value / total) * 100)
+const formatStatus = (status: string): string => {
+  switch (status) {
+    case 'uploaded': return 'Uploaded'
+    case 'extracting': return 'Extracting...'
+    case 'extracted': return 'Extracted'
+    case 'analyzing': return 'Analyzing...'
+    case 'analyzed': return 'Analyzed'
+    case 'failed': return 'Failed'
+    default: return status
+  }
 }
 </script>
+```
