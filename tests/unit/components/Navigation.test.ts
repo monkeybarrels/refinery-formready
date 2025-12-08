@@ -119,7 +119,7 @@ describe('Navigation Component', () => {
   })
 
   describe('Authentication State', () => {
-    it('should show Sign In and Get Started buttons when not authenticated', async () => {
+    it('should show Sign In and Try It Free buttons when not authenticated', async () => {
       mockIsAuthenticated.mockReturnValue(false)
       mockAuthState.value.isAuthenticated = false
 
@@ -143,7 +143,7 @@ describe('Navigation Component', () => {
       await wrapper.vm.$nextTick()
       const html = wrapper.html()
       expect(html).toContain('Sign In')
-      expect(html).toContain('Get Started')
+      expect(html).toContain('Try It Free')
       expect(html).not.toContain('Account')
     })
 
