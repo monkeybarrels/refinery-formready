@@ -663,7 +663,7 @@ const startAnalysis = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
 
-    const uploadResponse = await fetch(`${apiUrl.value}/api/file-storage/anonymous/upload`, {
+    const uploadResponse = await fetch(`${apiUrl.value}/api/storage/upload`, {
       method: 'POST',
       body: formData
     })
