@@ -12,13 +12,13 @@
 
         <!-- Main Headline - Clear & Benefit-Focused -->
         <h1 class="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-          Understand Your VA Decision Letter<br/>
-          <span class="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">in Plain English</span>
+          See How Much Money<br/>
+          <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">You're Leaving on the Table</span>
         </h1>
 
         <!-- Value Prop -->
         <p class="text-xl md:text-2xl text-slate-700 mb-4 font-medium max-w-4xl mx-auto leading-relaxed">
-          Upload your decision letter. Get instant explanations of every condition, rating, and denial—plus clear next steps. Built by veterans, always free.
+          Upload your VA decision letter. Instantly see your denied conditions' dollar value and get a clear path to appeal. No signup required.
         </p>
 
         <!-- Social Proof Banner -->
@@ -31,17 +31,17 @@
 
         <!-- Supporting Copy -->
         <p class="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8">
-          Get instant AI analysis of your VA decision letter. Understand exactly why claims were denied, what evidence you need, and your next steps to appeal—in minutes, not weeks.
+          Our free calculator shows exactly how much your denied conditions could be worth monthly—using the official 2026 VA rates. Get your personalized analysis in 90 seconds.
         </p>
 
         <!-- Primary CTA -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <NuxtLink
-            to="/analyze"
-            class="inline-flex items-center justify-center px-8 py-4 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            to="/try-it"
+            class="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            <Icon name="heroicons:document-text" class="w-5 h-5 mr-2" />
-            Analyze Decision Letter Free
+            <Icon name="heroicons:calculator" class="w-5 h-5 mr-2" />
+            Calculate My Benefits Free
           </NuxtLink>
           <button
             @click="scrollToHowItWorks"
@@ -53,7 +53,7 @@
 
         <!-- Supporting Text -->
         <p class="text-sm text-slate-500">
-          No signup required • Takes 90 seconds • Always free
+          No signup required • Takes 90 seconds • 2026 VA rates included
         </p>
       </div>
 
@@ -94,78 +94,53 @@
         </div>
       </div>
 
-      <!-- Available Tools -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
-        <h2 class="text-3xl font-semibold text-gray-900 mb-6">
-          VA Decision Analysis
-        </h2>
-
-        <div class="grid gap-6 md:grid-cols-1">
-          <!-- Decision Analysis Card -->
-          <NuxtLink
-            to="/analyze"
-            class="group block p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-l-4 border-blue-600"
-          >
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center mb-3">
-                  <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                    </svg>
-                  </div>
-                  <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-700">
-                    VA Decision Letter Analysis
-                  </h3>
-                </div>
-                <p class="text-gray-600 mb-4 text-lg">
-                  Upload your VA decision letter and get comprehensive analysis with personalized next steps
-                </p>
-                <div class="grid md:grid-cols-3 gap-4 mb-4">
-                  <div class="flex items-center text-sm text-gray-600">
-                    <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Extract conditions & ratings
-                  </div>
-                  <div class="flex items-center text-sm text-gray-600">
-                    <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Understand denial reasons
-                  </div>
-                  <div class="flex items-center text-sm text-gray-600">
-                    <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Get next steps guidance
-                  </div>
-                </div>
-                <div class="flex items-center text-sm text-gray-500">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  ~1 minute • Free to use
-                </div>
-              </div>
-              <div class="text-blue-800 group-hover:translate-x-1 transition-transform ml-4">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </div>
-          </NuxtLink>
+      <!-- Money Left on Table Calculator -->
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-xl p-8 border border-blue-200">
+        <div class="text-center mb-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-3">
+            Free VA Benefits Calculator
+          </h2>
+          <p class="text-lg text-gray-600">
+            See exactly how much money your denied conditions could be worth
+          </p>
         </div>
 
-        <!-- CTA After Tools -->
-        <div class="mt-8 text-center">
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white rounded-xl p-6 text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:document-arrow-up" class="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Upload Letter</h3>
+            <p class="text-sm text-gray-600">Drop your VA decision letter PDF</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:calculator" class="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">See Dollar Value</h3>
+            <p class="text-sm text-gray-600">Calculate your denied conditions' worth</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Icon name="heroicons:arrow-trending-up" class="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Get Next Steps</h3>
+            <p class="text-sm text-gray-600">Learn how to appeal and win</p>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="text-center">
           <NuxtLink
-            to="/analyze"
-            class="inline-flex items-center justify-center px-8 py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            to="/try-it"
+            class="inline-flex items-center justify-center px-10 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            <Icon name="heroicons:arrow-right" class="w-5 h-5 mr-2" />
-            Analyze Your Decision Letter
+            <Icon name="heroicons:calculator" class="w-6 h-6 mr-2" />
+            Calculate My Benefits Now
           </NuxtLink>
+          <p class="mt-3 text-sm text-gray-600">
+            No signup • Uses official 2026 VA rates • Results in 90 seconds
+          </p>
         </div>
       </div>
 
@@ -296,14 +271,14 @@
         <!-- CTA After How It Works -->
         <div class="mt-12 text-center">
           <NuxtLink
-            to="/analyze"
-            class="inline-flex items-center justify-center px-8 py-4 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            to="/try-it"
+            class="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            <Icon name="heroicons:document-arrow-up" class="w-5 h-5 mr-2" />
-            Upload Your Decision Letter
+            <Icon name="heroicons:calculator" class="w-5 h-5 mr-2" />
+            Calculate My Benefits Free
           </NuxtLink>
           <p class="mt-3 text-sm text-gray-600">
-            Free analysis • No account required
+            No signup required • Uses 2026 VA rates
           </p>
         </div>
       </div>
@@ -355,17 +330,17 @@
       </div>
 
       <!-- Final CTA Before Footer -->
-      <div class="mt-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-12 text-center text-white">
-        <h2 class="text-3xl font-bold mb-4">Ready to Understand Your Decision Letter?</h2>
+      <div class="mt-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-12 text-center text-white">
+        <h2 class="text-3xl font-bold mb-4">Ready to See What You're Owed?</h2>
         <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-          Get started in 90 seconds. No account needed, completely free.
+          Calculate the value of your denied conditions in 90 seconds. No signup required.
         </p>
         <NuxtLink
-          to="/analyze"
+          to="/try-it"
           class="inline-flex items-center justify-center px-10 py-4 bg-white text-blue-900 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          <Icon name="heroicons:rocket-launch" class="w-5 h-5 mr-2" />
-          Analyze Your Letter Now
+          <Icon name="heroicons:calculator" class="w-5 h-5 mr-2" />
+          Calculate My Benefits Now
         </NuxtLink>
       </div>
 

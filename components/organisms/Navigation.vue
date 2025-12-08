@@ -44,6 +44,22 @@
             <span v-if="$route.path === '/analyze'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
+          <!-- Files -->
+          <NuxtLink
+            v-if="isAuthenticated"
+            to="/files"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold flex items-center relative py-1"
+            :class="{ 'text-blue-600': $route.path === '/files' }"
+          >
+            Files
+            <Icon
+              v-if="!isPremiumUser"
+              name="heroicons:lock-closed"
+              class="w-3 h-3 ml-1 text-amber-500"
+            />
+            <span v-if="$route.path === '/files'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
           <!-- Documents (Always show but with different states) -->
           <NuxtLink
             v-if="isAuthenticated"
@@ -163,11 +179,20 @@
               <!-- Menu Items -->
               <NuxtLink
                 v-if="isPremiumUser"
-                to="/documents"
+                to="/files"
                 class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
                 @click="userMenuOpen = false"
               >
                 <Icon name="heroicons:folder" class="w-4 h-4 mr-3" />
+                Files
+              </NuxtLink>
+              <NuxtLink
+                v-if="isPremiumUser"
+                to="/documents"
+                class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
+                @click="userMenuOpen = false"
+              >
+                <Icon name="heroicons:document-text" class="w-4 h-4 mr-3" />
                 Documents
               </NuxtLink>
               <div class="border-t border-gray-200 my-2"></div>
@@ -228,10 +253,10 @@
               Sign In
             </NuxtLink>
             <NuxtLink
-              to="/auth/signup"
+              to="/try-it"
               class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
             >
-              Get Started
+              Try It Free
             </NuxtLink>
           </div>
         </div>
@@ -257,12 +282,28 @@
           >
             Dashboard
           </NuxtLink>
-          <NuxtLink 
-            to="/analyze" 
+          <NuxtLink
+            to="/analyze"
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >
             Analyze Decision
+          </NuxtLink>
+          <NuxtLink
+            v-if="!isAuthenticated"
+            to="/try-it"
+            class="block px-3 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors font-semibold"
+            @click="mobileMenuOpen = false"
+          >
+            Try It Free
+          </NuxtLink>
+          <NuxtLink
+            v-if="isAuthenticated && isPremiumUser"
+            to="/files"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
+          >
+            Files
           </NuxtLink>
           <NuxtLink
             v-if="isAuthenticated && isPremiumUser"
