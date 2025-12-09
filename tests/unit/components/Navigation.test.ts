@@ -276,7 +276,7 @@ describe('Navigation Component', () => {
   })
 
   describe('Premium Badge', () => {
-    it('should show Documents link when user is premium', async () => {
+    it('should show premium navigation links when user is premium', async () => {
       mockIsAuthenticated.mockReturnValue(true)
       mockAuthState.value.isAuthenticated = true
       mockIsPremium.value = true
@@ -301,8 +301,10 @@ describe('Navigation Component', () => {
 
       await wrapper.vm.$nextTick()
       const html = wrapper.html()
-      // Documents link should be visible for premium users
-      expect(html).toContain('Documents')
+      // Premium navigation links should be visible
+      expect(html).toContain('Conditions')
+      expect(html).toContain('Packages')
+      expect(html).toContain('Claims')
       // Dashboard link shows for premium users
       expect(html).toContain('Dashboard')
     })
