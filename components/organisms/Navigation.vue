@@ -204,11 +204,11 @@
         <div class="space-y-2">
           <NuxtLink
             v-if="isAuthenticated"
-            to="/dashboard"
+            to="/try-it"
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >
-            Dashboard
+            Analyze
           </NuxtLink>
           <NuxtLink
             v-if="!isAuthenticated"
@@ -300,19 +300,19 @@ const getHomeRoute = () => {
   if (!isAuthenticated.value) {
     return '/'
   }
-  // Premium users go to dashboard, free users to analyze
-  return isPremiumUser.value ? '/dashboard' : '/analyze'
+  // All authenticated users go to try-it page
+  return '/try-it'
 }
 
 const getHomeRouteTitle = () => {
   if (!isAuthenticated.value) {
     return 'Go to home page'
   }
-  return isPremiumUser.value ? 'Go to dashboard' : 'Go to analyze page'
+  return 'Analyze a document'
 }
 
 const getHomeLabel = () => {
-  return isPremiumUser.value ? 'Dashboard' : 'Home'
+  return isAuthenticated.value ? 'Analyze' : 'Home'
 }
 
 const isHomeRoute = () => {
