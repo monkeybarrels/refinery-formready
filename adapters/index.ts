@@ -9,6 +9,9 @@ import { MockActionsAdapter } from './actions/MockActionsAdapter'
 import { MockFormsAdapter } from './forms/MockFormsAdapter'
 import { MockDocumentsAdapter } from './documents/MockDocumentsAdapter'
 
+// API Adapters (real backend)
+import { ApiConditionsAdapter } from './conditions/ApiConditionsAdapter'
+
 // Re-export interfaces for type imports
 export type { VeteranAdapter } from './veteran/VeteranAdapter'
 export type { ClaimsAdapter } from './claims/ClaimsAdapter'
@@ -25,7 +28,7 @@ const useMocks = import.meta.env?.VITE_USE_MOCKS !== 'false'
 // Singleton instances
 let veteranAdapter: MockVeteranAdapter | null = null
 let claimsAdapter: MockClaimsAdapter | null = null
-let conditionsAdapter: MockConditionsAdapter | null = null
+let conditionsAdapter: MockConditionsAdapter | ApiConditionsAdapter | null = null
 let packagesAdapter: MockPackagesAdapter | null = null
 let actionsAdapter: MockActionsAdapter | null = null
 let formsAdapter: MockFormsAdapter | null = null
@@ -69,8 +72,7 @@ export function getConditionsAdapter() {
     if (useMocks) {
       conditionsAdapter = new MockConditionsAdapter()
     } else {
-      // TODO: Replace with ApiConditionsAdapter when backend is ready
-      conditionsAdapter = new MockConditionsAdapter()
+      conditionsAdapter = new ApiConditionsAdapter()
     }
   }
   return conditionsAdapter
