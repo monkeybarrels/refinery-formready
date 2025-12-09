@@ -25,102 +25,40 @@
       <div v-else class="space-y-8">
         <!-- Stats Row -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Combined Rating Card -->
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600">Combined Rating</p>
-                <p class="mt-2 text-3xl font-bold text-blue-600">{{ veteran?.combinedRating || 0 }}%</p>
-              </div>
-              <div class="p-3 bg-blue-50 rounded-lg">
-                <Icon name="heroicons:chart-pie" class="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Monthly Award Card -->
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600">Monthly Award</p>
-                <p class="mt-2 text-3xl font-bold text-green-600">${{ formatCurrency(veteran?.monthlyAward || 0) }}</p>
-              </div>
-              <div class="p-3 bg-green-50 rounded-lg">
-                <Icon name="heroicons:banknotes" class="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Money Left on Table Card -->
-          <NuxtLink to="/conditions" class="block">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:border-amber-300 transition-colors cursor-pointer">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-slate-600">Money Left on Table</p>
-                  <p class="mt-2 text-3xl font-bold text-amber-600">${{ formatCurrency(moneyLeftOnTable) }}/mo</p>
-                  <p class="mt-1 text-xs text-slate-500">From denied conditions</p>
-                </div>
-                <div class="p-3 bg-amber-50 rounded-lg">
-                  <Icon name="heroicons:currency-dollar" class="w-6 h-6 text-amber-600" />
-                </div>
-              </div>
-            </div>
-          </NuxtLink>
+          <StatCard
+            label="Combined Rating"
+            :value="veteran?.combinedRating || 0"
+            format="percent"
+            icon="heroicons:chart-pie"
+            variant="blue"
+          />
+          <StatCard
+            label="Monthly Award"
+            :value="veteran?.monthlyAward || 0"
+            format="currency"
+            icon="heroicons:banknotes"
+            variant="green"
+          />
+          <StatCard
+            label="Money Left on Table"
+            :value="`$${formatCurrency(moneyLeftOnTable)}/mo`"
+            icon="heroicons:currency-dollar"
+            variant="amber"
+            sublabel="From denied conditions"
+            to="/conditions"
+          />
         </div>
 
         <!-- Sync Status -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <Icon name="heroicons:arrow-path" class="w-5 h-5 text-slate-400" />
-              <span class="ml-2 text-sm text-slate-600">
-                Last synced: {{ veteran?.lastSyncedAt ? formatDate(veteran.lastSyncedAt) : 'Never' }}
-              </span>
-            </div>
-            <a
-              href="https://va.gov/my-va/"
-              target="_blank"
-              class="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
-            >
-              Open VA.gov to Sync
-              <Icon name="heroicons:arrow-top-right-on-square" class="w-4 h-4 ml-1" />
-            </a>
-          </div>
-        </div>
+        <SyncStatusBar :last-synced-at="veteran?.lastSyncedAt" />
 
         <!-- Two Column Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Action Items -->
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div class="px-6 py-4 border-b border-slate-200">
-              <h2 class="text-lg font-semibold text-slate-900">Priority Actions</h2>
-            </div>
-            <div class="p-6">
-              <div v-if="actionItems.length === 0" class="text-center py-8 text-slate-500">
-                <Icon name="heroicons:check-circle" class="w-12 h-12 mx-auto text-green-500" />
-                <p class="mt-2">All caught up! No pending actions.</p>
-              </div>
-              <ul v-else class="space-y-3">
-                <li v-for="item in actionItems.slice(0, 5)" :key="item.id" class="flex items-start">
-                  <input
-                    type="checkbox"
-                    :checked="item.completed"
-                    class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300"
-                    @change="toggleAction(item.id)"
-                  />
-                  <div class="ml-3">
-                    <p class="text-sm text-slate-900">{{ item.title }}</p>
-                    <p v-if="item.description" class="text-xs text-slate-500">{{ item.description }}</p>
-                  </div>
-                </li>
-              </ul>
-              <div v-if="actionItems.length > 5" class="mt-4 text-center">
-                <NuxtLink to="/packages" class="text-sm font-medium text-blue-600 hover:text-blue-700">
-                  Show {{ actionItems.length - 5 }} more →
-                </NuxtLink>
-              </div>
-            </div>
-          </div>
+          <ActionItemsList
+            :items="actionItems"
+            @toggle="toggleAction"
+          />
 
           <!-- Active Claims -->
           <div class="bg-white rounded-xl shadow-sm border border-slate-200">
@@ -137,15 +75,7 @@
               </div>
               <ul v-else class="space-y-4">
                 <li v-for="claim in activeClaims" :key="claim.id">
-                  <NuxtLink :to="`/claims/${claim.id}`" class="block p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div class="flex items-center justify-between">
-                      <span class="text-sm font-medium text-slate-900 capitalize">{{ claim.type }} Claim</span>
-                      <StatusBadge :status="claim.status" />
-                    </div>
-                    <p class="mt-1 text-xs text-slate-500">
-                      Filed {{ formatDate(claim.filedDate) }} • {{ claim.conditionIds?.length || 0 }} conditions
-                    </p>
-                  </NuxtLink>
+                  <ClaimCard :claim="claim" />
                 </li>
               </ul>
             </div>
@@ -169,27 +99,11 @@
               </NuxtLink>
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <NuxtLink
+              <PackageCard
                 v-for="pkg in packages"
                 :key="pkg.id"
-                :to="`/packages/${pkg.id}`"
-                class="block p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                <h3 class="font-medium text-slate-900">{{ pkg.name }}</h3>
-                <p class="text-xs text-slate-500 capitalize">{{ pkg.goal }}</p>
-                <div class="mt-3">
-                  <div class="flex items-center justify-between text-xs text-slate-600 mb-1">
-                    <span>Progress</span>
-                    <span>{{ pkg.progress }}%</span>
-                  </div>
-                  <div class="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      class="bg-blue-600 h-2 rounded-full transition-all"
-                      :style="{ width: `${pkg.progress}%` }"
-                    ></div>
-                  </div>
-                </div>
-              </NuxtLink>
+                :pkg="pkg"
+              />
             </div>
           </div>
         </div>
@@ -202,7 +116,11 @@
 import { ref, onMounted, computed } from 'vue'
 import Navigation from '~/components/organisms/Navigation.vue'
 import Spinner from '~/components/atoms/Spinner.vue'
-import StatusBadge from '~/components/molecules/StatusBadge.vue'
+import StatCard from '~/components/molecules/StatCard.vue'
+import SyncStatusBar from '~/components/molecules/SyncStatusBar.vue'
+import ActionItemsList from '~/components/molecules/ActionItemsList.vue'
+import ClaimCard from '~/components/molecules/ClaimCard.vue'
+import PackageCard from '~/components/molecules/PackageCard.vue'
 import {
   getVeteranAdapter,
   getClaimsAdapter,
@@ -243,12 +161,6 @@ const moneyLeftOnTable = computed(() =>
 // Methods
 const formatCurrency = (amount: number) => {
   return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
-const formatDate = (date: Date | string | null) => {
-  if (!date) return 'N/A'
-  const d = new Date(date)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const toggleAction = async (id: string) => {
