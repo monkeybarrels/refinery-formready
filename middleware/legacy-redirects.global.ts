@@ -5,7 +5,6 @@
 export default defineNuxtRouteMiddleware((to) => {
   const redirects: Record<string, string> = {
     '/analyze': '/try-it',
-    '/dashboard': '/try-it',
     '/files': '/pricing',
     '/documents': '/pricing',
     '/claim-status': '/try-it',

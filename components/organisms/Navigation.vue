@@ -34,6 +34,39 @@
             <span v-if="isHomeRoute()" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
           </NuxtLink>
 
+          <!-- Premium Navigation: Conditions -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/conditions"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path.startsWith('/conditions') }"
+          >
+            Conditions
+            <span v-if="$route.path.startsWith('/conditions')" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
+          <!-- Premium Navigation: Packages -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/packages"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path.startsWith('/packages') }"
+          >
+            Packages
+            <span v-if="$route.path.startsWith('/packages')" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
+          <!-- Premium Navigation: Claims -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/claims"
+            class="text-slate-600 hover:text-blue-600 transition-colors font-semibold relative py-1"
+            :class="{ 'text-blue-600': $route.path.startsWith('/claims') }"
+          >
+            Claims
+            <span v-if="$route.path.startsWith('/claims')" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
+          </NuxtLink>
+
           <!-- Pricing (Show for non-premium or guests) -->
           <NuxtLink
             v-if="!isPremiumUser"
@@ -202,14 +235,56 @@
       <!-- Mobile Menu -->
       <div v-if="mobileMenuOpen" class="md:hidden mt-4 pt-4 border-t border-gray-200">
         <div class="space-y-2">
+          <!-- Premium user: Dashboard link -->
           <NuxtLink
-            v-if="isAuthenticated"
+            v-if="isPremiumUser"
+            to="/dashboard"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            :class="{ 'text-blue-600 bg-blue-50': $route.path === '/dashboard' }"
+            @click="mobileMenuOpen = false"
+          >
+            Dashboard
+          </NuxtLink>
+          <!-- Premium user: Conditions -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/conditions"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            :class="{ 'text-blue-600 bg-blue-50': $route.path.startsWith('/conditions') }"
+            @click="mobileMenuOpen = false"
+          >
+            Conditions
+          </NuxtLink>
+          <!-- Premium user: Packages -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/packages"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            :class="{ 'text-blue-600 bg-blue-50': $route.path.startsWith('/packages') }"
+            @click="mobileMenuOpen = false"
+          >
+            Packages
+          </NuxtLink>
+          <!-- Premium user: Claims -->
+          <NuxtLink
+            v-if="isPremiumUser"
+            to="/claims"
+            class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            :class="{ 'text-blue-600 bg-blue-50': $route.path.startsWith('/claims') }"
+            @click="mobileMenuOpen = false"
+          >
+            Claims
+          </NuxtLink>
+          <!-- Non-premium authenticated: Analyze -->
+          <NuxtLink
+            v-if="isAuthenticated && !isPremiumUser"
             to="/try-it"
             class="block px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >
             Analyze
           </NuxtLink>
+          <!-- Guest: Try It Free -->
           <NuxtLink
             v-if="!isAuthenticated"
             to="/try-it"
@@ -300,19 +375,20 @@ const getHomeRoute = () => {
   if (!isAuthenticated.value) {
     return '/'
   }
-  // All authenticated users go to try-it page
-  return '/try-it'
+  // Premium users go to dashboard, others to try-it
+  return isPremiumUser.value ? '/dashboard' : '/try-it'
 }
 
 const getHomeRouteTitle = () => {
   if (!isAuthenticated.value) {
     return 'Go to home page'
   }
-  return 'Analyze a document'
+  return isPremiumUser.value ? 'Go to dashboard' : 'Analyze a document'
 }
 
 const getHomeLabel = () => {
-  return isAuthenticated.value ? 'Analyze' : 'Home'
+  if (!isAuthenticated.value) return 'Home'
+  return isPremiumUser.value ? 'Dashboard' : 'Analyze'
 }
 
 const isHomeRoute = () => {

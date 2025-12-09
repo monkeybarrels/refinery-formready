@@ -184,7 +184,7 @@ const { login } = useAuth()
 
 // Check for session expiration and redirect params
 const sessionExpired = ref(false)
-const redirectPath = ref('/dashboard')
+const redirectPath = ref('/try-it')
 
 onMounted(() => {
   // Check if user was redirected due to expired session
@@ -249,16 +249,24 @@ const handleLogin = async () => {
       const expiresIn = result.expiresIn || 86400 // Default 24 hours
       login(result.accessToken, expiresIn, userData)
 
-      console.log('✅ Login successful, redirecting to:', redirectPath.value)
+      // Determine redirect path based on user type
+      // Premium users go to dashboard, non-premium to try-it
+      // Unless there's an explicit redirect path from a protected route
+      let finalRedirectPath = redirectPath.value
+      if (redirectPath.value === '/try-it' && userData.isPremium) {
+        finalRedirectPath = '/dashboard'
+      }
 
-      // Redirect to original page or dashboard
+      console.log('✅ Login successful, redirecting to:', finalRedirectPath, '(isPremium:', userData.isPremium, ')')
+
+      // Redirect to appropriate page
       try {
-        await router.push(redirectPath.value)
+        await router.push(finalRedirectPath)
         console.log('✅ Redirect successful')
       } catch (redirectError) {
         console.error('❌ Redirect error:', redirectError)
-        // Fallback to dashboard if redirect fails
-        await router.push('/dashboard')
+        // Fallback based on user type
+        await router.push(userData.isPremium ? '/dashboard' : '/try-it')
       }
     } else {
       error.value = result.error || 'Invalid email or password'
