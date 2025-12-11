@@ -23,9 +23,20 @@ export type { ActionsAdapter } from './actions/ActionsAdapter'
 export type { FormsAdapter } from './forms/FormsAdapter'
 export type { DocumentsAdapter } from './documents/DocumentsAdapter'
 
-// Check environment for mock vs real API
-// Default to mock for MVP development
-const useMocks = import.meta.env?.VITE_USE_MOCKS !== 'false'
+/**
+ * Check if mock adapters should be used
+ * Uses Nuxt runtime config with fallback to true for MVP
+ */
+function shouldUseMocks(): boolean {
+  try {
+    const config = useRuntimeConfig()
+    // Default to true (mocks) unless explicitly set to 'false'
+    return config.public.useMocks !== 'false'
+  } catch {
+    // If useRuntimeConfig fails (e.g., outside Nuxt context), default to mocks
+    return true
+  }
+}
 
 // Singleton instances
 let veteranAdapter: MockVeteranAdapter | null = null
@@ -41,7 +52,7 @@ let documentsAdapter: MockDocumentsAdapter | null = null
  */
 export function getVeteranAdapter() {
   if (!veteranAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       veteranAdapter = new MockVeteranAdapter()
     } else {
       // TODO: Replace with ApiVeteranAdapter when backend is ready
@@ -56,7 +67,7 @@ export function getVeteranAdapter() {
  */
 export function getClaimsAdapter() {
   if (!claimsAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       claimsAdapter = new MockClaimsAdapter()
     } else {
       claimsAdapter = new ApiClaimsAdapter()
@@ -70,7 +81,7 @@ export function getClaimsAdapter() {
  */
 export function getConditionsAdapter() {
   if (!conditionsAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       conditionsAdapter = new MockConditionsAdapter()
     } else {
       conditionsAdapter = new ApiConditionsAdapter()
@@ -84,7 +95,7 @@ export function getConditionsAdapter() {
  */
 export function getPackagesAdapter() {
   if (!packagesAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       packagesAdapter = new MockPackagesAdapter()
     } else {
       packagesAdapter = new ApiPackagesAdapter()
@@ -98,7 +109,7 @@ export function getPackagesAdapter() {
  */
 export function getActionsAdapter() {
   if (!actionsAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       actionsAdapter = new MockActionsAdapter()
     } else {
       // TODO: Replace with ApiActionsAdapter when backend is ready
@@ -113,7 +124,7 @@ export function getActionsAdapter() {
  */
 export function getFormsAdapter() {
   if (!formsAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       formsAdapter = new MockFormsAdapter()
     } else {
       // TODO: Replace with ApiFormsAdapter when backend is ready
@@ -128,7 +139,7 @@ export function getFormsAdapter() {
  */
 export function getDocumentsAdapter() {
   if (!documentsAdapter) {
-    if (useMocks) {
+    if (shouldUseMocks()) {
       documentsAdapter = new MockDocumentsAdapter()
     } else {
       // TODO: Replace with ApiDocumentsAdapter when backend is ready

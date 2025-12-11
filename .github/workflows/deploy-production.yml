@@ -64,6 +64,7 @@ jobs:
           NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_LIVE_KEY }}
           NUXT_PUBLIC_POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
           NUXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+          NUXT_PUBLIC_USE_MOCKS=true
           EOF
 
       - name: Build Nuxt app

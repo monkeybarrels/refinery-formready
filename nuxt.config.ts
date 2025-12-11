@@ -46,6 +46,9 @@ export default defineNuxtConfig({
       newRelicBrowserBeacon: process.env.NEW_RELIC_BROWSER_BEACON || 'bam.nr-data.net',
       newRelicBrowserErrorBeacon: process.env.NEW_RELIC_BROWSER_ERROR_BEACON || 'bam.nr-data.net',
       environment: process.env.NODE_ENV || 'development',
+
+      // Mock data toggle for MVP (default to true until backend is ready)
+      useMocks: process.env.NUXT_PUBLIC_USE_MOCKS || 'true',
     }
   },
 
