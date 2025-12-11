@@ -14,8 +14,10 @@ on:
 env:
   NODE_VERSION: '20'
   FIREBASE_PROJECT: refinery-authentication
-  WORKLOAD_IDENTITY_PROVIDER: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions/providers/github-provider'
-  SERVICE_ACCOUNT: 'terraform-cicd@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+  GCP_PROJECT_ID: claim-ready-479014
+  GCP_PROJECT_NUMBER: 836364975560
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/836364975560/locations/global/workloadIdentityPools/github-actions/providers/github-provider'
+  SERVICE_ACCOUNT: 'terraform-cicd@claim-ready-479014.iam.gserviceaccount.com'
 
 concurrency:
   group: deploy-frontend-production
