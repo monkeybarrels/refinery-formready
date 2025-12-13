@@ -46,7 +46,8 @@ export class MockActionsAdapter implements ActionsAdapter {
   }
 
   async getTopPriority(limit: number): Promise<ActionItem[]> {
-    await new Promise(r => setTimeout(r, 200))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return getAllActionItems(this.actionItems).slice(0, limit)
   }
 }

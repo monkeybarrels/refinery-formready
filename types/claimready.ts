@@ -213,8 +213,10 @@ export interface Correspondence {
   id: string
   claimId: string
   type: string
+  title: string
   date: Date
   summary: string
+  actionRequired?: boolean
   documentId?: string
 }
 

@@ -82,4 +82,19 @@ export class MockDocumentsAdapter implements DocumentsAdapter {
       this.documents.splice(index, 1)
     }
   }
+
+  async rename(id: string, newName: string): Promise<Document> {
+    await new Promise(r => setTimeout(r, 200))
+    const doc = this.documents.find(d => d.id === id)
+    if (!doc) {
+      throw new Error('Document not found')
+    }
+    doc.name = newName
+    return { ...doc }
+  }
+
+  async getDownloadUrl(id: string): Promise<string> {
+    await new Promise(r => setTimeout(r, 200))
+    return `https://mock-storage.example.com/documents/${id}`
+  }
 }

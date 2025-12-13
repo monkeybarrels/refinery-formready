@@ -39,7 +39,7 @@
           <button
             v-for="tab in tabs"
             :key="tab.value"
-            @click="activeFilter = tab.value"
+            @click="setActiveFilter(tab.value)"
             class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
             :class="activeFilter === tab.value
               ? 'bg-blue-100 text-blue-700'
@@ -55,10 +55,7 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <Spinner class="w-8 h-8" />
-        <span class="ml-3 text-slate-600">Loading claims...</span>
-      </div>
+      <SkeletonsClaimsListSkeleton v-if="loading" />
 
       <!-- Claims List -->
       <div v-else-if="filteredClaims.length > 0" class="space-y-4">
@@ -86,17 +83,17 @@
             <!-- Conditions Preview -->
             <div class="mt-4 flex flex-wrap gap-2">
               <span
-                v-for="(conditionId, index) in claim.conditionIds?.slice(0, 3)"
-                :key="conditionId"
+                v-for="claimCondition in claim.conditions?.slice(0, 3)"
+                :key="claimCondition.conditionId"
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
               >
-                {{ getConditionName(conditionId) }}
+                {{ getConditionName(claimCondition.conditionId) }}
               </span>
               <span
-                v-if="claim.conditionIds && claim.conditionIds.length > 3"
+                v-if="claim.conditions && claim.conditions.length > 3"
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500"
               >
-                +{{ claim.conditionIds.length - 3 }} more
+                +{{ claim.conditions.length - 3 }} more
               </span>
             </div>
 
@@ -138,8 +135,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Navigation from '~/components/organisms/Navigation.vue'
-import Spinner from '~/components/atoms/Spinner.vue'
 import StatusBadge from '~/components/molecules/StatusBadge.vue'
 import { getClaimsAdapter, getConditionsAdapter, getVeteranAdapter } from '~/adapters'
 import type { Claim, Condition, ClaimFilter } from '~/types/claimready'
@@ -153,12 +150,30 @@ useHead({
   title: 'Claims - ClaimReady'
 })
 
+const route = useRoute()
+const router = useRouter()
+
+// Valid filter values for URL sync
+const validFilters: ClaimFilter[] = ['all', 'active', 'completed', 'appeals']
+
+const getInitialFilter = (): ClaimFilter => {
+  const filterFromUrl = route.query.filter as string
+  return validFilters.includes(filterFromUrl as ClaimFilter) ? filterFromUrl as ClaimFilter : 'all'
+}
+
+const setActiveFilter = (filter: ClaimFilter) => {
+  activeFilter.value = filter
+  router.replace({
+    query: { ...route.query, filter }
+  })
+}
+
 // State
 const loading = ref(true)
 const claims = ref<Claim[]>([])
 const conditions = ref<Condition[]>([])
 const lastSynced = ref('Never')
-const activeFilter = ref<ClaimFilter>('all')
+const activeFilter = ref<ClaimFilter>(getInitialFilter())
 
 // Filter tabs
 const tabs = computed(() => [
@@ -210,7 +225,7 @@ onMounted(async () => {
     const [claimsData, conditionsData, veteranData] = await Promise.all([
       getClaimsAdapter().getAll(),
       getConditionsAdapter().getAll(),
-      getVeteranAdapter().get()
+      getVeteranAdapter().getProfile()
     ])
 
     claims.value = claimsData

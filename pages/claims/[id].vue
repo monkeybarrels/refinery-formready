@@ -4,10 +4,7 @@
     <Navigation />
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center min-h-screen">
-      <Spinner class="w-8 h-8" />
-      <span class="ml-3 text-slate-600">Loading claim details...</span>
-    </div>
+    <AtomsPageLoader v-if="loading" message="Loading claim details..." />
 
     <!-- Not Found State -->
     <div v-else-if="!claim" class="flex flex-col items-center justify-center min-h-screen">
@@ -120,33 +117,7 @@
             </div>
 
             <!-- Correspondence -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-              <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900">Correspondence</h2>
-              </div>
-              <div class="p-6">
-                <div v-if="correspondence.length === 0" class="text-center py-8 text-slate-500">
-                  <Icon name="heroicons:envelope" class="w-12 h-12 mx-auto text-slate-300" />
-                  <p class="mt-2">No correspondence for this claim</p>
-                </div>
-                <ul v-else class="space-y-4">
-                  <li v-for="item in correspondence" :key="item.id" class="p-4 bg-slate-50 rounded-lg">
-                    <div class="flex items-start justify-between">
-                      <div>
-                        <h3 class="font-medium text-slate-900">{{ item.title }}</h3>
-                        <p class="text-sm text-slate-500 capitalize">{{ item.type.replace('_', ' ') }}</p>
-                      </div>
-                      <span class="text-xs text-slate-400">{{ formatDate(item.date) }}</span>
-                    </div>
-                    <p v-if="item.summary" class="mt-2 text-sm text-slate-600">{{ item.summary }}</p>
-                    <div v-if="item.actionRequired" class="mt-3 flex items-center text-sm text-amber-600">
-                      <Icon name="heroicons:exclamation-triangle" class="w-4 h-4 mr-1" />
-                      Action Required
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <CorrespondenceList :items="correspondence" />
           </div>
 
           <!-- Sidebar -->
@@ -169,7 +140,7 @@
                 </div>
                 <div>
                   <dt class="text-sm text-slate-500">Conditions</dt>
-                  <dd class="font-medium text-slate-900">{{ claim.conditionIds?.length || 0 }}</dd>
+                  <dd class="font-medium text-slate-900">{{ claim.conditions?.length || 0 }}</dd>
                 </div>
               </dl>
             </div>
@@ -237,6 +208,7 @@ import { useRoute } from 'vue-router'
 import Navigation from '~/components/organisms/Navigation.vue'
 import Spinner from '~/components/atoms/Spinner.vue'
 import StatusBadge from '~/components/molecules/StatusBadge.vue'
+import CorrespondenceList from '~/components/molecules/CorrespondenceList.vue'
 import {
   getClaimsAdapter,
   getConditionsAdapter,
@@ -335,14 +307,16 @@ onMounted(async () => {
         title: `${claimData.type.charAt(0).toUpperCase() + claimData.type.slice(1)} Claim - ClaimReady`
       })
 
-      // Load related data
+      // Load related data - extract conditionIds from claim.conditions array
+      const conditionIds = claimData.conditions?.map(c => c.conditionId) || []
+
       const [conditionsData, actionsData, packagesData, correspondenceData] = await Promise.all([
-        claimData.conditionIds?.length
-          ? Promise.all(claimData.conditionIds.map(id => getConditionsAdapter().getById(id)))
+        conditionIds.length
+          ? Promise.all(conditionIds.map(id => getConditionsAdapter().getById(id)))
           : Promise.resolve([]),
         getActionsAdapter().getByClaimId(id),
         getPackagesAdapter().getAll().then(pkgs =>
-          pkgs.filter(p => p.targetConditions?.some(c => claimData.conditionIds?.includes(c)))
+          pkgs.filter(p => p.targetConditions?.some(c => conditionIds.includes(c)))
         ),
         getClaimsAdapter().getCorrespondence(id)
       ])

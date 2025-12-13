@@ -8,7 +8,8 @@ export class MockPackagesAdapter implements PackagesAdapter {
   private checklists: Checklist[] = [...mockChecklists]
 
   async getAll(): Promise<Package[]> {
-    await new Promise(r => setTimeout(r, 300))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return [...this.packages]
   }
 
@@ -35,7 +36,8 @@ export class MockPackagesAdapter implements PackagesAdapter {
   }
 
   async getActive(): Promise<Package[]> {
-    await new Promise(r => setTimeout(r, 200))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return this.packages.filter(p => p.status === 'active')
   }
 

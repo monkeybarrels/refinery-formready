@@ -1,5 +1,5 @@
 // Claims Adapter Interface
-import type { Claim, ClaimFilter } from '~/types/claimready'
+import type { Claim, ClaimFilter, Correspondence } from '~/types/claimready'
 
 export interface ClaimsAdapter {
   /**
@@ -21,4 +21,14 @@ export interface ClaimsAdapter {
    * Get active (non-decided) claims
    */
   getActive(): Promise<Claim[]>
+
+  /**
+   * Get correspondence for a claim
+   */
+  getCorrespondence(claimId: string): Promise<Correspondence[]>
+
+  /**
+   * Get claims that include a specific condition
+   */
+  getByConditionId(conditionId: string): Promise<Claim[]>
 }

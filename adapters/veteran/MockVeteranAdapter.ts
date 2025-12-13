@@ -15,8 +15,8 @@ export class MockVeteranAdapter implements VeteranAdapter {
   private veteran: Veteran = { ...mockVeteran }
 
   async getProfile(): Promise<Veteran> {
-    // Simulate network delay
-    await new Promise(r => setTimeout(r, 200))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return { ...this.veteran }
   }
 

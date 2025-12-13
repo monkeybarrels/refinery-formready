@@ -5,7 +5,8 @@ import { mockConditions, calculateMoneyLeftOnTable } from '../mockData'
 
 export class MockConditionsAdapter implements ConditionsAdapter {
   async getAll(): Promise<Condition[]> {
-    await new Promise(r => setTimeout(r, 300))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return [...mockConditions]
   }
 
