@@ -4,10 +4,7 @@
     <Navigation />
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center min-h-screen">
-      <Spinner class="w-8 h-8" />
-      <span class="ml-3 text-slate-600">Loading condition details...</span>
-    </div>
+    <AtomsPageLoader v-if="loading" message="Loading condition details..." />
 
     <!-- Not Found State -->
     <div v-else-if="!condition" class="flex flex-col items-center justify-center min-h-screen">

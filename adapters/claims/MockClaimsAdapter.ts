@@ -1,11 +1,12 @@
 // Mock Claims Adapter Implementation
 import type { ClaimsAdapter } from './ClaimsAdapter'
-import type { Claim, ClaimFilter } from '~/types/claimready'
-import { mockClaims } from '../mockData'
+import type { Claim, ClaimFilter, Correspondence } from '~/types/claimready'
+import { mockClaims, mockCorrespondence } from '../mockData'
 
 export class MockClaimsAdapter implements ClaimsAdapter {
   async getAll(): Promise<Claim[]> {
-    await new Promise(r => setTimeout(r, 300))
+    // Simulate network delay (1.5s to show skeleton loaders)
+    await new Promise(r => setTimeout(r, 1500))
     return [...mockClaims]
   }
 
@@ -36,5 +37,17 @@ export class MockClaimsAdapter implements ClaimsAdapter {
   async getActive(): Promise<Claim[]> {
     await new Promise(r => setTimeout(r, 300))
     return mockClaims.filter(c => c.status !== 'decided')
+  }
+
+  async getCorrespondence(claimId: string): Promise<Correspondence[]> {
+    await new Promise(r => setTimeout(r, 200))
+    return mockCorrespondence.filter(c => c.claimId === claimId)
+  }
+
+  async getByConditionId(conditionId: string): Promise<Claim[]> {
+    await new Promise(r => setTimeout(r, 200))
+    return mockClaims.filter(claim =>
+      claim.conditions?.some(c => c.conditionId === conditionId)
+    )
   }
 }

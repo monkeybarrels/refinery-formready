@@ -10,9 +10,12 @@ import { MockFormsAdapter } from './forms/MockFormsAdapter'
 import { MockDocumentsAdapter } from './documents/MockDocumentsAdapter'
 
 // API Adapters (real backend)
+import { ApiVeteranAdapter } from './veteran/ApiVeteranAdapter'
 import { ApiConditionsAdapter } from './conditions/ApiConditionsAdapter'
 import { ApiClaimsAdapter } from './claims/ApiClaimsAdapter'
 import { ApiPackagesAdapter } from './packages/ApiPackagesAdapter'
+import { ApiActionsAdapter } from './actions/ApiActionsAdapter'
+import { ApiDocumentsAdapter } from './documents/ApiDocumentsAdapter'
 
 // Re-export interfaces for type imports
 export type { VeteranAdapter } from './veteran/VeteranAdapter'
@@ -30,22 +33,30 @@ export type { DocumentsAdapter } from './documents/DocumentsAdapter'
 function shouldUseMocks(): boolean {
   try {
     const config = useRuntimeConfig()
-    // Default to true (mocks) unless explicitly set to 'false'
-    return config.public.useMocks !== 'false'
-  } catch {
+    const useMocksValue = config.public.useMocks as string | boolean | undefined
+
+    // Handle both string and boolean values
+    // String 'false' or boolean false means don't use mocks
+    const useMocks = useMocksValue !== 'false' && useMocksValue !== false && useMocksValue !== '0'
+
+    console.log('[Adapters] useMocks config:', useMocksValue, `(${typeof useMocksValue}) → using mocks:`, useMocks)
+    // Default to true (mocks) unless explicitly set to 'false' or false
+    return useMocks
+  } catch (error) {
     // If useRuntimeConfig fails (e.g., outside Nuxt context), default to mocks
+    console.warn('[Adapters] Failed to read runtime config, defaulting to mocks:', error)
     return true
   }
 }
 
 // Singleton instances
-let veteranAdapter: MockVeteranAdapter | null = null
+let veteranAdapter: MockVeteranAdapter | ApiVeteranAdapter | null = null
 let claimsAdapter: MockClaimsAdapter | ApiClaimsAdapter | null = null
 let conditionsAdapter: MockConditionsAdapter | ApiConditionsAdapter | null = null
 let packagesAdapter: MockPackagesAdapter | ApiPackagesAdapter | null = null
-let actionsAdapter: MockActionsAdapter | null = null
+let actionsAdapter: MockActionsAdapter | ApiActionsAdapter | null = null
 let formsAdapter: MockFormsAdapter | null = null
-let documentsAdapter: MockDocumentsAdapter | null = null
+let documentsAdapter: MockDocumentsAdapter | ApiDocumentsAdapter | null = null
 
 /**
  * Get the veteran adapter instance
@@ -53,10 +64,11 @@ let documentsAdapter: MockDocumentsAdapter | null = null
 export function getVeteranAdapter() {
   if (!veteranAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockVeteranAdapter')
       veteranAdapter = new MockVeteranAdapter()
     } else {
-      // TODO: Replace with ApiVeteranAdapter when backend is ready
-      veteranAdapter = new MockVeteranAdapter()
+      console.log('[Adapters] Using ApiVeteranAdapter')
+      veteranAdapter = new ApiVeteranAdapter()
     }
   }
   return veteranAdapter
@@ -68,8 +80,10 @@ export function getVeteranAdapter() {
 export function getClaimsAdapter() {
   if (!claimsAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockClaimsAdapter')
       claimsAdapter = new MockClaimsAdapter()
     } else {
+      console.log('[Adapters] Using ApiClaimsAdapter')
       claimsAdapter = new ApiClaimsAdapter()
     }
   }
@@ -82,8 +96,10 @@ export function getClaimsAdapter() {
 export function getConditionsAdapter() {
   if (!conditionsAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockConditionsAdapter')
       conditionsAdapter = new MockConditionsAdapter()
     } else {
+      console.log('[Adapters] Using ApiConditionsAdapter')
       conditionsAdapter = new ApiConditionsAdapter()
     }
   }
@@ -96,8 +112,10 @@ export function getConditionsAdapter() {
 export function getPackagesAdapter() {
   if (!packagesAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockPackagesAdapter')
       packagesAdapter = new MockPackagesAdapter()
     } else {
+      console.log('[Adapters] Using ApiPackagesAdapter')
       packagesAdapter = new ApiPackagesAdapter()
     }
   }
@@ -110,10 +128,11 @@ export function getPackagesAdapter() {
 export function getActionsAdapter() {
   if (!actionsAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockActionsAdapter')
       actionsAdapter = new MockActionsAdapter()
     } else {
-      // TODO: Replace with ApiActionsAdapter when backend is ready
-      actionsAdapter = new MockActionsAdapter()
+      console.log('[Adapters] Using ApiActionsAdapter')
+      actionsAdapter = new ApiActionsAdapter()
     }
   }
   return actionsAdapter
@@ -140,10 +159,11 @@ export function getFormsAdapter() {
 export function getDocumentsAdapter() {
   if (!documentsAdapter) {
     if (shouldUseMocks()) {
+      console.log('[Adapters] Using MockDocumentsAdapter')
       documentsAdapter = new MockDocumentsAdapter()
     } else {
-      // TODO: Replace with ApiDocumentsAdapter when backend is ready
-      documentsAdapter = new MockDocumentsAdapter()
+      console.log('[Adapters] Using ApiDocumentsAdapter')
+      documentsAdapter = new ApiDocumentsAdapter()
     }
   }
   return documentsAdapter

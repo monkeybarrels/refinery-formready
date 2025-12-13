@@ -48,10 +48,7 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <Spinner class="w-8 h-8" />
-        <span class="ml-3 text-slate-600">Loading packages...</span>
-      </div>
+      <SkeletonsPackagesListSkeleton v-if="loading" />
 
       <!-- Packages Grid -->
       <div v-else-if="filteredPackages.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -204,7 +201,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import Navigation from '~/components/organisms/Navigation.vue'
-import Spinner from '~/components/atoms/Spinner.vue'
 import StatusBadge from '~/components/molecules/StatusBadge.vue'
 import { getPackagesAdapter, getConditionsAdapter } from '~/adapters'
 import type { Package, Condition, PackageFilter } from '~/types/claimready'

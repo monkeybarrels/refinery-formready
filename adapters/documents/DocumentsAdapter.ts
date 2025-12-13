@@ -36,4 +36,14 @@ export interface DocumentsAdapter {
    * Delete a document
    */
   delete(id: string): Promise<void>
+
+  /**
+   * Rename a document
+   */
+  rename(id: string, newName: string): Promise<Document>
+
+  /**
+   * Get download URL for a document
+   */
+  getDownloadUrl(id: string): Promise<string>
 }

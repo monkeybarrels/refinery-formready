@@ -4,10 +4,7 @@
     <Navigation />
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center min-h-screen">
-      <Spinner class="w-8 h-8" />
-      <span class="ml-3 text-slate-600">Loading package details...</span>
-    </div>
+    <AtomsPageLoader v-if="loading" message="Loading package details..." />
 
     <!-- Not Found State -->
     <div v-else-if="!pkg" class="flex flex-col items-center justify-center min-h-screen">
@@ -67,7 +64,7 @@
             <button
               v-for="tab in tabs"
               :key="tab.id"
-              @click="activeTab = tab.id"
+              @click="setActiveTab(tab.id)"
               class="py-4 px-1 text-sm font-medium border-b-2 transition-colors"
               :class="activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'
@@ -216,29 +213,119 @@
           <div class="bg-white rounded-xl shadow-sm border border-slate-200">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <h2 class="text-lg font-semibold text-slate-900">Uploaded Documents</h2>
-              <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                <Icon name="heroicons:arrow-up-tray" class="w-4 h-4 mr-2" />
-                Upload Document
-              </button>
+              <div class="flex items-center space-x-2">
+                <span v-if="uploadingFile" class="text-sm text-slate-500 flex items-center">
+                  <Icon name="heroicons:arrow-path" class="w-4 h-4 mr-1 animate-spin" />
+                  Uploading...
+                </span>
+                <input
+                  ref="fileInput"
+                  type="file"
+                  class="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+                  @change="handleFileSelect"
+                />
+                <button
+                  @click="triggerFileUpload"
+                  :disabled="uploadingFile"
+                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Icon name="heroicons:arrow-up-tray" class="w-4 h-4 mr-2" />
+                  Upload Document
+                </button>
+              </div>
             </div>
             <div class="p-6">
+              <!-- Upload Error -->
+              <div v-if="uploadError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {{ uploadError }}
+                <button @click="uploadError = ''" class="ml-2 text-red-500 hover:text-red-700">×</button>
+              </div>
+
               <div v-if="documents.length === 0" class="text-center py-12">
                 <Icon name="heroicons:document-plus" class="w-12 h-12 mx-auto text-slate-300" />
                 <p class="mt-4 text-slate-500">No documents uploaded yet</p>
                 <p class="text-sm text-slate-400">Upload evidence to support your claim</p>
               </div>
               <ul v-else class="divide-y divide-slate-200">
-                <li v-for="doc in documents" :key="doc.id" class="py-4 flex items-center justify-between">
-                  <div class="flex items-center">
-                    <Icon name="heroicons:document" class="w-8 h-8 text-slate-400" />
-                    <div class="ml-3">
-                      <p class="text-sm font-medium text-slate-900">{{ doc.name }}</p>
-                      <p class="text-xs text-slate-500">Uploaded {{ formatDate(doc.uploadedAt) }}</p>
+                <li v-for="doc in documents" :key="doc.id" class="py-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center flex-1 min-w-0">
+                      <Icon :name="getFileIcon(doc)" class="w-8 h-8 text-slate-400 flex-shrink-0" />
+                      <div class="ml-3 flex-1 min-w-0">
+                        <!-- Editable name -->
+                        <div v-if="editingDocId === doc.id" class="flex items-center space-x-2">
+                          <input
+                            v-model="editingDocName"
+                            type="text"
+                            class="flex-1 text-sm px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            @keyup.enter="saveDocumentName(doc.id)"
+                            @keyup.escape="cancelEditName"
+                          />
+                          <button
+                            @click="saveDocumentName(doc.id)"
+                            :disabled="renamingDocId === doc.id"
+                            class="text-green-600 hover:text-green-700 disabled:opacity-50"
+                            title="Save"
+                          >
+                            <Icon v-if="renamingDocId === doc.id" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
+                            <Icon v-else name="heroicons:check" class="w-4 h-4" />
+                          </button>
+                          <button
+                            @click="cancelEditName"
+                            class="text-slate-400 hover:text-slate-600"
+                            title="Cancel"
+                          >
+                            <Icon name="heroicons:x-mark" class="w-4 h-4" />
+                          </button>
+                        </div>
+                        <!-- Display name with edit button -->
+                        <div v-else class="flex items-center space-x-2">
+                          <p class="text-sm font-medium text-slate-900 truncate">{{ doc.name }}</p>
+                          <button
+                            @click="startEditName(doc)"
+                            class="text-slate-400 hover:text-slate-600 flex-shrink-0"
+                            title="Rename document"
+                          >
+                            <Icon name="heroicons:pencil" class="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p class="text-xs text-slate-500">Uploaded {{ formatDate(doc.uploadedAt) }}</p>
+                      </div>
+                    </div>
+                    <!-- Action buttons -->
+                    <div class="flex items-center space-x-2 ml-4">
+                      <!-- Preview button (only for previewable files) -->
+                      <button
+                        v-if="isPreviewable(doc)"
+                        @click="openPreview(doc)"
+                        class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Preview"
+                      >
+                        <Icon name="heroicons:eye" class="w-5 h-5" />
+                      </button>
+                      <!-- Download button -->
+                      <button
+                        @click="downloadDocument(doc)"
+                        :disabled="downloadingDocId === doc.id"
+                        class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Download"
+                      >
+                        <Icon v-if="downloadingDocId === doc.id" name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
+                        <Icon v-else name="heroicons:arrow-down-tray" class="w-5 h-5" />
+                      </button>
+                      <!-- Delete button -->
+                      <button
+                        @click="deleteDocument(doc.id)"
+                        :disabled="deletingDocId === doc.id"
+                        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Delete"
+                      >
+                        <Icon v-if="deletingDocId === doc.id" name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
+                        <Icon v-else name="heroicons:trash" class="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
-                  <button class="text-red-600 hover:text-red-700">
-                    <Icon name="heroicons:trash" class="w-5 h-5" />
-                  </button>
                 </li>
               </ul>
             </div>
@@ -303,12 +390,81 @@
         </div>
       </div>
     </div>
+
+    <!-- Document Preview Modal -->
+    <Teleport to="body">
+      <div
+        v-if="previewDoc"
+        class="fixed inset-0 z-50 overflow-y-auto"
+        @click.self="closePreview"
+      >
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+          <!-- Overlay -->
+          <div class="fixed inset-0 bg-slate-900/75 transition-opacity" @click="closePreview"></div>
+
+          <!-- Modal -->
+          <div class="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden z-10">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 class="text-lg font-semibold text-slate-900 truncate">{{ previewDoc.name }}</h3>
+              <div class="flex items-center space-x-2">
+                <button
+                  @click="downloadDocument(previewDoc)"
+                  :disabled="downloadingDocId === previewDoc.id"
+                  class="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Download"
+                >
+                  <Icon v-if="downloadingDocId === previewDoc.id" name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
+                  <Icon v-else name="heroicons:arrow-down-tray" class="w-5 h-5" />
+                </button>
+                <button
+                  @click="closePreview"
+                  class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <Icon name="heroicons:x-mark" class="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-4 bg-slate-100 overflow-auto" style="max-height: calc(90vh - 80px);">
+              <!-- Loading state -->
+              <div v-if="previewLoading" class="flex items-center justify-center py-20">
+                <Icon name="heroicons:arrow-path" class="w-8 h-8 text-blue-600 animate-spin" />
+                <span class="ml-3 text-slate-600">Loading preview...</span>
+              </div>
+
+              <!-- PDF preview -->
+              <iframe
+                v-else-if="previewUrl && previewDoc.name.toLowerCase().endsWith('.pdf')"
+                :src="previewUrl"
+                class="w-full h-[70vh] rounded-lg"
+              ></iframe>
+
+              <!-- Image preview -->
+              <img
+                v-else-if="previewUrl && (previewDoc.name.toLowerCase().endsWith('.jpg') || previewDoc.name.toLowerCase().endsWith('.jpeg') || previewDoc.name.toLowerCase().endsWith('.png') || previewDoc.name.toLowerCase().endsWith('.gif'))"
+                :src="previewUrl"
+                :alt="previewDoc.name"
+                class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-lg"
+              />
+
+              <!-- Error state -->
+              <div v-else-if="!previewUrl && !previewLoading" class="text-center py-20">
+                <Icon name="heroicons:exclamation-triangle" class="w-12 h-12 mx-auto text-slate-300" />
+                <p class="mt-4 text-slate-500">Unable to load preview</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Navigation from '~/components/organisms/Navigation.vue'
 import Spinner from '~/components/atoms/Spinner.vue'
 import StatusBadge from '~/components/molecules/StatusBadge.vue'
@@ -326,6 +482,10 @@ definePageMeta({
 })
 
 const route = useRoute()
+const router = useRouter()
+
+// Valid tab IDs for URL validation
+const validTabs = ['overview', 'checklists', 'evidence', 'forms', 'timeline']
 
 // State
 const loading = ref(true)
@@ -336,7 +496,36 @@ const actionItems = ref<ActionItem[]>([])
 const documents = ref<Document[]>([])
 const timeline = ref<TimelineEvent[]>([])
 const conditions = ref<Condition[]>([])
-const activeTab = ref('overview')
+
+// Active tab - synced with URL query param
+const getInitialTab = () => {
+  const tabFromUrl = route.query.tab as string
+  return validTabs.includes(tabFromUrl) ? tabFromUrl : 'overview'
+}
+const activeTab = ref(getInitialTab())
+
+// Update URL when tab changes
+const setActiveTab = (tabId: string) => {
+  activeTab.value = tabId
+  router.replace({
+    query: { ...route.query, tab: tabId }
+  })
+}
+
+// File upload state
+const fileInput = ref<HTMLInputElement | null>(null)
+const uploadingFile = ref(false)
+const uploadError = ref('')
+const deletingDocId = ref<string | null>(null)
+
+// Document actions state
+const downloadingDocId = ref<string | null>(null)
+const previewDoc = ref<Document | null>(null)
+const previewUrl = ref<string | null>(null)
+const previewLoading = ref(false)
+const editingDocId = ref<string | null>(null)
+const editingDocName = ref('')
+const renamingDocId = ref<string | null>(null)
 
 // Tabs config
 const tabs = [
@@ -410,6 +599,158 @@ const toggleChecklistItem = async (checklistId: string, itemId: string) => {
   } catch (error) {
     console.error('Failed to toggle checklist item:', error)
   }
+}
+
+// File upload handlers
+const triggerFileUpload = () => {
+  fileInput.value?.click()
+}
+
+const handleFileSelect = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file || !pkg.value) return
+
+  // Validate file size (10MB max)
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) {
+    uploadError.value = 'File size must be less than 10MB'
+    return
+  }
+
+  uploadingFile.value = true
+  uploadError.value = ''
+
+  try {
+    const documentsAdapter = getDocumentsAdapter()
+    const newDoc = await documentsAdapter.upload(file, pkg.value.id)
+    documents.value.unshift(newDoc)
+
+    // Add to timeline
+    timeline.value.unshift({
+      id: `upload-${Date.now()}`,
+      type: 'document_uploaded',
+      title: `Uploaded "${file.name}"`,
+      description: 'Evidence document added',
+      date: new Date()
+    })
+  } catch (error: any) {
+    console.error('Failed to upload document:', error)
+    uploadError.value = error.message || 'Failed to upload document. Please try again.'
+  } finally {
+    uploadingFile.value = false
+    // Reset file input
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  }
+}
+
+const deleteDocument = async (docId: string) => {
+  if (!confirm('Are you sure you want to delete this document?')) return
+
+  deletingDocId.value = docId
+
+  try {
+    await getDocumentsAdapter().delete(docId)
+    documents.value = documents.value.filter(d => d.id !== docId)
+  } catch (error: any) {
+    console.error('Failed to delete document:', error)
+    uploadError.value = error.message || 'Failed to delete document'
+  } finally {
+    deletingDocId.value = null
+  }
+}
+
+const downloadDocument = async (doc: Document) => {
+  downloadingDocId.value = doc.id
+
+  try {
+    const downloadUrl = await getDocumentsAdapter().getDownloadUrl(doc.id)
+    // Create a temporary link and trigger download
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = doc.name
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error: any) {
+    console.error('Failed to download document:', error)
+    uploadError.value = error.message || 'Failed to download document'
+  } finally {
+    downloadingDocId.value = null
+  }
+}
+
+const openPreview = async (doc: Document) => {
+  previewDoc.value = doc
+  previewLoading.value = true
+  previewUrl.value = null
+
+  try {
+    const url = await getDocumentsAdapter().getDownloadUrl(doc.id)
+    previewUrl.value = url
+  } catch (error: any) {
+    console.error('Failed to load preview:', error)
+    uploadError.value = error.message || 'Failed to load document preview'
+    previewDoc.value = null
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+const closePreview = () => {
+  previewDoc.value = null
+  previewUrl.value = null
+}
+
+const startEditName = (doc: Document) => {
+  editingDocId.value = doc.id
+  editingDocName.value = doc.name
+}
+
+const cancelEditName = () => {
+  editingDocId.value = null
+  editingDocName.value = ''
+}
+
+const saveDocumentName = async (docId: string) => {
+  if (!editingDocName.value.trim()) {
+    cancelEditName()
+    return
+  }
+
+  renamingDocId.value = docId
+
+  try {
+    const updatedDoc = await getDocumentsAdapter().rename(docId, editingDocName.value.trim())
+    // Update local state
+    const docIndex = documents.value.findIndex(d => d.id === docId)
+    if (docIndex !== -1) {
+      documents.value[docIndex] = updatedDoc
+    }
+    cancelEditName()
+  } catch (error: any) {
+    console.error('Failed to rename document:', error)
+    uploadError.value = error.message || 'Failed to rename document'
+  } finally {
+    renamingDocId.value = null
+  }
+}
+
+const getFileIcon = (doc: Document) => {
+  const name = doc.name.toLowerCase()
+  if (name.endsWith('.pdf')) return 'heroicons:document-text'
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.gif')) return 'heroicons:photo'
+  if (name.endsWith('.doc') || name.endsWith('.docx')) return 'heroicons:document'
+  return 'heroicons:document'
+}
+
+const isPreviewable = (doc: Document) => {
+  const name = doc.name.toLowerCase()
+  return name.endsWith('.pdf') || name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.gif')
 }
 
 // Load data

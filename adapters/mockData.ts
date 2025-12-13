@@ -10,6 +10,7 @@ import type {
   Checklist,
   VAForm,
   PackageForm,
+  Correspondence,
 } from '~/types/claimready'
 
 // ============================================
@@ -374,6 +375,49 @@ export const mockPackageForms: PackageForm[] = [
     formId: 'form-004',
     status: 'not_started',
     data: {},
+  },
+]
+
+// ============================================
+// Mock Correspondence
+// ============================================
+
+export const mockCorrespondence: Correspondence[] = [
+  {
+    id: 'corr-001',
+    claimId: 'claim-003',
+    type: 'decision_letter',
+    title: 'Rating Decision Letter',
+    date: new Date('2024-01-15'),
+    summary: 'Decision on original claim - 3 conditions granted, 3 conditions denied',
+    actionRequired: false,
+  },
+  {
+    id: 'corr-002',
+    claimId: 'claim-002',
+    type: 'development_letter',
+    title: 'Request for Additional Evidence',
+    date: new Date('2024-11-20'),
+    summary: 'VA requests additional medical evidence for PTSD increase claim',
+    actionRequired: true,
+  },
+  {
+    id: 'corr-003',
+    claimId: 'claim-001',
+    type: 'acknowledgment',
+    title: 'Claim Acknowledgment Letter',
+    date: new Date('2024-12-02'),
+    summary: 'VA acknowledges receipt of supplemental claim',
+    actionRequired: false,
+  },
+  {
+    id: 'corr-004',
+    claimId: 'claim-001',
+    type: 'exam_notice',
+    title: 'C&P Exam Scheduled',
+    date: new Date('2024-12-10'),
+    summary: 'Compensation & Pension exam scheduled for December 20, 2024',
+    actionRequired: true,
   },
 ]
 

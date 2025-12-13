@@ -93,6 +93,19 @@ export class ApiClaimsAdapter implements ClaimsAdapter {
   }
 
   /**
+   * Get claims that include a specific condition
+   */
+  async getByConditionId(conditionId: string): Promise<Claim[]> {
+    try {
+      const response = await this.api.get<ClaimsResponse>(`/api/claims?conditionId=${conditionId}`)
+      return response.claims.map(this.transformClaim)
+    } catch (error) {
+      console.error('Failed to get claims by condition ID:', error)
+      return []
+    }
+  }
+
+  /**
    * Transform API correspondence to frontend Correspondence type
    */
   private transformCorrespondence = (apiCorrespondence: any): Correspondence => {

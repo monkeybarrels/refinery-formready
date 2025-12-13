@@ -16,10 +16,7 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <Spinner class="w-8 h-8" />
-        <span class="ml-3 text-slate-600">Loading your dashboard...</span>
-      </div>
+      <SkeletonsDashboardSkeleton v-if="loading" />
 
       <!-- Dashboard Content -->
       <div v-else class="space-y-8">
@@ -115,7 +112,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import Navigation from '~/components/organisms/Navigation.vue'
-import Spinner from '~/components/atoms/Spinner.vue'
 import StatCard from '~/components/molecules/StatCard.vue'
 import SyncStatusBar from '~/components/molecules/SyncStatusBar.vue'
 import ActionItemsList from '~/components/molecules/ActionItemsList.vue'
@@ -178,7 +174,7 @@ const toggleAction = async (id: string) => {
 onMounted(async () => {
   try {
     const [veteranData, claimsData, conditionsData, packagesData, actionsData] = await Promise.all([
-      getVeteranAdapter().get(),
+      getVeteranAdapter().getProfile(),
       getClaimsAdapter().getAll(),
       getConditionsAdapter().getAll(),
       getPackagesAdapter().getActive(),

@@ -22,10 +22,14 @@ export const useClaimReadyApi = () => {
 
   /**
    * Make an authenticated ClaimReady API call
-   * Uses Firebase ID token for authentication
+   * Uses Firebase ID token for authentication (both refinery-api and claimready-api use
+   * Google Identity Platform/Firebase for authentication)
+   *
+   * The token stored in localStorage from login is a Firebase ID token, which is compatible
+   * with both APIs since they share the same Firebase project (refinery-authentication).
    */
   const apiCall = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
-    // Get the Firebase ID token from localStorage
+    // Get the auth token from localStorage (Firebase ID token from login)
     const token = localStorage.getItem('auth_token')
 
     if (!token) {
@@ -35,20 +39,32 @@ export const useClaimReadyApi = () => {
     const url = getApiUrl(endpoint)
     console.log('[ClaimReady API]', options.method || 'GET', url)
 
+    // Build headers - don't set Content-Type for FormData (browser will set it with boundary)
+    const isFormData = options.body instanceof FormData
+    const headers: HeadersInit = {
+      'Authorization': `Bearer ${token}`,
+      ...options.headers
+    }
+    if (!isFormData) {
+      (headers as Record<string, string>)['Content-Type'] = 'application/json'
+    }
+
     const response = await fetch(url, {
       ...options,
       credentials: 'include',
       mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options.headers
-      }
+      headers
     })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `API error: ${response.status}`)
+
+      // Log detailed error for 401 (authentication issues)
+      if (response.status === 401) {
+        console.error('[ClaimReady API] 401 Unauthorized - token may be expired or invalid')
+      }
+
+      throw new Error(errorData.error || errorData.message || `API error: ${response.status}`)
     }
 
     return response.json()

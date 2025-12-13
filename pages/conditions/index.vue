@@ -16,10 +16,7 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <Spinner class="w-8 h-8" />
-        <span class="ml-3 text-slate-600">Loading conditions...</span>
-      </div>
+      <SkeletonsConditionsListSkeleton v-if="loading" />
 
       <div v-else class="space-y-8">
         <!-- Summary Cards -->
@@ -167,7 +164,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import Navigation from '~/components/organisms/Navigation.vue'
-import Spinner from '~/components/atoms/Spinner.vue'
 import StatusBadge from '~/components/molecules/StatusBadge.vue'
 import { getConditionsAdapter } from '~/adapters'
 import type { Condition } from '~/types/claimready'
